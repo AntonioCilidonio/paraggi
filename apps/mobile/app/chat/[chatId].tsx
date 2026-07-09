@@ -9,8 +9,10 @@ import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { demoChats, demoMessages } from "@/demo/data";
 import { callFunction } from "@/services/api";
+import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { useAppStore } from "@/stores/appStore";
 
 type Message = {
   id: string;
@@ -22,6 +24,10 @@ type Message = {
 export default function ChatDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const queryClient = useQueryClient();
+  const demoStatus = useAppStore((state) => state.demoChatStatusById[chatId ?? ""]);
+  const demoExtraMessages = useAppStore((state) => state.demoMessagesByChat[chatId ?? ""] ?? []);
+  const addDemoMessage = useAppStore((state) => state.addDemoMessage);
+  const setDemoChatStatus = useAppStore((state) => state.setDemoChatStatus);
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
   useRealtimeChannel(chatId ? { type: "chat-messages", chatId } : null);
   useRealtimeChannel(chatId ? { type: "chat-status", chatId } : null);
@@ -30,7 +36,8 @@ export default function ChatDetailScreen() {
     queryKey: ["chat", chatId],
     queryFn: async () => {
       if (demoMode) {
-        return demoChats.find((item) => item.id === chatId) ?? demoChats[0];
+        const base = demoChats.find((item) => item.id === chatId) ?? demoChats[0];
+        return { ...base, status: demoStatus ?? base.status };
       }
       const { data, error } = await supabase.from("private_chats").select("*").eq("id", chatId).single();
       if (error) throw error;
@@ -39,9 +46,9 @@ export default function ChatDetailScreen() {
   });
 
   const messages = useQuery({
-    queryKey: ["messages", chatId],
+    queryKey: ["messages", chatId, demoExtraMessages.length],
     queryFn: async () => {
-      if (demoMode) return demoMessages;
+      if (demoMode) return [...demoMessages, ...demoExtraMessages];
       const { data, error } = await supabase.from("private_messages").select("id,sender_id,body,created_at").eq("chat_id", chatId).order("created_at", { ascending: true });
       if (error) throw error;
       return data as Message[];
@@ -50,11 +57,12 @@ export default function ChatDetailScreen() {
 
   const send = useMutation({
     mutationFn: async (values: { body: string }) => {
-      if (demoMode) return { message: { id: "demo-sent", body: values.body } };
+      if (demoMode) return { message: addDemoMessage(chatId ?? "demo-active-chat", values.body) };
       return callFunction("send-private-message", { body: { chatId, body: values.body } });
     },
     onSuccess: async () => {
       reset();
+      await sendLocalNotification("Messaggio inviato", "Demo chat: il messaggio e stato salvato nello storico locale.");
       await queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
       await queryClient.invalidateQueries({ queryKey: ["chat", chatId] });
     }
@@ -63,15 +71,35 @@ export default function ChatDetailScreen() {
   const status = chat.data?.status ?? "frozen_permission";
   const canSend = status === "active";
 
+  async function setDistanceStatus(nextStatus: ChatStatus) {
+    if (!chatId) return;
+    setDemoChatStatus(chatId, nextStatus);
+    await queryClient.invalidateQueries({ queryKey: ["chat", chatId] });
+    await sendLocalNotification(
+      nextStatus === "active" ? "Chat riattivata" : "Chat sospesa",
+      nextStatus === "active" ? "Siete tornati entro il raggio condiviso." : "Siete fuori dal raggio: lo storico resta, nuovi messaggi bloccati."
+    );
+  }
+
   return (
     <Screen>
       <View className="mt-4 gap-4">
+        <View>
+          <Text className="text-2xl font-bold text-ink">Chat privata</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">La conversazione vive solo mentre la prossimita e valida.</Text>
+        </View>
         <ChatFrozenBanner status={status} />
+        {demoMode ? (
+          <View className="flex-row gap-2">
+            <Button label="Simula lontani" variant="secondary" onPress={() => void setDistanceStatus("frozen_distance")} />
+            <Button label="Simula vicini" onPress={() => void setDistanceStatus("active")} />
+          </View>
+        ) : null}
         <View className="gap-3">
           {messages.data?.map((message) => (
-            <View key={message.id} className="rounded-card bg-surface p-3">
-              <Text className="text-base text-ink">{message.body}</Text>
-              <Text className="mt-1 text-xs text-muted">{new Date(message.created_at).toLocaleTimeString()}</Text>
+            <View key={message.id} className={`rounded-card p-3 ${message.sender_id === "me" ? "ml-8 bg-primary" : "mr-8 border border-border bg-surface"}`}>
+              <Text className={`text-base ${message.sender_id === "me" ? "text-white" : "text-ink"}`}>{message.body}</Text>
+              <Text className={`mt-1 text-xs ${message.sender_id === "me" ? "text-white" : "text-muted"}`}>{new Date(message.created_at).toLocaleTimeString()}</Text>
             </View>
           ))}
         </View>

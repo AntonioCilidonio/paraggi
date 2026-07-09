@@ -105,3 +105,30 @@ export const demoHistory = [
     areas: { name: "Fiera Verona", city: "Verona", country_code: "IT" }
   }
 ];
+
+export const demoComments = [
+  {
+    id: "demo-comment-1",
+    author_id: "demo-luca",
+    display_name: "Luca",
+    body: "Confermo, il bus passa ancora ma con 10 minuti di ritardo.",
+    created_at: new Date(Date.now() - 6 * 60 * 1000).toISOString()
+  },
+  {
+    id: "demo-comment-2",
+    author_id: "demo-marta",
+    display_name: "Marta",
+    body: "Grazie, informazione utilissima.",
+    created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  }
+];
+
+export const demoConnectionRequests = [
+  {
+    id: "demo-request-1",
+    from: "Marta",
+    reason: "Vuole continuare in privato sul percorso per la fiera.",
+    distance_meters: 130,
+    created_at: new Date(Date.now() - 4 * 60 * 1000).toISOString()
+  }
+];

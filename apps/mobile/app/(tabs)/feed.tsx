@@ -12,11 +12,12 @@ import { useLocationSync } from "@/hooks/useLocationSync";
 
 export default function FeedScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
+  const localDemoPosts = useAppStore((state) => state.demoPosts);
   const syncLocation = useLocationSync();
   const feed = useQuery({
-    queryKey: ["nearby-feed", radiusMeters],
+    queryKey: ["nearby-feed", radiusMeters, localDemoPosts.length],
     queryFn: async () => {
-      if (demoMode) return { posts: demoPosts };
+      if (demoMode) return { posts: [...localDemoPosts, ...demoPosts] };
       return callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30 } });
     }
   });
@@ -49,7 +50,11 @@ export default function FeedScreen() {
           </View>
         ) : null}
         <View className="gap-3">
-          {feed.data?.posts.map((post) => <FeedPostCard key={post.id} post={post} />)}
+          {feed.data?.posts.map((post) => (
+            <Link key={post.id} href={`/post/${post.id}`}>
+              <FeedPostCard post={post} />
+            </Link>
+          ))}
         </View>
       </View>
     </Screen>

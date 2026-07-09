@@ -6,6 +6,8 @@ import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
+import { sendLocalNotification } from "@/services/notifications";
+import { useAppStore } from "@/stores/appStore";
 
 type Form = {
   category: PostCategory;
@@ -13,14 +15,28 @@ type Form = {
   ttlMinutes: PostTtlMinutes;
 };
 
+const categoryLabels: Record<PostCategory, string> = {
+  question: "Domanda",
+  information: "Informazione",
+  lost_item: "Oggetto smarrito",
+  help: "Aiuto",
+  event: "Evento",
+  social: "Social",
+  emergency: "Emergenza"
+};
+
 export default function ComposePostScreen() {
+  const addDemoPost = useAppStore((state) => state.addDemoPost);
   const { control, handleSubmit, setValue, watch, formState } = useForm<Form>({
     defaultValues: { category: "question", body: "", ttlMinutes: 180 }
   });
   const selectedTtl = watch("ttlMinutes");
+  const selectedCategory = watch("category");
 
   async function submit(values: Form) {
     if (demoMode) {
+      const post = addDemoPost(values);
+      await sendLocalNotification("Nuovo post vicino", `${post.display_name}: ${post.body}`);
       router.replace("/(tabs)/feed");
       return;
     }
@@ -49,7 +65,7 @@ export default function ComposePostScreen() {
           <Text className="font-semibold text-ink">Categoria</Text>
           <View className="flex-row flex-wrap gap-2">
             {(["question", "information", "lost_item", "help", "event", "social", "emergency"] as PostCategory[]).map((category) => (
-              <Button key={category} label={category} variant="secondary" onPress={() => setValue("category", category)} />
+              <Button key={category} label={categoryLabels[category]} variant={selectedCategory === category ? "primary" : "secondary"} onPress={() => setValue("category", category)} />
             ))}
           </View>
         </View>

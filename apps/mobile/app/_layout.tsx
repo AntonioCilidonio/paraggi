@@ -3,12 +3,17 @@ import "../global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { assertEnv } from "@/config/env";
+import { configureNotifications } from "@/services/notifications";
 
 export default function RootLayout() {
   const queryClient = useMemo(() => new QueryClient(), []);
   assertEnv();
+
+  useEffect(() => {
+    void configureNotifications();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
