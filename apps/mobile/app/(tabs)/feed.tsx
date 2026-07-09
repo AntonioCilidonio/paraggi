@@ -4,6 +4,8 @@ import { Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
+import { demoPosts } from "@/demo/data";
 import { callFunction } from "@/services/api";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationSync } from "@/hooks/useLocationSync";
@@ -13,7 +15,10 @@ export default function FeedScreen() {
   const syncLocation = useLocationSync();
   const feed = useQuery({
     queryKey: ["nearby-feed", radiusMeters],
-    queryFn: async () => callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30 } })
+    queryFn: async () => {
+      if (demoMode) return { posts: demoPosts };
+      return callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30 } });
+    }
   });
 
   return (
@@ -27,9 +32,15 @@ export default function FeedScreen() {
           <Link href="/post/compose" className="rounded-card bg-primary px-4 py-3 font-semibold text-white">Post</Link>
         </View>
         <View className="flex-row gap-2">
-          <Button label="Aggiorna posizione" variant="secondary" onPress={() => void syncLocation().then(() => feed.refetch())} />
+          <Button label={demoMode ? "Demo posizione" : "Aggiorna posizione"} variant="secondary" onPress={() => void (demoMode ? feed.refetch() : syncLocation().then(() => feed.refetch()))} />
           <Button label={`Raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}`} variant="secondary" />
         </View>
+        {demoMode ? (
+          <View className="rounded-card border border-border bg-surface p-4">
+            <Text className="font-semibold text-ink">Modalita demo APK</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Supabase non e ancora collegato: puoi navigare l'esperienza con dati locali realistici.</Text>
+          </View>
+        ) : null}
         {feed.isLoading ? <Text className="text-muted">Carico i post vicini...</Text> : null}
         {feed.data?.posts.length === 0 ? (
           <View className="rounded-card border border-border bg-surface p-4">
@@ -44,4 +55,3 @@ export default function FeedScreen() {
     </Screen>
   );
 }
-

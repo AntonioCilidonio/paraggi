@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
+import { demoChats } from "@/demo/data";
 import { supabase } from "@/services/supabase";
 
 type ChatRow = {
@@ -16,6 +18,7 @@ export default function ChatsScreen() {
   const chats = useQuery({
     queryKey: ["chats"],
     queryFn: async () => {
+      if (demoMode) return demoChats;
       const { data, error } = await supabase.from("private_chats").select("id,status,last_distance_meters,last_message_at,updated_at").order("updated_at", { ascending: false });
       if (error) throw error;
       return data as ChatRow[];
@@ -47,4 +50,3 @@ export default function ChatsScreen() {
     </Screen>
   );
 }
-

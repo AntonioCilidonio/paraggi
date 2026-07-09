@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
+import { demoHistory } from "@/demo/data";
 import { supabase } from "@/services/supabase";
 
 type AreaHistory = {
@@ -17,6 +19,7 @@ export default function HistoryScreen() {
   const history = useQuery({
     queryKey: ["area-history"],
     queryFn: async () => {
+      if (demoMode) return demoHistory;
       const { data, error } = await supabase.from("area_history").select("*, areas(name,city,country_code)").order("last_seen_at", { ascending: false });
       if (error) throw error;
       return data as AreaHistory[];
@@ -41,4 +44,3 @@ export default function HistoryScreen() {
     </Screen>
   );
 }
-

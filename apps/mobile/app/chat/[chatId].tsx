@@ -6,6 +6,8 @@ import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { ChatFrozenBanner } from "@/components/ChatFrozenBanner";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
+import { demoChats, demoMessages } from "@/demo/data";
 import { callFunction } from "@/services/api";
 import { supabase } from "@/services/supabase";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
@@ -27,6 +29,9 @@ export default function ChatDetailScreen() {
   const chat = useQuery({
     queryKey: ["chat", chatId],
     queryFn: async () => {
+      if (demoMode) {
+        return demoChats.find((item) => item.id === chatId) ?? demoChats[0];
+      }
       const { data, error } = await supabase.from("private_chats").select("*").eq("id", chatId).single();
       if (error) throw error;
       return data as { id: string; status: ChatStatus; last_distance_meters: number | null };
@@ -36,6 +41,7 @@ export default function ChatDetailScreen() {
   const messages = useQuery({
     queryKey: ["messages", chatId],
     queryFn: async () => {
+      if (demoMode) return demoMessages;
       const { data, error } = await supabase.from("private_messages").select("id,sender_id,body,created_at").eq("chat_id", chatId).order("created_at", { ascending: true });
       if (error) throw error;
       return data as Message[];
@@ -43,7 +49,10 @@ export default function ChatDetailScreen() {
   });
 
   const send = useMutation({
-    mutationFn: async (values: { body: string }) => callFunction("send-private-message", { body: { chatId, body: values.body } }),
+    mutationFn: async (values: { body: string }) => {
+      if (demoMode) return { message: { id: "demo-sent", body: values.body } };
+      return callFunction("send-private-message", { body: { chatId, body: values.body } });
+    },
     onSuccess: async () => {
       reset();
       await queryClient.invalidateQueries({ queryKey: ["messages", chatId] });

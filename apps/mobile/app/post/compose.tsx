@@ -4,6 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
 
 type Form = {
@@ -19,6 +20,10 @@ export default function ComposePostScreen() {
   const selectedTtl = watch("ttlMinutes");
 
   async function submit(values: Form) {
+    if (demoMode) {
+      router.replace("/(tabs)/feed");
+      return;
+    }
     await callFunction("create-post", { body: values });
     router.replace("/(tabs)/feed");
   }
@@ -61,4 +66,3 @@ export default function ComposePostScreen() {
     </Screen>
   );
 }
-

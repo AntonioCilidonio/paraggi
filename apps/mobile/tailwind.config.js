@@ -5,15 +5,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: "oklch(1 0 0)",
-        surface: "oklch(0.972 0.006 188)",
-        ink: "oklch(0.205 0.018 210)",
-        muted: "oklch(0.475 0.025 210)",
-        border: "oklch(0.895 0.012 200)",
-        primary: "oklch(0.58 0.118 188)",
-        accent: "oklch(0.57 0.15 31)",
-        danger: "oklch(0.55 0.17 24)",
-        success: "oklch(0.56 0.13 154)"
+        bg: "#ffffff",
+        surface: "#f3f8f8",
+        ink: "#17232b",
+        muted: "#62717a",
+        border: "#d9e2e3",
+        primary: "#16808a",
+        accent: "#b75b31",
+        danger: "#b43d32",
+        success: "#21875f"
       },
       borderRadius: {
         card: "8px"
@@ -22,4 +22,3 @@ module.exports = {
   },
   plugins: []
 };
-

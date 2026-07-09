@@ -4,6 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
+import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
 import { supabase } from "@/services/supabase";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
@@ -23,6 +24,12 @@ export default function PostDetailScreen() {
   const comments = useQuery({
     queryKey: ["comments", postId],
     queryFn: async () => {
+      if (demoMode) {
+        return [
+          { id: "demo-comment-1", author_id: "demo-luca", body: "Confermo, il bus passa ancora ma con 10 minuti di ritardo.", created_at: new Date().toISOString() },
+          { id: "demo-comment-2", author_id: "demo-marta", body: "Grazie, informazione utilissima.", created_at: new Date().toISOString() }
+        ];
+      }
       const { data, error } = await supabase.from("comments").select("id,author_id,body,created_at").eq("post_id", postId).order("created_at", { ascending: true });
       if (error) throw error;
       return data as CommentRow[];
@@ -30,7 +37,10 @@ export default function PostDetailScreen() {
   });
 
   const createComment = useMutation({
-    mutationFn: async (values: { body: string }) => callFunction("create-comment", { body: { postId, body: values.body } }),
+    mutationFn: async (values: { body: string }) => {
+      if (demoMode) return { comment: { id: "demo-new-comment", body: values.body } };
+      return callFunction("create-comment", { body: { postId, body: values.body } });
+    },
     onSuccess: async () => {
       reset();
       await queryClient.invalidateQueries({ queryKey: ["comments", postId] });
