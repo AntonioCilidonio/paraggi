@@ -1,0 +1,15 @@
+node_modules/
+apps/*/node_modules/
+dist/
+apps/*/dist/
+.expo/
+.expo-shared/
+.eas/
+*.log
+.env
+.env.*
+!.env.example
+android/
+ios/
+coverage/
+.DS_Store

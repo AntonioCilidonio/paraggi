@@ -21,5 +21,30 @@
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@react-native/js-polyfills": "0.79.5",
+    "metro": "0.82.5",
+    "nativewind": "4.1.23"
+  },
+  "overrides": {
+    "@react-native/community-cli-plugin": "0.79.5",
+    "@react-native/virtualized-lists": "0.79.5",
+    "metro": "0.82.5",
+    "metro-babel-transformer": "0.82.5",
+    "metro-cache": "0.82.5",
+    "metro-cache-key": "0.82.5",
+    "metro-config": "0.82.5",
+    "metro-core": "0.82.5",
+    "metro-file-map": "0.82.5",
+    "metro-minify-terser": "0.82.5",
+    "metro-resolver": "0.82.5",
+    "metro-runtime": "0.82.5",
+    "metro-source-map": "0.82.5",
+    "metro-symbolicate": "0.82.5",
+    "metro-transform-plugins": "0.82.5",
+    "metro-transform-worker": "0.82.5",
+    "react-native": "0.79.5",
+    "react-native-reanimated": "3.17.5"
   }
 }

@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1120" viewBox="0 0 1500 1120">
+  <defs>
+    <style>
+      .bg { fill: oklch(0.972 0.006 188); }
+      .ink { fill: oklch(0.205 0.018 210); }
+      .muted { fill: oklch(0.475 0.025 210); }
+      .surface { fill: white; }
+      .panel { fill: oklch(0.985 0.003 188); stroke: oklch(0.895 0.012 200); stroke-width: 1; }
+      .primary { fill: oklch(0.58 0.118 188); }
+      .primary-soft { fill: oklch(0.93 0.04 188); }
+      .accent { fill: oklch(0.57 0.15 31); }
+      .danger { fill: oklch(0.55 0.17 24); }
+      .success { fill: oklch(0.56 0.13 154); }
+      .line { stroke: oklch(0.895 0.012 200); stroke-width: 1; }
+      .phone { fill: oklch(0.105 0 0); }
+      .screen { fill: white; }
+      .title { font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.205 0.018 210); }
+      .subtitle { font: 400 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.475 0.025 210); }
+      .h1 { font: 800 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.205 0.018 210); }
+      .h2 { font: 700 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.205 0.018 210); }
+      .body { font: 400 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.205 0.018 210); }
+      .small { font: 500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.475 0.025 210); }
+      .white { fill: white; }
+      .tab { font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.475 0.025 210); }
+      .tab-active { font: 700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: oklch(0.58 0.118 188); }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1500" height="1120"/>
+  <text x="72" y="78" class="title">Paraggi</text>
+  <text x="72" y="110" class="subtitle">La piazza digitale delle persone vicine - anteprima MVP mobile</text>
+  <text x="72" y="146" class="small">Coordinate mai mostrate. Feed, richieste e chat vivono nella prossimita fisica.</text>
+
+  <!-- reusable phone backgrounds -->
+  <g transform="translate(70 190)">
+    <rect class="phone" x="0" y="0" width="300" height="620" rx="38"/>
+    <rect class="screen" x="14" y="18" width="272" height="584" rx="28"/>
+    <text x="34" y="62" class="h1">Vicino a te</text>
+    <text x="34" y="86" class="small">Raggio 500 m - Centro Bologna</text>
+    <rect class="primary" x="212" y="42" width="54" height="34" rx="8"/>
+    <text x="225" y="64" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="white">Post</text>
+
+    <rect class="panel" x="30" y="112" width="240" height="128" rx="8"/>
+    <circle class="primary-soft" cx="52" cy="137" r="14"/>
+    <text x="72" y="136" class="h2">Marta</text>
+    <text x="72" y="154" class="small">Piazza Maggiore - 120 m</text>
+    <rect class="primary-soft" x="184" y="124" width="66" height="22" rx="11"/>
+    <text x="196" y="139" class="small">Domanda</text>
+    <text x="42" y="184" class="body">Qualcuno sa se il bus per la fiera</text>
+    <text x="42" y="203" class="body">passa ancora da via Rizzoli?</text>
+    <text x="42" y="226" class="small">8 commenti - 42 min rimasti - rep 18</text>
+
+    <rect class="panel" x="30" y="258" width="240" height="116" rx="8"/>
+    <text x="42" y="286" class="h2">Luca</text>
+    <text x="42" y="306" class="small">Stazione Centrale - 430 m</text>
+    <rect class="accent" x="178" y="274" width="72" height="22" rx="11"/>
+    <text x="191" y="289" class="small white">Aiuto</text>
+    <text x="42" y="336" class="body">Ho trovato un mazzo di chiavi</text>
+    <text x="42" y="356" class="small">3 commenti - 2h rimaste</text>
+
+    <rect class="panel" x="30" y="392" width="240" height="92" rx="8"/>
+    <text x="42" y="422" class="h2">Avviso locale</text>
+    <text x="42" y="444" class="body">Zona molto attiva vicino alla stazione.</text>
+    <text x="42" y="466" class="small">Notifica locale - nessuna coordinata</text>
+
+    <line class="line" x1="14" y1="540" x2="286" y2="540"/>
+    <text x="36" y="570" class="tab-active">Vicino</text>
+    <text x="91" y="570" class="tab">Mappa</text>
+    <text x="146" y="570" class="tab">Chat</text>
+    <text x="198" y="570" class="tab">Aree</text>
+    <text x="244" y="570" class="tab">Profilo</text>
+    <text x="78" y="642" class="subtitle">Feed locale</text>
+  </g>
+
+  <g transform="translate(420 190)">
+    <rect class="phone" width="300" height="620" rx="38"/>
+    <rect class="screen" x="14" y="18" width="272" height="584" rx="28"/>
+    <text x="34" y="62" class="h1">Nuovo post</text>
+    <text x="34" y="86" class="small">Visibile solo a persone vicine</text>
+
+    <rect class="panel" x="30" y="112" width="240" height="142" rx="8"/>
+    <text x="44" y="142" class="small">Cosa vuoi condividere qui?</text>
+    <text x="44" y="178" class="body">Cerco il proprietario di una borsa</text>
+    <text x="44" y="198" class="body">blu lasciata vicino al binario 3.</text>
+
+    <text x="34" y="292" class="h2">Categoria</text>
+    <rect class="primary" x="34" y="310" width="72" height="30" rx="8"/>
+    <text x="50" y="330" class="small white">Aiuto</text>
+    <rect class="panel" x="114" y="310" width="88" height="30" rx="8"/>
+    <text x="128" y="330" class="small">Info</text>
+    <rect class="panel" x="210" y="310" width="52" height="30" rx="8"/>
+    <text x="221" y="330" class="small">Evento</text>
+
+    <text x="34" y="382" class="h2">Scadenza</text>
+    <rect class="panel" x="34" y="400" width="64" height="32" rx="8"/>
+    <text x="47" y="421" class="small">30 min</text>
+    <rect class="primary" x="108" y="400" width="64" height="32" rx="8"/>
+    <text x="124" y="421" class="small white">3 ore</text>
+    <rect class="panel" x="182" y="400" width="72" height="32" rx="8"/>
+    <text x="196" y="421" class="small">24 ore</text>
+
+    <rect class="primary" x="34" y="486" width="232" height="44" rx="8"/>
+    <text x="122" y="513" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="white">Pubblica</text>
+    <text x="90" y="642" class="subtitle">Composer</text>
+  </g>
+
+  <g transform="translate(770 190)">
+    <rect class="phone" width="300" height="620" rx="38"/>
+    <rect class="screen" x="14" y="18" width="272" height="584" rx="28"/>
+    <text x="34" y="62" class="h1">Chat privata</text>
+    <rect class="primary" x="34" y="88" width="232" height="46" rx="8"/>
+    <text x="48" y="116" class="body white">Chat attiva: siete abbastanza vicini.</text>
+
+    <rect class="panel" x="34" y="160" width="176" height="58" rx="8"/>
+    <text x="48" y="188" class="body">Ciao, la borsa e tua?</text>
+    <text x="48" y="207" class="small">10:24</text>
+    <rect class="primary-soft" x="92" y="236" width="174" height="76" rx="8"/>
+    <text x="106" y="264" class="body">Si, grazie. Sono vicino</text>
+    <text x="106" y="283" class="body">all'edicola.</text>
+    <text x="106" y="303" class="small">10:25</text>
+
+    <rect class="panel" x="34" y="340" width="232" height="56" rx="8"/>
+    <text x="48" y="364" class="small">Distanza approssimata</text>
+    <text x="48" y="384" class="h2">90 m - Stessa area</text>
+
+    <rect class="panel" x="34" y="486" width="160" height="44" rx="8"/>
+    <text x="48" y="513" class="small">Messaggio</text>
+    <rect class="primary" x="204" y="486" width="62" height="44" rx="8"/>
+    <text x="223" y="513" class="small white">Invia</text>
+    <text x="96" y="642" class="subtitle">Chat attiva</text>
+  </g>
+
+  <g transform="translate(1120 190)">
+    <rect class="phone" width="300" height="620" rx="38"/>
+    <rect class="screen" x="14" y="18" width="272" height="584" rx="28"/>
+    <text x="34" y="62" class="h1">Chat privata</text>
+    <rect class="panel" x="34" y="88" width="232" height="70" rx="8"/>
+    <text x="48" y="115" class="h2">Chat sospesa</text>
+    <text x="48" y="136" class="small">Siete fuori dal raggio condiviso.</text>
+    <text x="48" y="150" class="small">Lo storico resta visibile.</text>
+
+    <rect class="panel" x="34" y="188" width="176" height="58" rx="8"/>
+    <text x="48" y="216" class="body">Ci siamo allontanati.</text>
+    <text x="48" y="235" class="small">10:41</text>
+    <rect class="primary-soft" x="82" y="264" width="184" height="74" rx="8"/>
+    <text x="96" y="292" class="body">Quando torni vicino</text>
+    <text x="96" y="311" class="body">la chat si riattiva.</text>
+    <text x="96" y="329" class="small">10:42</text>
+
+    <rect class="danger" x="34" y="374" width="232" height="46" rx="8"/>
+    <text x="50" y="402" class="body white">Input bloccato lato app e backend.</text>
+
+    <rect class="panel" x="34" y="486" width="232" height="44" rx="8"/>
+    <text x="48" y="513" class="small">Torna vicino per scrivere</text>
+    <text x="90" y="642" class="subtitle">Chat sospesa</text>
+  </g>
+
+  <g transform="translate(245 850)">
+    <rect class="phone" width="300" height="220" rx="30"/>
+    <rect class="screen" x="14" y="18" width="272" height="184" rx="24"/>
+    <text x="34" y="58" class="h1">Heatmap</text>
+    <text x="34" y="80" class="small">Zone aggregate, nessun marker persona</text>
+    <rect class="panel" x="34" y="104" width="232" height="70" rx="8"/>
+    <circle class="primary-soft" cx="92" cy="138" r="24"/>
+    <circle class="primary" cx="152" cy="132" r="34" opacity="0.75"/>
+    <circle class="accent" cx="206" cy="148" r="18" opacity="0.75"/>
+    <text x="44" y="190" class="small">Centro molto attivo - Stazione attiva</text>
+    <text x="88" y="242" class="subtitle">Mappa</text>
+  </g>
+
+  <g transform="translate(600 850)">
+    <rect class="phone" width="300" height="220" rx="30"/>
+    <rect class="screen" x="14" y="18" width="272" height="184" rx="24"/>
+    <text x="34" y="58" class="h1">Aree visitate</text>
+    <text x="34" y="80" class="small">Cronologia generalizzata</text>
+    <rect class="panel" x="34" y="104" width="232" height="40" rx="8"/>
+    <text x="46" y="128" class="h2">Aeroporto Milano</text>
+    <rect class="panel" x="34" y="154" width="232" height="40" rx="8"/>
+    <text x="46" y="178" class="h2">Centro Bologna</text>
+    <text x="76" y="242" class="subtitle">Cronologia</text>
+  </g>
+
+  <g transform="translate(955 850)">
+    <rect class="phone" width="300" height="220" rx="30"/>
+    <rect class="screen" x="14" y="18" width="272" height="184" rx="24"/>
+    <text x="34" y="58" class="h1">Profilo</text>
+    <text x="34" y="80" class="small">Raggio, notifiche, privacy</text>
+    <rect class="panel" x="34" y="106" width="52" height="30" rx="8"/>
+    <text x="46" y="126" class="small">100m</text>
+    <rect class="primary" x="96" y="106" width="54" height="30" rx="8"/>
+    <text x="111" y="126" class="small white">500m</text>
+    <rect class="panel" x="160" y="106" width="42" height="30" rx="8"/>
+    <text x="174" y="126" class="small">1km</text>
+    <rect class="panel" x="212" y="106" width="42" height="30" rx="8"/>
+    <text x="225" y="126" class="small">5km</text>
+    <rect class="panel" x="34" y="154" width="232" height="40" rx="8"/>
+    <text x="46" y="178" class="h2">Privacy e dati</text>
+    <text x="94" y="242" class="subtitle">Profilo</text>
+  </g>
+</svg>
