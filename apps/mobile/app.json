@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Paraggi",
+    "slug": "paraggi",
+    "scheme": "paraggi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.paraggi.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Paraggi usa la posizione per mostrare contenuti e chat solo con persone realmente vicine."
+      }
+    },
+    "android": {
+      "package": "app.paraggi.mobile",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Paraggi usa la posizione per abilitare feed e chat locali."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1f0f62a5-23c0-4f59-842c-26cd6e696d49"
+      }
+    }
+  }
+}
