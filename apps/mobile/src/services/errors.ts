@@ -5,6 +5,11 @@ const messages: Record<string, string> = {
   valid_location_required: "Prima di pubblicare serve una posizione GPS valida.",
   location_insert_failed: "Non sono riuscito a salvare la posizione. Riprova tra qualche secondo.",
   post_insert_failed: "Non sono riuscito a pubblicare il post. Riprova.",
+  nearby_feed_failed: "Non riesco a caricare i post vicini. Aggiorna il GPS e riprova.",
+  requests_failed: "Non riesco a caricare le richieste private.",
+  chats_failed: "Non riesco a caricare le chat.",
+  chat_not_found: "Chat non trovata o non piu disponibile.",
+  post_not_visible: "Post non visibile da questa posizione o non piu attivo.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };

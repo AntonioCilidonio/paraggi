@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { demoMode } from "@/config/env";
 import { demoChats } from "@/demo/data";
 import { callFunction } from "@/services/api";
+import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
 import { useAppStore } from "@/stores/appStore";
 
@@ -86,6 +87,15 @@ export default function ChatsScreen() {
           <Text className="text-2xl font-bold text-ink">Chat private</Text>
           <Text className="mt-1 text-sm leading-5 text-muted">Lo storico resta, l'invio messaggi vive solo nella prossimita.</Text>
         </View>
+        {chats.isError ? (
+          <View className="rounded-card border border-danger bg-surface p-4">
+            <Text className="font-semibold text-danger">Chat non caricate</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">{getFriendlyError(chats.error, "Controlla login e rete, poi riprova.")}</Text>
+            <View className="mt-3">
+              <Button label="Riprova" variant="secondary" onPress={() => void chats.refetch()} />
+            </View>
+          </View>
+        ) : null}
         <View className="gap-3">
           <Text className="font-semibold text-ink">Richieste private</Text>
           {(chats.data?.requests ?? []).length === 0 ? (

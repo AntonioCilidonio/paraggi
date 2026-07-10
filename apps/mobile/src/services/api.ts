@@ -7,6 +7,27 @@ type ApiOptions = {
   query?: Record<string, string | number | undefined>;
 };
 
+async function readFunctionError(error: unknown) {
+  const context = error && typeof error === "object" && "context" in error
+    ? (error as { context?: unknown }).context
+    : null;
+
+  if (context && typeof context === "object" && "clone" in context && typeof (context as Response).clone === "function") {
+    try {
+      const response = (context as Response).clone();
+      const text = await response.text();
+      return {
+        status: response.status,
+        body: text.slice(0, 2000)
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export async function callFunction<T>(name: string, options: ApiOptions = {}): Promise<T> {
   const query = options.query
     ? `?${new URLSearchParams(Object.entries(options.query).filter((entry): entry is [string, string | number] => entry[1] !== undefined).map(([key, value]) => [key, String(value)])).toString()}`
@@ -18,7 +39,8 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
   });
 
   if (error) {
-    captureClientError("edge_function_error", error, { functionName: name, method: options.method ?? "POST" });
+    const errorContext = await readFunctionError(error);
+    captureClientError("edge_function_error", error, { functionName: name, method: options.method ?? "POST", errorContext });
     throw error;
   }
   if (data && typeof data === "object" && "error" in data) {
