@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { demoMode } from "@/config/env";
 import { supabase } from "@/services/supabase";
 
 type RealtimeTarget =
@@ -12,7 +13,7 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!target) return;
+    if (!target || demoMode) return;
 
     const channelName = target.type === "post-comments"
       ? `post:${target.postId}:comments`
@@ -55,4 +56,3 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
     };
   }, [queryClient, target]);
 }
-

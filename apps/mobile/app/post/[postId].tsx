@@ -73,8 +73,8 @@ export default function PostDetailScreen() {
         </View>
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
         <View className="flex-row gap-2">
-          <Button label="Richiedi privato" variant="secondary" onPress={() => void requestPrivateConnection()} />
-          <Button label="Apri chat demo" onPress={() => router.push("/chat/demo-active-chat")} />
+          <Button label="Richiedi privato" variant="secondary" className="flex-1" onPress={() => void requestPrivateConnection()} />
+          <Button label="Apri chat demo" className="flex-1" onPress={() => router.push("/chat/demo-active-chat")} />
         </View>
         {comments.data?.map((comment) => (
           <View key={comment.id} className="rounded-card border border-border bg-surface p-3">

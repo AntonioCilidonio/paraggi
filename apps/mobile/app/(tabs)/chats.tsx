@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { Button } from "@/components/Button";
 import { demoMode } from "@/config/env";
@@ -83,10 +83,21 @@ export default function ChatsScreen() {
         ) : null}
         <View className="gap-3">
           {chats.data?.map((chat) => (
-            <Link key={chat.id} href={`/chat/${chat.id}`} className="rounded-card border border-border bg-surface p-4">
-              <Text className="font-semibold text-ink">{chat.status === "active" ? "Chat attiva" : "Chat sospesa"}</Text>
-              <Text className="mt-1 text-sm text-muted">{chat.last_distance_meters ? `Ultima distanza ${chat.last_distance_meters} m` : "Distanza in verifica"}</Text>
-            </Link>
+            <Pressable
+              key={chat.id}
+              accessibilityRole="button"
+              accessibilityLabel={chat.status === "active" ? "Apri chat attiva" : "Apri chat sospesa"}
+              onPress={() => router.push(`/chat/${chat.id}`)}
+              className="rounded-card border border-border bg-surface p-4"
+            >
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="font-semibold text-ink">{chat.status === "active" ? "Chat attiva" : "Chat sospesa"}</Text>
+                  <Text className="mt-1 text-sm text-muted">{chat.last_distance_meters ? `Ultima distanza ${chat.last_distance_meters} m` : "Distanza in verifica"}</Text>
+                </View>
+                <Text className="text-lg text-muted">&gt;</Text>
+              </View>
+            </Pressable>
           ))}
         </View>
       </View>
