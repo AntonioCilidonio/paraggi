@@ -61,7 +61,20 @@ export default function PostDetailScreen() {
       await sendLocalNotification("Richiesta privata accettata", "Demo: la chat privata e pronta finche restate vicini.");
       return;
     }
-    await callFunction("request-connection", { body: { postId } });
+
+    if (!selectedPost?.author_id) {
+      await sendLocalNotification("Richiesta non inviata", "Autore del post non disponibile.");
+      return;
+    }
+
+    await callFunction("request-connection", {
+      body: {
+        postId,
+        recipientId: selectedPost.author_id,
+        message: "Vorrei aprire una chat privata contestuale."
+      }
+    });
+    await sendLocalNotification("Richiesta inviata", "La persona vicina potra accettare o rifiutare.");
   }
 
   return (

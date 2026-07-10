@@ -3,6 +3,7 @@ import { StatusPill } from "@/components/StatusPill";
 
 export type FeedPost = {
   id: string;
+  author_id?: string;
   display_name: string;
   avatar_path?: string | null;
   category: string;

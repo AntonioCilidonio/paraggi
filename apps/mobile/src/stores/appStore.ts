@@ -64,6 +64,7 @@ const nowIso = () => new Date().toISOString();
 function makeDemoPost(values: { category: PostCategory; body: string; ttlMinutes: PostTtlMinutes }): FeedPost {
   return {
     id: `demo-post-${Date.now()}`,
+    author_id: "me",
     display_name: "Tu",
     avatar_path: null,
     category: values.category,

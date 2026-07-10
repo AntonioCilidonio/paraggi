@@ -11,6 +11,7 @@ export const isDemoMode = (url: string, anonKey: string) =>
 export const demoPosts: FeedPost[] = [
   {
     id: "demo-question",
+    author_id: "demo-marta",
     display_name: "Marta",
     avatar_path: null,
     category: "question",
@@ -25,6 +26,7 @@ export const demoPosts: FeedPost[] = [
   },
   {
     id: "demo-help",
+    author_id: "demo-luca",
     display_name: "Luca",
     avatar_path: null,
     category: "help",
@@ -39,6 +41,7 @@ export const demoPosts: FeedPost[] = [
   },
   {
     id: "demo-emergency",
+    author_id: "demo-giulia",
     display_name: "Giulia",
     avatar_path: null,
     category: "emergency",

@@ -6,10 +6,10 @@ type Payload = {
 };
 
 Deno.serve(await withHttp(async (req) => {
-  const { user, adminClient } = await requireUser(req);
+  const { user, userClient, adminClient } = await requireUser(req);
   const payload = await readJson<Payload>(req);
 
-  const { data: status, error: statusError } = await adminClient.rpc("refresh_chat_status", { chat_id_input: payload.chatId });
+  const { data: status, error: statusError } = await userClient.rpc("refresh_chat_status", { chat_id_input: payload.chatId });
   if (statusError) return jsonResponse({ error: "chat_status_failed", details: statusError.message }, 400);
   if (status !== "active") return jsonResponse({ error: "chat_not_active", status }, 403);
 
@@ -25,4 +25,3 @@ Deno.serve(await withHttp(async (req) => {
   await audit(adminClient, { actorId: user.id, eventType: "chat", action: "send_private_message", targetTable: "private_messages", targetId: data.id });
   return jsonResponse({ message: data }, 201);
 }));
-

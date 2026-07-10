@@ -1,11 +1,13 @@
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, Vibration, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { usePushRegistration } from "@/hooks/usePushRegistration";
+import { callFunction } from "@/services/api";
 import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
@@ -19,10 +21,65 @@ export default function ProfileScreen() {
   const registerPush = usePushRegistration();
   const syncLocation = useLocationSync();
   const [gpsStatus, setGpsStatus] = useState("Non ancora sincronizzato");
+  const [shareDangerCoordinates, setShareDangerCoordinates] = useState(true);
+  const [dangerStatus, setDangerStatus] = useState("Allarme non inviato");
 
   async function requestGps() {
     const result = await syncLocation();
     setGpsStatus(result.ok ? "GPS attivo: area demo aggiornata" : "GPS negato o non disponibile");
+  }
+
+  async function triggerDangerAlert() {
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        setDangerStatus("GPS negato: impossibile inviare SOS");
+        return;
+      }
+
+      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const latitude = current.coords.latitude;
+      const longitude = current.coords.longitude;
+      const message = "SOS Paraggi: una persona vicina chiede aiuto";
+      const body = shareDangerCoordinates
+        ? `${message}. Coordinate: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+        : `${message}. Coordinate precise non condivise.`;
+
+      Vibration.vibrate([0, 500, 180, 500]);
+
+      if (demoMode) {
+        await sendLocalNotification("Allarme pericolo vicino", body);
+        setDangerStatus("SOS demo inviato ai vicini simulati");
+        return;
+      }
+
+      const result = await callFunction<{ recipientCount: number }>("trigger-danger-alert", {
+        body: {
+          latitude,
+          longitude,
+          accuracyMeters: current.coords.accuracy ?? undefined,
+          radiusMeters,
+          message,
+          sharePreciseCoordinates: shareDangerCoordinates
+        }
+      });
+      setDangerStatus(`SOS inviato a ${result.recipientCount} utenti vicini`);
+    } catch {
+      setDangerStatus("SOS non inviato: GPS o rete non disponibili");
+    }
+  }
+
+  function confirmDangerAlert() {
+    Alert.alert(
+      "Inviare SOS?",
+      shareDangerCoordinates
+        ? "Invierai una notifica urgente agli utenti vicini con le tue coordinate precise."
+        : "Invierai una notifica urgente agli utenti vicini senza coordinate precise.",
+      [
+        { text: "Annulla", style: "cancel" },
+        { text: "Invia SOS", style: "destructive", onPress: () => void triggerDangerAlert() }
+      ]
+    );
   }
 
   return (
@@ -48,6 +105,19 @@ export default function ProfileScreen() {
           <Button label="Attiva notifiche" variant="secondary" onPress={() => void registerPush()} />
           <Button label="Invia notifica test" onPress={() => void sendLocalNotification("Paraggi test", "Questa e una notifica locale dell'APK di prova.")} />
           <Button label="Reset scenario demo" variant="secondary" onPress={() => resetDemoScenario()} />
+        </View>
+        <View className="gap-3 rounded-card border border-danger bg-surface p-4">
+          <View>
+            <Text className="font-semibold text-danger">Pericolo</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Invia un allarme agli utenti vicini. Le coordinate precise partono solo se il consenso qui sotto e attivo.</Text>
+          </View>
+          <Button
+            label={shareDangerCoordinates ? "Coordinate SOS attive" : "Coordinate SOS disattive"}
+            variant={shareDangerCoordinates ? "danger" : "secondary"}
+            onPress={() => setShareDangerCoordinates((value) => !value)}
+          />
+          <Button label="Invia SOS vicino" variant="danger" onPress={confirmDangerAlert} />
+          <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text>
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push("/settings/privacy")} className="rounded-card border border-border bg-surface p-4">
           <Text className="font-semibold text-ink">Privacy e dati</Text>

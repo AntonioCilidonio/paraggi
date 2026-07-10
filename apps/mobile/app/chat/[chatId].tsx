@@ -33,15 +33,17 @@ export default function ChatDetailScreen() {
   useRealtimeChannel(chatId ? { type: "chat-status", chatId } : null);
 
   const chat = useQuery({
-    queryKey: ["chat", chatId],
+    queryKey: ["chat", chatId, demoStatus],
     queryFn: async () => {
       if (demoMode) {
         const base = demoChats.find((item) => item.id === chatId) ?? demoChats[0];
         return { ...base, status: demoStatus ?? base.status };
       }
-      const { data, error } = await supabase.from("private_chats").select("*").eq("id", chatId).single();
-      if (error) throw error;
-      return data as { id: string; status: ChatStatus; last_distance_meters: number | null };
+      const data = await callFunction<{ chat: { id: string; status: ChatStatus; last_distance_meters: number | null }; messages: Message[] }>("get-chat-messages", {
+        method: "GET",
+        query: { chatId }
+      });
+      return data.chat;
     }
   });
 
@@ -49,9 +51,11 @@ export default function ChatDetailScreen() {
     queryKey: ["messages", chatId, demoExtraMessages.length],
     queryFn: async () => {
       if (demoMode) return [...demoMessages, ...demoExtraMessages];
-      const { data, error } = await supabase.from("private_messages").select("id,sender_id,body,created_at").eq("chat_id", chatId).order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as Message[];
+      const data = await callFunction<{ chat: { id: string; status: ChatStatus; last_distance_meters: number | null }; messages: Message[] }>("get-chat-messages", {
+        method: "GET",
+        query: { chatId }
+      });
+      return data.messages;
     }
   });
 
