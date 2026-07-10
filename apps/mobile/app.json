@@ -11,12 +11,13 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.paraggi.mobile",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Paraggi usa la posizione per mostrare contenuti e chat solo con persone realmente vicine."
+        "NSLocationWhenInUseUsageDescription": "Paraggi usa la posizione per mostrare contenuti e chat solo con persone realmente vicine.",
+        "NSPhotoLibraryUsageDescription": "Paraggi usa la galleria solo per allegare media ai post locali."
       }
     },
     "android": {
       "package": "app.paraggi.mobile",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "plugins": [
@@ -32,6 +33,12 @@
         "expo-notifications",
         {
           "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Paraggi usa la galleria solo per allegare media ai post locali."
         }
       ]
     ],

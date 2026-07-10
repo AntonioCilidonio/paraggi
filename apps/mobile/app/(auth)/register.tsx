@@ -1,8 +1,10 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
+import { getFriendlyError } from "@/services/errors";
 import { supabase } from "@/services/supabase";
 
 type Form = {
@@ -13,14 +15,25 @@ type Form = {
 
 export default function RegisterScreen() {
   const { control, handleSubmit, formState } = useForm<Form>({ defaultValues: { email: "", password: "", displayName: "" } });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function submit(values: Form) {
-    const { data, error } = await supabase.auth.signUp({ email: values.email, password: values.password });
-    if (error) throw error;
-    if (data.user) {
-      await supabase.from("profiles").insert({ id: data.user.id, display_name: values.displayName });
+    setErrorMessage(null);
+    try {
+      const displayName = values.displayName.trim() || values.email.split("@")[0] || "Utente";
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email.trim(),
+        password: values.password,
+        options: { data: { display_name: displayName } }
+      });
+      if (error) throw error;
+      if (data.user) {
+        await supabase.from("profiles").upsert({ id: data.user.id, display_name: displayName });
+      }
+      router.replace("/(tabs)/feed");
+    } catch (error) {
+      setErrorMessage(getFriendlyError(error, "Registrazione non riuscita. Riprova."));
     }
-    router.replace("/(tabs)/feed");
   }
 
   return (
@@ -40,10 +53,10 @@ export default function RegisterScreen() {
           <Controller control={control} name="password" render={({ field }) => (
             <TextInput secureTextEntry placeholder="Password" className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
           )} />
+          {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
           <Button label="Registrati" onPress={handleSubmit(submit)} disabled={formState.isSubmitting} />
         </View>
       </View>
     </Screen>
   );
 }
-

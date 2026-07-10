@@ -5,6 +5,13 @@ Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
   const payload = await readJson<LocationPayload & { deviceId?: string; areaId?: string }>(req);
   const trust = calculateLocationTrust(payload);
+  const emailName = user.email?.split("@")[0] || "Utente";
+  const displayName = emailName.length >= 2 ? emailName.slice(0, 40) : "Utente";
+
+  await adminClient.from("profiles").upsert({
+    id: user.id,
+    display_name: displayName
+  }, { onConflict: "id", ignoreDuplicates: true });
 
   const { data, error } = await adminClient.from("user_locations").insert({
     user_id: user.id,
@@ -42,4 +49,3 @@ Deno.serve(await withHttp(async (req) => {
 
   return jsonResponse({ location: data, trust });
 }));
-

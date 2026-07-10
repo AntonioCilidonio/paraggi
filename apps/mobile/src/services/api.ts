@@ -17,5 +17,6 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
   });
 
   if (error) throw error;
+  if (data && typeof data === "object" && "error" in data) throw data;
   return data as T;
 }

@@ -1,8 +1,10 @@
 import { Link, router } from "expo-router";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
+import { getFriendlyError } from "@/services/errors";
 import { supabase } from "@/services/supabase";
 
 type Form = {
@@ -12,11 +14,17 @@ type Form = {
 
 export default function LoginScreen() {
   const { control, handleSubmit, formState } = useForm<Form>({ defaultValues: { email: "", password: "" } });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function submit(values: Form) {
-    const { error } = await supabase.auth.signInWithPassword(values);
-    if (error) throw error;
-    router.replace("/(tabs)/feed");
+    setErrorMessage(null);
+    try {
+      const { error } = await supabase.auth.signInWithPassword(values);
+      if (error) throw error;
+      router.replace("/(tabs)/feed");
+    } catch (error) {
+      setErrorMessage(getFriendlyError(error, "Accesso non riuscito. Controlla email e password."));
+    }
   }
 
   return (
@@ -33,6 +41,7 @@ export default function LoginScreen() {
           <Controller control={control} name="password" render={({ field }) => (
             <TextInput secureTextEntry placeholder="Password" className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
           )} />
+          {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
           <Button label="Accedi" onPress={handleSubmit(submit)} disabled={formState.isSubmitting} />
         </View>
         <Link href="/(auth)/register" className="text-primary">Crea un account</Link>
@@ -40,4 +49,3 @@ export default function LoginScreen() {
     </Screen>
   );
 }
-

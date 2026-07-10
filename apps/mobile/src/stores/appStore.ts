@@ -39,6 +39,10 @@ type AppStore = {
   radiusMeters: RadiusMeters;
   locationPermission: PermissionState;
   notificationPermission: PermissionState;
+  lastLocationSyncAt: string | null;
+  lastLocationAccuracyMeters: number | null;
+  lastLocationTrustStatus: string | null;
+  lastLocationError: string | null;
   offlineQueue: QueuedAction[];
   demoPosts: FeedPost[];
   demoCommentsByPost: Record<string, DemoComment[]>;
@@ -48,6 +52,12 @@ type AppStore = {
   setRadius: (radiusMeters: RadiusMeters) => void;
   setLocationPermission: (state: PermissionState) => void;
   setNotificationPermission: (state: PermissionState) => void;
+  setLocationStatus: (status: {
+    syncedAt?: string | null;
+    accuracyMeters?: number | null;
+    trustStatus?: string | null;
+    error?: string | null;
+  }) => void;
   enqueueOfflineAction: (action: QueuedAction) => void;
   clearOfflineAction: (id: string) => void;
   addDemoPost: (post: { category: PostCategory; body: string; ttlMinutes: PostTtlMinutes }) => FeedPost;
@@ -83,6 +93,10 @@ export const useAppStore = create<AppStore>((set) => ({
   radiusMeters: 500,
   locationPermission: "unknown",
   notificationPermission: "unknown",
+  lastLocationSyncAt: null,
+  lastLocationAccuracyMeters: null,
+  lastLocationTrustStatus: null,
+  lastLocationError: null,
   offlineQueue: [],
   demoPosts: [],
   demoCommentsByPost: {},
@@ -101,6 +115,12 @@ export const useAppStore = create<AppStore>((set) => ({
   setRadius: (radiusMeters) => set({ radiusMeters }),
   setLocationPermission: (locationPermission) => set({ locationPermission }),
   setNotificationPermission: (notificationPermission) => set({ notificationPermission }),
+  setLocationStatus: (status) => set((state) => ({
+    lastLocationSyncAt: status.syncedAt === undefined ? state.lastLocationSyncAt : status.syncedAt,
+    lastLocationAccuracyMeters: status.accuracyMeters === undefined ? state.lastLocationAccuracyMeters : status.accuracyMeters,
+    lastLocationTrustStatus: status.trustStatus === undefined ? state.lastLocationTrustStatus : status.trustStatus,
+    lastLocationError: status.error === undefined ? state.lastLocationError : status.error
+  })),
   enqueueOfflineAction: (action) => set((state) => ({ offlineQueue: [...state.offlineQueue, action] })),
   clearOfflineAction: (id) => set((state) => ({ offlineQueue: state.offlineQueue.filter((action) => action.id !== id) })),
   addDemoPost: (values) => {

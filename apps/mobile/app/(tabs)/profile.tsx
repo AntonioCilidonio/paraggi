@@ -12,21 +12,31 @@ import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
 
+function formatTime(value: string | null) {
+  if (!value) return "mai";
+  return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
 export default function ProfileScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
   const setRadius = useAppStore((state) => state.setRadius);
   const notificationPermission = useAppStore((state) => state.notificationPermission);
   const locationPermission = useAppStore((state) => state.locationPermission);
+  const lastLocationSyncAt = useAppStore((state) => state.lastLocationSyncAt);
+  const lastLocationAccuracyMeters = useAppStore((state) => state.lastLocationAccuracyMeters);
+  const lastLocationTrustStatus = useAppStore((state) => state.lastLocationTrustStatus);
+  const lastLocationError = useAppStore((state) => state.lastLocationError);
   const resetDemoScenario = useAppStore((state) => state.resetDemoScenario);
   const registerPush = usePushRegistration();
   const syncLocation = useLocationSync();
-  const [gpsStatus, setGpsStatus] = useState("Non ancora sincronizzato");
+  const [gpsStatus, setGpsStatus] = useState("Premi il bottone per attivare e sincronizzare il GPS.");
   const [shareDangerCoordinates, setShareDangerCoordinates] = useState(true);
   const [dangerStatus, setDangerStatus] = useState("Allarme non inviato");
 
   async function requestGps() {
+    setGpsStatus("Sincronizzo GPS...");
     const result = await syncLocation();
-    setGpsStatus(result.ok ? "GPS attivo: area demo aggiornata" : "GPS negato o non disponibile");
+    setGpsStatus(result.ok ? "GPS attivo e sincronizzato. Ora puoi pubblicare post e testare le chat." : "GPS non sincronizzato. Controlla permessi, rete e posizione.");
   }
 
   async function triggerDangerAlert() {
@@ -98,10 +108,17 @@ export default function ProfileScreen() {
           </View>
         </View>
         <View className="gap-3 rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">Permessi e test APK</Text>
-          <Text className="text-sm leading-5 text-muted">GPS: {locationPermission} · notifiche: {notificationPermission}</Text>
+          <Text className="font-semibold text-ink">GPS e permessi</Text>
+          <View className="gap-1 rounded-card bg-bg p-3">
+            <Text className="text-sm font-semibold text-ink">Stato GPS: {locationPermission === "granted" ? "attivo" : locationPermission === "denied" ? "negato" : "non ancora richiesto"}</Text>
+            <Text className="text-sm leading-5 text-muted">Ultimo sync: {formatTime(lastLocationSyncAt)}</Text>
+            <Text className="text-sm leading-5 text-muted">Precisione: {lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "non disponibile"}</Text>
+            <Text className="text-sm leading-5 text-muted">Affidabilita: {lastLocationTrustStatus ?? "non calcolata"}</Text>
+            {lastLocationError ? <Text className="text-sm font-semibold text-danger">Errore: {lastLocationError}</Text> : null}
+          </View>
           <Text className="text-sm leading-5 text-muted">{gpsStatus}</Text>
-          <Button label="Attiva GPS" variant="secondary" onPress={() => void requestGps()} />
+          <Button label="Sincronizza GPS ora" variant="secondary" onPress={() => void requestGps()} />
+          <Text className="text-sm leading-5 text-muted">Notifiche: {notificationPermission}</Text>
           <Button label="Attiva notifiche" variant="secondary" onPress={() => void registerPush()} />
           <Button label="Invia notifica test" onPress={() => void sendLocalNotification("Paraggi test", "Questa e una notifica locale dell'APK di prova.")} />
           <Button label="Reset scenario demo" variant="secondary" onPress={() => resetDemoScenario()} />

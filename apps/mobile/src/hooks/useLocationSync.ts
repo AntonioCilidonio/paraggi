@@ -7,33 +7,47 @@ import { useAppStore } from "@/stores/appStore";
 
 export function useLocationSync() {
   const setLocationPermission = useAppStore((state) => state.setLocationPermission);
+  const setLocationStatus = useAppStore((state) => state.setLocationStatus);
 
   return useCallback(async () => {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       setLocationPermission(permission.status === "granted" ? "granted" : "denied");
-      if (permission.status !== "granted") return { ok: false as const, reason: "permission_denied" };
+      if (permission.status !== "granted") {
+        setLocationStatus({ error: "permission_denied", syncedAt: null, accuracyMeters: null, trustStatus: null });
+        return { ok: false as const, reason: "permission_denied" };
+      }
 
       const current = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced
       });
+      const accuracyMeters = current.coords.accuracy ?? 999;
 
       if (demoMode) {
+        setLocationStatus({
+          syncedAt: new Date().toISOString(),
+          accuracyMeters,
+          trustStatus: "demo",
+          error: null
+        });
         return {
           ok: true as const,
           result: {
             area: "Area demo",
             city: "Bologna",
-            accuracyMeters: current.coords.accuracy ?? 999
+            accuracyMeters
           }
         };
       }
 
-      const result = await callFunction("update-location", {
+      const result = await callFunction<{
+        location?: { trust_status?: string; captured_at?: string };
+        trust?: { status?: string };
+      }>("update-location", {
         body: {
           latitude: current.coords.latitude,
           longitude: current.coords.longitude,
-          accuracyMeters: current.coords.accuracy ?? 999,
+          accuracyMeters,
           altitudeMeters: current.coords.altitude ?? undefined,
           speedMps: current.coords.speed ?? undefined,
           headingDegrees: current.coords.heading ?? undefined,
@@ -45,10 +59,18 @@ export function useLocationSync() {
         }
       });
 
+      setLocationStatus({
+        syncedAt: new Date().toISOString(),
+        accuracyMeters,
+        trustStatus: result.trust?.status ?? result.location?.trust_status ?? "uncertain",
+        error: null
+      });
       return { ok: true as const, result };
-    } catch {
+    } catch (error) {
       setLocationPermission("denied");
-      return { ok: false as const, reason: "location_unavailable" };
+      const reason = error && typeof error === "object" && "error" in error ? String((error as { error?: string }).error) : "location_unavailable";
+      setLocationStatus({ error: reason });
+      return { ok: false as const, reason };
     }
-  }, [setLocationPermission]);
+  }, [setLocationPermission, setLocationStatus]);
 }
