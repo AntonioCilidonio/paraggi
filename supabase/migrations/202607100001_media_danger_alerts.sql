@@ -75,12 +75,12 @@ security definer
 set search_path = public
 as $$
   with point_input as (
-    select ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography as position
+    select ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography as point_geog
   ),
   latest as (
     select distinct on (ul.user_id)
       ul.user_id,
-      ul.position
+      ul.position as latest_position
     from public.user_locations ul
     where ul.captured_at > now() - interval '15 minutes'
       and ul.trust_status in ('trusted', 'uncertain')
@@ -90,12 +90,12 @@ as $$
     latest.user_id,
     p.display_name,
     pt.expo_push_token,
-    round(ST_Distance(latest.position, point_input.position))::integer as distance_meters
+    round(ST_Distance(latest.latest_position, point_input.point_geog))::integer as distance_meters
   from latest
   join point_input on true
   join public.profiles p on p.id = latest.user_id
   left join public.push_tokens pt on pt.user_id = latest.user_id and pt.enabled = true
   where latest.user_id <> actor_user_id
     and p.status = 'active'
-    and ST_DWithin(latest.position, point_input.position, radius_meters);
+    and ST_DWithin(latest.latest_position, point_input.point_geog, radius_meters);
 $$;

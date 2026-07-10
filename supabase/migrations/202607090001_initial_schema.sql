@@ -306,7 +306,7 @@ $$;
 create or replace function public.latest_trusted_location(for_user_id uuid)
 returns table (
   location_id uuid,
-  position geography(Point, 4326),
+  location_position geography(Point, 4326),
   area_id uuid,
   captured_at timestamptz,
   trust_score integer,
@@ -359,7 +359,7 @@ as $$
     p.body,
     a.name as area_name,
     a.city,
-    (round(ST_Distance(p.position, me.position) / 10) * 10)::integer as distance_meters,
+    (round(ST_Distance(p.position, me.location_position) / 10) * 10)::integer as distance_meters,
     p.expires_at,
     p.comment_count,
     pr.reputation_score,
@@ -371,7 +371,7 @@ as $$
   where p.status = 'active'
     and p.expires_at > now()
     and radius_meters in (100, 500, 1000, 5000)
-    and ST_DWithin(p.position, me.position, radius_meters)
+    and ST_DWithin(p.position, me.location_position, radius_meters)
     and pr.status = 'active'
     and pr.is_shadow_banned = false
     and not public.are_users_blocked(auth.uid(), p.author_id)
@@ -405,8 +405,8 @@ begin
     return 'closed';
   end if;
 
-  select position into loc_a from public.latest_trusted_location(chat_row.user_a_id);
-  select position into loc_b from public.latest_trusted_location(chat_row.user_b_id);
+  select location_position into loc_a from public.latest_trusted_location(chat_row.user_a_id);
+  select location_position into loc_b from public.latest_trusted_location(chat_row.user_b_id);
 
   if loc_a is null or loc_b is null then
     next_status := 'frozen_permission';

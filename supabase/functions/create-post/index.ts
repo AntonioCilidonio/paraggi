@@ -31,7 +31,7 @@ Deno.serve(await withHttp(async (req) => {
     area_id: location.area_id,
     category: payload.category,
     body: payload.body,
-    position: location.position,
+    position: location.location_position,
     expires_at: expiresAt
   }).select("id, category, body, expires_at, created_at").single();
 
