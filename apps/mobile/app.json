@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "app.paraggi.mobile",
-      "versionCode": 9,
+      "versionCode": 10,
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "plugins": [

@@ -10,6 +10,9 @@ const messages: Record<string, string> = {
   chats_failed: "Non riesco a caricare le chat.",
   chat_not_found: "Chat non trovata o non piu disponibile.",
   post_not_visible: "Post non visibile da questa posizione o non piu attivo.",
+  post_not_commentable: "Questo post non puo piu ricevere commenti.",
+  create_comment_failed: "Commento non salvato. Riprova.",
+  missing_post_id: "Post non valido. Torna al feed e riapri la conversazione.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };

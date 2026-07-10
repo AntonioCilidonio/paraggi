@@ -28,6 +28,7 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
     if (target.type === "post-comments") {
       channel.on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${target.postId}` }, () => {
         void queryClient.invalidateQueries({ queryKey: ["comments", target.postId] });
+        void queryClient.invalidateQueries({ queryKey: ["post-detail", target.postId] });
       });
     }
 

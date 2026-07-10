@@ -1,5 +1,7 @@
+import type { ErrorBoundaryProps } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
@@ -22,6 +24,24 @@ type CommentRow = {
   created_at: string;
 };
 
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <Screen>
+      <View className="mt-4 gap-4">
+        <View>
+          <Text className="text-2xl font-bold text-ink">Post non disponibile</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">La conversazione non si e aperta correttamente. Puoi riprovare senza chiudere l'app.</Text>
+        </View>
+        <View className="rounded-card border border-danger bg-surface p-4">
+          <Text className="font-semibold text-danger">Errore schermata</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">{error.message}</Text>
+        </View>
+        <Button label="Riprova" onPress={retry} />
+      </View>
+    </Screen>
+  );
+}
+
 export default function PostDetailScreen() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const queryClient = useQueryClient();
@@ -30,6 +50,8 @@ export default function PostDetailScreen() {
   const localComments = useAppStore((state) => state.demoCommentsByPost[postId ?? ""] ?? []);
   const addDemoComment = useAppStore((state) => state.addDemoComment);
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
   const detail = useQuery({
@@ -47,17 +69,23 @@ export default function PostDetailScreen() {
 
   const createComment = useMutation({
     mutationFn: async (values: { body: string }) => {
+      setCommentError(null);
       if (demoMode) return { comment: addDemoComment(postId, values.body) };
+      if (!postId || !selectedPost) throw new Error("Post non ancora caricato.");
       return callFunction("create-comment", { body: { postId, body: values.body } });
     },
     onSuccess: async () => {
       reset();
       await sendLocalNotification("Nuovo commento", "Il tuo commento locale e stato aggiunto al post.");
       await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+    },
+    onError: (error) => {
+      setCommentError(getFriendlyError(error, "Commento non inviato. Aggiorna GPS e riprova."));
     }
   });
 
   async function requestPrivateConnection() {
+    setConnectionError(null);
     if (demoMode) {
       acceptDemoRequest("demo-request-1");
       await sendLocalNotification("Richiesta privata accettata", "Demo: la chat privata e pronta finche restate vicini.");
@@ -69,15 +97,21 @@ export default function PostDetailScreen() {
       return;
     }
 
-    await callFunction("request-connection", {
-      body: {
-        postId,
-        recipientId: selectedPost.author_id,
-        message: "Vorrei aprire una chat privata contestuale."
-      }
-    });
-    await sendLocalNotification("Richiesta inviata", "La persona vicina potra accettare o rifiutare.");
+    try {
+      await callFunction("request-connection", {
+        body: {
+          postId,
+          recipientId: selectedPost.author_id,
+          message: "Vorrei aprire una chat privata contestuale."
+        }
+      });
+      await sendLocalNotification("Richiesta inviata", "La persona vicina potra accettare o rifiutare.");
+    } catch (error) {
+      setConnectionError(getFriendlyError(error, "Richiesta privata non inviata. Riprova."));
+    }
   }
+
+  const canComment = Boolean(postId && selectedPost && !detail.isLoading && !detail.isError);
 
   return (
     <Screen>
@@ -92,11 +126,13 @@ export default function PostDetailScreen() {
             <Text className="mt-1 text-sm leading-5 text-muted">{getFriendlyError(detail.error, "Aggiorna il GPS dal feed e riprova.")}</Text>
           </View>
         ) : null}
+        {detail.isLoading ? <Text className="text-muted">Carico post e commenti...</Text> : null}
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
         <View className="flex-row gap-2">
-          <Button label="Richiedi privato" variant="secondary" className="flex-1" onPress={() => void requestPrivateConnection()} />
+          <Button label="Richiedi privato" variant="secondary" className="flex-1" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
           <Button label="Apri chat demo" className="flex-1" onPress={() => router.push("/chat/demo-active-chat")} />
         </View>
+        {connectionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{connectionError}</Text> : null}
         {comments.map((comment) => (
           <View key={comment.id} className="rounded-card border border-border bg-surface p-3">
             <Text className="mb-1 text-xs font-semibold text-muted">{comment.display_name ?? "Utente vicino"}</Text>
@@ -105,9 +141,10 @@ export default function PostDetailScreen() {
           </View>
         ))}
         <Controller control={control} name="body" render={({ field }) => (
-          <TextInput placeholder="Commenta pubblicamente" className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
+          <TextInput editable={canComment} placeholder={canComment ? "Commenta pubblicamente" : "Carica il post prima di commentare"} className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
         )} />
-        <Button label="Commenta" disabled={createComment.isPending} onPress={handleSubmit((values) => createComment.mutate(values))} />
+        {commentError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{commentError}</Text> : null}
+        <Button label="Commenta" disabled={!canComment || createComment.isPending} onPress={handleSubmit((values) => createComment.mutate(values))} />
       </View>
     </Screen>
   );
