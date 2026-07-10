@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { Link, router } from "expo-router";
+import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
 import { Screen } from "@/components/Screen";
@@ -51,9 +51,14 @@ export default function FeedScreen() {
         ) : null}
         <View className="gap-3">
           {feed.data?.posts.map((post) => (
-            <Link key={post.id} href={`/post/${post.id}`}>
+            <Pressable
+              key={post.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Apri post di ${post.display_name}`}
+              onPress={() => router.push(`/post/${post.id}`)}
+            >
               <FeedPostCard post={post} />
-            </Link>
+            </Pressable>
           ))}
         </View>
       </View>

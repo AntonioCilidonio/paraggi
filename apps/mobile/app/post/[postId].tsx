@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
@@ -74,7 +74,7 @@ export default function PostDetailScreen() {
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
         <View className="flex-row gap-2">
           <Button label="Richiedi privato" variant="secondary" onPress={() => void requestPrivateConnection()} />
-          <Link href="/chat/demo-active-chat" className="min-h-11 flex-1 rounded-card bg-primary px-4 py-3 text-center font-semibold text-white">Apri chat demo</Link>
+          <Button label="Apri chat demo" onPress={() => router.push("/chat/demo-active-chat")} />
         </View>
         {comments.data?.map((comment) => (
           <View key={comment.id} className="rounded-card border border-border bg-surface p-3">
