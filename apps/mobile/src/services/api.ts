@@ -1,4 +1,5 @@
 import { supabase } from "@/services/supabase";
+import { captureClientError } from "@/services/clientLogger";
 
 type ApiOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
@@ -16,7 +17,13 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
     body: options.body as Record<string, unknown> | undefined
   });
 
-  if (error) throw error;
-  if (data && typeof data === "object" && "error" in data) throw data;
+  if (error) {
+    captureClientError("edge_function_error", error, { functionName: name, method: options.method ?? "POST" });
+    throw error;
+  }
+  if (data && typeof data === "object" && "error" in data) {
+    captureClientError("edge_function_response_error", data, { functionName: name, method: options.method ?? "POST" });
+    throw data;
+  }
   return data as T;
 }

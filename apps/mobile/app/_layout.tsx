@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { assertEnv } from "@/config/env";
+import { installGlobalErrorLogger } from "@/services/clientLogger";
 import { configureNotifications } from "@/services/notifications";
 
 export default function RootLayout() {
@@ -12,6 +13,7 @@ export default function RootLayout() {
   assertEnv();
 
   useEffect(() => {
+    installGlobalErrorLogger();
     void configureNotifications();
   }, []);
 
