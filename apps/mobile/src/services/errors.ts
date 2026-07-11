@@ -23,6 +23,7 @@ const messages: Record<string, string> = {
   test_user_create_failed: "Non sono riuscito a creare l'utente test.",
   test_comment_failed: "Non sono riuscito a creare il commento test.",
   test_request_failed: "Non sono riuscito a creare la richiesta test.",
+  area_history_failed: "Non riesco a caricare la cronologia aree.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };

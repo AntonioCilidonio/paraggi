@@ -22,6 +22,13 @@ export function useLocationSync() {
         accuracy: Location.Accuracy.Balanced
       });
       const accuracyMeters = current.coords.accuracy ?? 999;
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude
+      }).catch(() => []);
+      const city = place?.city ?? place?.subregion ?? undefined;
+      const areaName = place?.district ?? place?.name ?? city ?? "Area vicina";
+      const placeLabel = [place?.street, place?.district].filter(Boolean).join(", ") || undefined;
 
       if (demoMode) {
         setLocationStatus({
@@ -52,6 +59,10 @@ export function useLocationSync() {
           speedMps: current.coords.speed ?? undefined,
           headingDegrees: current.coords.heading ?? undefined,
           capturedAt: new Date(current.timestamp).toISOString(),
+          areaName,
+          city,
+          countryCode: place?.isoCountryCode ?? undefined,
+          placeLabel,
           device: {
             isEmulator: !Device.isDevice,
             isRootedOrJailbroken: false

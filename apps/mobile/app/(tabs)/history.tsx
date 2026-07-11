@@ -6,7 +6,9 @@ import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { demoHistory } from "@/demo/data";
-import { supabase } from "@/services/supabase";
+import { callFunction } from "@/services/api";
+import { getFriendlyError } from "@/services/errors";
+import { useLocationSync } from "@/hooks/useLocationSync";
 
 type AreaHistory = {
   id: string;
@@ -20,15 +22,20 @@ type AreaHistory = {
 
 export default function HistoryScreen() {
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("demo-area-1");
+  const syncLocation = useLocationSync();
   const history = useQuery({
     queryKey: ["area-history"],
     queryFn: async () => {
       if (demoMode) return demoHistory;
-      const { data, error } = await supabase.from("area_history").select("*, areas(name,city,country_code)").order("last_seen_at", { ascending: false });
-      if (error) throw error;
-      return data as AreaHistory[];
+      const data = await callFunction<{ history: AreaHistory[] }>("get-area-history", { method: "GET" });
+      return data.history;
     }
   });
+
+  async function updateArea() {
+    const result = await syncLocation();
+    if (result.ok) await history.refetch();
+  }
 
   return (
     <Screen>
@@ -37,6 +44,26 @@ export default function HistoryScreen() {
           <Text className="text-2xl font-bold text-ink">Aree visitate</Text>
           <Text className="mt-1 text-sm leading-5 text-muted">Cronologia generalizzata per luogo, mai tracciati GPS.</Text>
         </View>
+        <View className="rounded-card border border-border bg-surface p-4">
+          <Text className="font-semibold text-ink">Area attuale</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">Sincronizza il GPS per salvare una visita generalizzata. Le coordinate precise non vengono mostrate.</Text>
+          <View className="mt-3">
+            <Button label="Aggiorna area" variant="secondary" onPress={() => void updateArea()} />
+          </View>
+        </View>
+        {history.isLoading ? <Text className="text-muted">Carico cronologia aree...</Text> : null}
+        {history.isError ? (
+          <View className="rounded-card border border-danger bg-surface p-4">
+            <Text className="font-semibold text-danger">Aree non caricate</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">{getFriendlyError(history.error, "Aggiorna l'area e riprova.")}</Text>
+          </View>
+        ) : null}
+        {history.data?.length === 0 ? (
+          <View className="rounded-card border border-border bg-surface p-4">
+            <Text className="font-semibold text-ink">Nessuna area ancora</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Premi Aggiorna area per creare la prima cronologia locale.</Text>
+          </View>
+        ) : null}
         {history.data?.map((item) => (
           <Pressable
             key={item.id}
