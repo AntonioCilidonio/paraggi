@@ -13,6 +13,16 @@ const messages: Record<string, string> = {
   post_not_commentable: "Questo post non puo piu ricevere commenti.",
   create_comment_failed: "Commento non salvato. Riprova.",
   missing_post_id: "Post non valido. Torna al feed e riapri la conversazione.",
+  cannot_request_self: "Non puoi aprire una richiesta privata con te stesso. Usa un secondo account o la richiesta test.",
+  request_connection_failed: "Richiesta privata non creata. Riprova.",
+  request_not_respondable: "Questa richiesta non e piu accettabile.",
+  create_chat_failed: "Chat non creata. Riprova.",
+  chat_not_active: "Chat sospesa: tornate vicini per inviare messaggi.",
+  send_message_failed: "Messaggio non inviato. Riprova.",
+  test_post_not_available: "Il post test non e disponibile.",
+  test_user_create_failed: "Non sono riuscito a creare l'utente test.",
+  test_comment_failed: "Non sono riuscito a creare il commento test.",
+  test_request_failed: "Non sono riuscito a creare la richiesta test.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };

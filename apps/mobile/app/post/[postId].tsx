@@ -52,6 +52,7 @@ export default function PostDetailScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [testStatus, setTestStatus] = useState<string | null>(null);
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
   const detail = useQuery({
@@ -113,6 +114,19 @@ export default function PostDetailScreen() {
 
   const canComment = Boolean(postId && selectedPost && !detail.isLoading && !detail.isError);
 
+  async function createTestInteraction() {
+    if (!postId || !selectedPost) return;
+    setTestStatus("Creo una persona test vicina...");
+    try {
+      await callFunction("create-test-interaction", { body: { postId } });
+      await sendLocalNotification("Richiesta privata test", "Marta Test ha commentato e ti ha inviato una richiesta privata.");
+      await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+      setTestStatus("Richiesta test creata. Vai nella tab Chat e accettala.");
+    } catch (error) {
+      setTestStatus(getFriendlyError(error, "Non sono riuscito a creare l'interazione test."));
+    }
+  }
+
   return (
     <Screen>
       <View className="mt-4 gap-4">
@@ -132,6 +146,14 @@ export default function PostDetailScreen() {
           <Button label="Richiedi privato" variant="secondary" className="flex-1" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
           <Button label="Apri chat demo" className="flex-1" onPress={() => router.push("/chat/demo-active-chat")} />
         </View>
+        {!demoMode ? (
+          <View className="gap-2 rounded-card border border-border bg-surface p-4">
+            <Text className="font-semibold text-ink">Test interazione</Text>
+            <Text className="text-sm leading-5 text-muted">Crea una persona vicina che commenta il post e ti manda una richiesta privata.</Text>
+            <Button label="Crea richiesta test" variant="secondary" disabled={!selectedPost} onPress={() => void createTestInteraction()} />
+            {testStatus ? <Text className="text-sm leading-5 text-muted">{testStatus}</Text> : null}
+          </View>
+        ) : null}
         {connectionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{connectionError}</Text> : null}
         {comments.map((comment) => (
           <View key={comment.id} className="rounded-card border border-border bg-surface p-3">
