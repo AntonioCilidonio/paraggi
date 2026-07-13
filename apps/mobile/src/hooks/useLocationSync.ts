@@ -2,6 +2,7 @@ import * as Device from "expo-device";
 import * as Location from "expo-location";
 import { useCallback } from "react";
 import { demoMode } from "@/config/env";
+import { getFriendlyError } from "@/services/errors";
 import { callFunction } from "@/services/api";
 import { useAppStore } from "@/stores/appStore";
 
@@ -78,10 +79,10 @@ export function useLocationSync() {
       });
       return { ok: true as const, result };
     } catch (error) {
-      setLocationPermission("denied");
       const reason = error && typeof error === "object" && "error" in error ? String((error as { error?: string }).error) : "location_unavailable";
+      if (reason === "permission_denied") setLocationPermission("denied");
       setLocationStatus({ error: reason });
-      return { ok: false as const, reason };
+      return { ok: false as const, reason, message: getFriendlyError(error, "GPS non sincronizzato.") };
     }
   }, [setLocationPermission, setLocationStatus]);
 }

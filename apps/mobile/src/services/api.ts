@@ -5,6 +5,7 @@ type ApiOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   query?: Record<string, string | number | undefined>;
+  requireAuth?: boolean;
 };
 
 async function readFunctionError(error: unknown) {
@@ -32,10 +33,18 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
   const query = options.query
     ? `?${new URLSearchParams(Object.entries(options.query).filter((entry): entry is [string, string | number] => entry[1] !== undefined).map(([key, value]) => [key, String(value)])).toString()}`
     : "";
+  const requireAuth = options.requireAuth ?? true;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+
+  if (requireAuth && !accessToken) {
+    throw { error: "unauthenticated" };
+  }
 
   const { data, error } = await supabase.functions.invoke(`${name}${query}`, {
     method: options.method ?? "POST",
-    body: options.body as Record<string, unknown> | undefined
+    body: options.body as Record<string, unknown> | undefined,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
   });
 
   if (error) {

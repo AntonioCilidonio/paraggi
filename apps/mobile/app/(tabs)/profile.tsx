@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
     const result = await syncLocation();
-    setGpsStatus(result.ok ? "GPS attivo e sincronizzato. Ora puoi pubblicare post e testare le chat." : "GPS non sincronizzato. Controlla permessi, rete e posizione.");
+    setGpsStatus(result.ok ? "GPS attivo e sincronizzato. Ora puoi pubblicare post e testare le chat." : result.message ?? "GPS non sincronizzato. Controlla permessi, rete e posizione.");
   }
 
   async function triggerDangerAlert() {
