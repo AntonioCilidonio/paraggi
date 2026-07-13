@@ -8,6 +8,7 @@ import { demoMode } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { usePushRegistration } from "@/hooks/usePushRegistration";
 import { callFunction } from "@/services/api";
+import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
@@ -71,6 +72,7 @@ export default function ProfileScreen() {
   const [dangerStatus, setDangerStatus] = useState("Allarme non inviato");
   const [diagnostics, setDiagnostics] = useState<TestDiagnostics | null>(null);
   const [diagnosticsStatus, setDiagnosticsStatus] = useState("Non ancora controllata.");
+  const [scenarioStatus, setScenarioStatus] = useState("Self-test non eseguito.");
 
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
@@ -144,6 +146,23 @@ export default function ProfileScreen() {
     }
   }
 
+  async function runTestScenario() {
+    if (demoMode) {
+      setScenarioStatus("Self-test demo non necessario: usa Supabase per validare il backend reale.");
+      return;
+    }
+
+    setScenarioStatus("Creo scenario backend...");
+    try {
+      const result = await callFunction<{ post: { id: string }; chat: { id: string }; messages: unknown[] }>("run-test-scenario");
+      setScenarioStatus(`Scenario creato: post ${result.post.id.slice(0, 8)}, chat ${result.chat.id.slice(0, 8)}, messaggi ${result.messages.length}.`);
+      await sendLocalNotification("Self-test completato", "Post, commento, richiesta, chat e messaggi sono stati creati.");
+      await loadDiagnostics();
+    } catch (error) {
+      setScenarioStatus(getFriendlyError(error, "Self-test non riuscito. Sincronizza GPS e riprova."));
+    }
+  }
+
   function confirmDangerAlert() {
     Alert.alert(
       "Inviare SOS?",
@@ -207,6 +226,8 @@ export default function ProfileScreen() {
             </View>
           ) : null}
           <Button label="Controlla diagnostica" variant="secondary" onPress={() => void loadDiagnostics()} />
+          <Text className="text-sm leading-5 text-muted">{scenarioStatus}</Text>
+          <Button label="Esegui self-test backend" onPress={() => void runTestScenario()} />
         </View>
         <View className="gap-3 rounded-card border border-danger bg-surface p-4">
           <View>

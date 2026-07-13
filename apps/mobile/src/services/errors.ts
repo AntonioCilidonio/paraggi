@@ -20,6 +20,7 @@ const messages: Record<string, string> = {
   chat_not_active: "Chat sospesa: tornate vicini per inviare messaggi.",
   send_message_failed: "Messaggio non inviato. Riprova.",
   test_post_not_available: "Il post test non e disponibile.",
+  test_post_create_failed: "Non sono riuscito a creare il post di self-test.",
   test_user_create_failed: "Non sono riuscito a creare l'utente test.",
   test_comment_failed: "Non sono riuscito a creare il commento test.",
   test_request_failed: "Non sono riuscito a creare la richiesta test.",
