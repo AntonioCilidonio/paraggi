@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - uses: actions/setup-java@v4
@@ -34,6 +34,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease --stacktrace
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paraggi-android-release-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
       - name: Smoke test APK launch
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -42,12 +49,28 @@ jobs:
           arch: x86_64
           profile: pixel_6
           script: |
+            set +e
             APK="$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -n 1)"
             adb install -r "$APK"
+            INSTALL_STATUS=$?
             adb shell monkey -p app.paraggi.mobile -c android.intent.category.LAUNCHER 1
+            LAUNCH_STATUS=$?
             sleep 8
             adb logcat -d > android-launch-logcat.txt
             adb shell pidof app.paraggi.mobile
+            PID_STATUS=$?
+            if [ "$INSTALL_STATUS" -ne 0 ]; then
+              echo "APK install failed"
+              exit "$INSTALL_STATUS"
+            fi
+            if [ "$LAUNCH_STATUS" -ne 0 ]; then
+              echo "APK launch command failed"
+              exit "$LAUNCH_STATUS"
+            fi
+            if [ "$PID_STATUS" -ne 0 ]; then
+              echo "Paraggi process is not running after launch"
+              exit "$PID_STATUS"
+            fi
 
       - name: Upload launch logcat
         if: always()
@@ -56,10 +79,3 @@ jobs:
           name: paraggi-android-launch-logcat
           path: android-launch-logcat.txt
           if-no-files-found: ignore
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: paraggi-android-release-apk
-          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
