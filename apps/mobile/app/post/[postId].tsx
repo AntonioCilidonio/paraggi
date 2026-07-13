@@ -24,6 +24,8 @@ type CommentRow = {
   created_at: string;
 };
 
+const emptyDemoComments: CommentRow[] = [];
+
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
     <Screen>
@@ -47,7 +49,7 @@ export default function PostDetailScreen() {
   const queryClient = useQueryClient();
   const localDemoPosts = useAppStore((state) => state.demoPosts);
   const radiusMeters = useAppStore((state) => state.radiusMeters);
-  const localComments = useAppStore((state) => state.demoCommentsByPost[postId ?? ""] ?? []);
+  const localComments = useAppStore((state) => state.demoCommentsByPost[postId ?? ""] ?? emptyDemoComments);
   const addDemoComment = useAppStore((state) => state.addDemoComment);
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const [commentError, setCommentError] = useState<string | null>(null);

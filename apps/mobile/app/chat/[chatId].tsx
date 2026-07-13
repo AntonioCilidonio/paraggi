@@ -21,11 +21,13 @@ type Message = {
   created_at: string;
 };
 
+const emptyDemoMessages: Message[] = [];
+
 export default function ChatDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const queryClient = useQueryClient();
   const demoStatus = useAppStore((state) => state.demoChatStatusById[chatId ?? ""]);
-  const demoExtraMessages = useAppStore((state) => state.demoMessagesByChat[chatId ?? ""] ?? []);
+  const demoExtraMessages = useAppStore((state) => state.demoMessagesByChat[chatId ?? ""] ?? emptyDemoMessages);
   const addDemoMessage = useAppStore((state) => state.addDemoMessage);
   const setDemoChatStatus = useAppStore((state) => state.setDemoChatStatus);
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
