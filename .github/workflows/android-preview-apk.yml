@@ -11,6 +11,10 @@ on:
       - "package.json"
       - "package-lock.json"
 
+concurrency:
+  group: android-preview-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
