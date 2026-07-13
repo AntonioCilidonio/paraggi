@@ -1,7 +1,7 @@
 import type { ErrorBoundaryProps } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
@@ -10,6 +10,7 @@ import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { demoComments, demoPosts } from "@/demo/data";
 import { callFunction } from "@/services/api";
+import { captureClientError } from "@/services/clientLogger";
 import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
@@ -27,6 +28,10 @@ type CommentRow = {
 const emptyDemoComments: CommentRow[] = [];
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    captureClientError("post_detail_screen_error", error, {}, "fatal");
+  }, [error]);
+
   return (
     <Screen>
       <View className="mt-4 gap-4">
@@ -45,7 +50,8 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 export default function PostDetailScreen() {
-  const { postId } = useLocalSearchParams<{ postId: string }>();
+  const params = useLocalSearchParams<{ postId?: string | string[] }>();
+  const postId = Array.isArray(params.postId) ? params.postId[0] : params.postId;
   const queryClient = useQueryClient();
   const localDemoPosts = useAppStore((state) => state.demoPosts);
   const radiusMeters = useAppStore((state) => state.radiusMeters);
@@ -58,7 +64,7 @@ export default function PostDetailScreen() {
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
   const detail = useQuery({
-    queryKey: ["post-detail", postId, radiusMeters, localComments.length],
+    queryKey: ["post-detail", postId, radiusMeters],
     queryFn: async () => {
       if (demoMode) {
         const post = [...localDemoPosts, ...demoPosts].find((item) => item.id === postId) ?? null;
@@ -73,8 +79,9 @@ export default function PostDetailScreen() {
   const createComment = useMutation({
     mutationFn: async (values: { body: string }) => {
       setCommentError(null);
+      if (!postId) throw new Error("Post non ancora caricato.");
       if (demoMode) return { comment: addDemoComment(postId, values.body) };
-      if (!postId || !selectedPost) throw new Error("Post non ancora caricato.");
+      if (!selectedPost) throw new Error("Post non ancora caricato.");
       return callFunction("create-comment", { body: { postId, body: values.body } });
     },
     onSuccess: async () => {

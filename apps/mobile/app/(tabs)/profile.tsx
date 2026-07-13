@@ -30,6 +30,7 @@ export default function ProfileScreen() {
   const registerPush = usePushRegistration();
   const syncLocation = useLocationSync();
   const [gpsStatus, setGpsStatus] = useState("Premi il bottone per attivare e sincronizzare il GPS.");
+  const [pushStatus, setPushStatus] = useState("Premi il bottone per registrare questo dispositivo alle notifiche push.");
   const [shareDangerCoordinates, setShareDangerCoordinates] = useState(true);
   const [dangerStatus, setDangerStatus] = useState("Allarme non inviato");
 
@@ -79,6 +80,16 @@ export default function ProfileScreen() {
     }
   }
 
+  async function activatePushNotifications() {
+    setPushStatus("Registro il dispositivo...");
+    const result = await registerPush();
+    if (result?.ok) {
+      setPushStatus(result.demo ? "Notifiche demo attive." : `Notifiche push attive. Token: ${result.tokenPreview}...`);
+      return;
+    }
+    setPushStatus(result?.reason === "permission_denied" ? "Permesso notifiche negato dal telefono." : "Token push non registrato. Controlla rete, login e permessi.");
+  }
+
   function confirmDangerAlert() {
     Alert.alert(
       "Inviare SOS?",
@@ -119,7 +130,8 @@ export default function ProfileScreen() {
           <Text className="text-sm leading-5 text-muted">{gpsStatus}</Text>
           <Button label="Sincronizza GPS ora" variant="secondary" onPress={() => void requestGps()} />
           <Text className="text-sm leading-5 text-muted">Notifiche: {notificationPermission}</Text>
-          <Button label="Attiva notifiche" variant="secondary" onPress={() => void registerPush()} />
+          <Text className="text-sm leading-5 text-muted">{pushStatus}</Text>
+          <Button label="Attiva notifiche" variant="secondary" onPress={() => void activatePushNotifications()} />
           <Button label="Invia notifica test" onPress={() => void sendLocalNotification("Paraggi test", "Questa e una notifica locale dell'APK di prova.")} />
           <Button label="Reset scenario demo" variant="secondary" onPress={() => resetDemoScenario()} />
         </View>

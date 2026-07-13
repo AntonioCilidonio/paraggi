@@ -19,6 +19,13 @@ export async function configureNotifications() {
         vibrationPattern: [0, 220, 120, 220],
         lightColor: "#16808a"
       });
+      await Notifications.setNotificationChannelAsync("paraggi-alerts", {
+        name: "Allarmi Paraggi",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 180, 500, 180, 700],
+        lightColor: "#b42318",
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC
+      });
     }
   } catch {
     // Notification support can vary across Android test devices. The app must keep running.

@@ -10,14 +10,13 @@ Deno.serve(await withHttp(async (req) => {
 
   await adminClient.rpc("expire_old_posts");
 
-  const { data: nearbyPosts, error: nearbyError } = await userClient.rpc("get_nearby_posts", {
-    radius_meters: radiusMeters,
-    page_limit: 50
-  });
-
-  if (nearbyError) return jsonResponse({ error: "post_detail_failed", details: nearbyError.message }, 400);
-
-  const post = (nearbyPosts ?? []).find((item: { id: string }) => item.id === postId);
+  const { data: post, error: postError } = await userClient
+    .rpc("get_post_detail_for_user", {
+      post_id_input: postId,
+      radius_meters: radiusMeters
+    })
+    .maybeSingle();
+  if (postError) return jsonResponse({ error: "post_detail_failed", details: postError.message }, 400);
   if (!post) return jsonResponse({ error: "post_not_visible" }, 404);
 
   const { data: comments, error: commentsError } = await adminClient

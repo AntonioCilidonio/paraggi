@@ -23,6 +23,7 @@ async function sendExpoPush(tokens: string[], title: string, body: string, data:
       title,
       body,
       sound: "default",
+      channelId: "paraggi-alerts",
       priority: "high",
       data
     })))
