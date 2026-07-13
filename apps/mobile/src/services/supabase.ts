@@ -1,8 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
-import { env } from "@/config/env";
+import { demoMode, env } from "@/config/env";
 
-export const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+const supabaseUrl = demoMode ? "https://demo.supabase.co" : env.supabaseUrl;
+const supabaseAnonKey = demoMode ? "demo-anon-key" : env.supabaseAnonKey;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
@@ -10,4 +13,3 @@ export const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
     detectSessionInUrl: false
   }
 });
-
