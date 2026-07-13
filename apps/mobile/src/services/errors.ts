@@ -24,6 +24,7 @@ const messages: Record<string, string> = {
   test_comment_failed: "Non sono riuscito a creare il commento test.",
   test_request_failed: "Non sono riuscito a creare la richiesta test.",
   area_history_failed: "Non riesco a caricare la cronologia aree.",
+  heatmap_failed: "Non riesco a caricare la heatmap. Aggiorna il GPS e riprova.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };

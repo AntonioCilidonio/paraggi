@@ -109,6 +109,45 @@ export const demoHistory = [
   }
 ];
 
+export const demoHeatmapZones = [
+  {
+    id: "demo-heatmap-centro",
+    name: "Centro Bologna",
+    city: "Bologna",
+    post_count: 7,
+    comment_count: 18,
+    connection_count: 3,
+    activity_score: 45,
+    activity_level: "high",
+    distance_meters: 180,
+    latest_activity_at: new Date(Date.now() - 8 * 60 * 1000).toISOString()
+  },
+  {
+    id: "demo-heatmap-stazione",
+    name: "Stazione Centrale",
+    city: "Bologna",
+    post_count: 4,
+    comment_count: 9,
+    connection_count: 1,
+    activity_score: 23,
+    activity_level: "medium",
+    distance_meters: 430,
+    latest_activity_at: new Date(Date.now() - 18 * 60 * 1000).toISOString()
+  },
+  {
+    id: "demo-heatmap-parco",
+    name: "Parco",
+    city: "Bologna",
+    post_count: 1,
+    comment_count: 2,
+    connection_count: 0,
+    activity_score: 5,
+    activity_level: "low",
+    distance_meters: 920,
+    latest_activity_at: new Date(Date.now() - 48 * 60 * 1000).toISOString()
+  }
+];
+
 export const demoComments = [
   {
     id: "demo-comment-1",
