@@ -25,6 +25,7 @@ const messages: Record<string, string> = {
   test_request_failed: "Non sono riuscito a creare la richiesta test.",
   area_history_failed: "Non riesco a caricare la cronologia aree.",
   heatmap_failed: "Non riesco a caricare la heatmap. Aggiorna il GPS e riprova.",
+  email_rate_limit_exceeded: "Troppe email di registrazione inviate in poco tempo. Attendi qualche minuto oppure disattiva temporaneamente la conferma email in Supabase per i test.",
   unauthorized: "Sessione non valida. Accedi di nuovo.",
   unauthenticated: "Sessione non valida. Accedi di nuovo."
 };
@@ -38,6 +39,8 @@ export function getFriendlyError(error: unknown, fallback = "Operazione non rius
     const key = value.error ?? value.message;
     if (key && messages[key]) return messages[key];
     if (value.message?.includes("Invalid login credentials")) return messages.invalid_credentials;
+    if (value.message?.toLowerCase().includes("email rate limit exceeded")) return messages.email_rate_limit_exceeded;
+    if (value.error?.toLowerCase().includes("email rate limit exceeded")) return messages.email_rate_limit_exceeded;
     if (value.details) return value.details;
     if (value.message) return value.message;
   }
