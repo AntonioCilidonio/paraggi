@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { demoMode } from "@/config/env";
+import { usePushRegistration } from "@/hooks/usePushRegistration";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { supabase } from "@/services/supabase";
 
@@ -18,6 +19,8 @@ export default function TabsLayout() {
   const [isCheckingSession, setIsCheckingSession] = useState(!demoMode);
   const [hasSession, setHasSession] = useState(demoMode);
   const [userId, setUserId] = useState<string | null>(null);
+  const pushRegistrationStartedRef = useRef(false);
+  const registerPush = usePushRegistration();
   useRealtimeChannel(userId ? { type: "notifications", userId } : null);
 
   useEffect(() => {
@@ -43,6 +46,12 @@ export default function TabsLayout() {
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (demoMode || !userId || pushRegistrationStartedRef.current) return;
+    pushRegistrationStartedRef.current = true;
+    void registerPush();
+  }, [registerPush, userId]);
 
   if (isCheckingSession) {
     return (
