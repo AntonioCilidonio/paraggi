@@ -4,7 +4,7 @@ type Payload = {
   latitude: number;
   longitude: number;
   accuracyMeters?: number;
-  radiusMeters?: 100 | 500 | 1000 | 5000;
+  radiusMeters?: 100 | 500 | 1000 | 5000 | 30000 | 60000;
   message?: string;
   sharePreciseCoordinates?: boolean;
 };

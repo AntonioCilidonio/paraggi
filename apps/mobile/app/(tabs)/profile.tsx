@@ -102,8 +102,8 @@ export default function ProfileScreen() {
         <View className="gap-2">
           <Text className="font-semibold text-ink">Raggio ricerca</Text>
           <View className="flex-row flex-wrap gap-2">
-            {[100, 500, 1000, 5000].map((radius) => (
-              <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => setRadius(radius as 100 | 500 | 1000 | 5000)} />
+            {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
+              <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => setRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
             ))}
           </View>
         </View>

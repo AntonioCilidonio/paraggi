@@ -8,7 +8,7 @@ Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
   const url = new URL(req.url);
   const requestedRadius = Number(url.searchParams.get("radiusMeters") ?? "1000");
-  const radiusMeters = [100, 500, 1000, 5000].includes(requestedRadius) ? requestedRadius : 1000;
+  const radiusMeters = [100, 500, 1000, 5000, 30000, 60000].includes(requestedRadius) ? requestedRadius : 1000;
 
   await adminClient.rpc("expire_old_posts");
 

@@ -1,4 +1,4 @@
-export type RadiusMeters = 100 | 500 | 1000 | 5000;
+export type RadiusMeters = 100 | 500 | 1000 | 5000 | 30000 | 60000;
 
 export type LocationTrustStatus = "trusted" | "uncertain" | "suspicious" | "blocked";
 
@@ -20,7 +20,6 @@ export type PostCategory =
 
 export type PostTtlMinutes = 30 | 180 | 1440;
 
-export const SUPPORTED_RADII_METERS: readonly RadiusMeters[] = [100, 500, 1000, 5000];
+export const SUPPORTED_RADII_METERS: readonly RadiusMeters[] = [100, 500, 1000, 5000, 30000, 60000];
 
 export const POST_TTL_MINUTES: readonly PostTtlMinutes[] = [30, 180, 1440];
-

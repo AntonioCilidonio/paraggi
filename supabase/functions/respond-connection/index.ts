@@ -3,7 +3,7 @@ import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared
 type Payload = {
   requestId: string;
   accept: boolean;
-  radiusMeters?: 100 | 500 | 1000 | 5000;
+  radiusMeters?: 100 | 500 | 1000 | 5000 | 30000 | 60000;
 };
 
 Deno.serve(await withHttp(async (req) => {
@@ -41,4 +41,3 @@ Deno.serve(await withHttp(async (req) => {
   await audit(adminClient, { actorId: user.id, eventType: "connection", action: status, targetTable: "connection_requests", targetId: payload.requestId });
   return jsonResponse({ status, chat });
 }));
-
