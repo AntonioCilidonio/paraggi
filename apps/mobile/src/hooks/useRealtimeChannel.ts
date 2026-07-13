@@ -11,42 +11,50 @@ type RealtimeTarget =
 
 export function useRealtimeChannel(target: RealtimeTarget | null) {
   const queryClient = useQueryClient();
+  const targetType = target?.type;
+  const postId = target?.type === "post-comments" ? target.postId : undefined;
+  const chatId = target?.type === "chat-messages" || target?.type === "chat-status" ? target.chatId : undefined;
+  const userId = target?.type === "notifications" ? target.userId : undefined;
 
   useEffect(() => {
-    if (!target || demoMode) return;
+    if (!targetType || demoMode) return;
 
-    const channelName = target.type === "post-comments"
-      ? `post:${target.postId}:comments`
-      : target.type === "chat-messages"
-        ? `chat:${target.chatId}:messages`
-        : target.type === "chat-status"
-          ? `chat:${target.chatId}:status`
-          : `user:${target.userId}:notifications`;
+    const channelName = targetType === "post-comments" && postId
+      ? `post:${postId}:comments`
+      : targetType === "chat-messages" && chatId
+        ? `chat:${chatId}:messages`
+        : targetType === "chat-status" && chatId
+          ? `chat:${chatId}:status`
+          : targetType === "notifications" && userId
+            ? `user:${userId}:notifications`
+            : null;
+
+    if (!channelName) return;
 
     const channel = supabase.channel(channelName);
 
-    if (target.type === "post-comments") {
-      channel.on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${target.postId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["comments", target.postId] });
-        void queryClient.invalidateQueries({ queryKey: ["post-detail", target.postId] });
+    if (targetType === "post-comments" && postId) {
+      channel.on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+        void queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
       });
     }
 
-    if (target.type === "chat-messages") {
-      channel.on("postgres_changes", { event: "*", schema: "public", table: "private_messages", filter: `chat_id=eq.${target.chatId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["messages", target.chatId] });
+    if (targetType === "chat-messages" && chatId) {
+      channel.on("postgres_changes", { event: "*", schema: "public", table: "private_messages", filter: `chat_id=eq.${chatId}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
       });
     }
 
-    if (target.type === "chat-status") {
-      channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "private_chats", filter: `id=eq.${target.chatId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["chat", target.chatId] });
+    if (targetType === "chat-status" && chatId) {
+      channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "private_chats", filter: `id=eq.${chatId}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["chat", chatId] });
       });
     }
 
-    if (target.type === "notifications") {
-      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${target.userId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["notifications", target.userId] });
+    if (targetType === "notifications" && userId) {
+      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
       });
     }
 
@@ -55,5 +63,5 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [queryClient, target]);
+  }, [chatId, postId, queryClient, targetType, userId]);
 }
