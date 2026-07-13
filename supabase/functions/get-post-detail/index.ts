@@ -8,6 +8,8 @@ Deno.serve(await withHttp(async (req) => {
 
   if (!postId) return jsonResponse({ error: "missing_post_id" }, 400);
 
+  await adminClient.rpc("expire_old_posts");
+
   const { data: nearbyPosts, error: nearbyError } = await userClient.rpc("get_nearby_posts", {
     radius_meters: radiusMeters,
     page_limit: 50

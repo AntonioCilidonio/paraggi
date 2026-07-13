@@ -11,6 +11,7 @@ import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { callFunction } from "@/services/api";
+import { captureClientError } from "@/services/clientLogger";
 import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
@@ -198,6 +199,12 @@ export default function ComposePostScreen() {
       await callFunction("create-post", { body: { ...values, attachments } });
       router.replace("/(tabs)/feed");
     } catch (error) {
+      captureClientError("compose_post_failed", error, {
+        mediaCount: mediaAttachments.length,
+        shareApproxLocation,
+        selectedCategory: values.category,
+        ttlMinutes: values.ttlMinutes
+      });
       setStatusMessage(null);
       setErrorMessage(getFriendlyError(error, "Post non pubblicato. Controlla login, GPS e rete."));
     }

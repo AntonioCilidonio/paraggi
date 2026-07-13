@@ -10,6 +10,8 @@ Deno.serve(await withHttp(async (req) => {
   const requestedRadius = Number(url.searchParams.get("radiusMeters") ?? "1000");
   const radiusMeters = [100, 500, 1000, 5000].includes(requestedRadius) ? requestedRadius : 1000;
 
+  await adminClient.rpc("expire_old_posts");
+
   const { data: latestLocations, error: locationError } = await adminClient
     .rpc("latest_trusted_location", { for_user_id: user.id });
 
