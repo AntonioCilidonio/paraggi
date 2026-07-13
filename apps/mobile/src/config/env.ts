@@ -1,6 +1,9 @@
+const fallbackSupabaseUrl = "https://muadzpawrxcivogtxwto.supabase.co";
+const fallbackSupabaseAnonKey = "sb_publishable_l4TjR6G8pWYGlLlnOG-TaQ_MTnYd5Yj";
+
 export const env = {
-  supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
-  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ""
+  supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? fallbackSupabaseUrl,
+  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? fallbackSupabaseAnonKey
 };
 
 export const demoMode =
