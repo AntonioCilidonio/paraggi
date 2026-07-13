@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
-import { sendLocalNotification } from "@/services/notifications";
+import { configureNotifications, sendLocalNotification } from "@/services/notifications";
 import { useAppStore } from "@/stores/appStore";
 
 export function usePushRegistration() {
@@ -14,6 +14,7 @@ export function usePushRegistration() {
 
   return useCallback(async () => {
     try {
+      await configureNotifications();
       const permission = await Notifications.requestPermissionsAsync();
       setNotificationPermission(permission.status === "granted" ? "granted" : "denied");
       if (permission.status !== "granted") return { ok: false as const, reason: "permission_denied" };

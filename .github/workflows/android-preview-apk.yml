@@ -34,6 +34,29 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease --stacktrace
 
+      - name: Smoke test APK launch
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            APK="$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -n 1)"
+            adb install -r "$APK"
+            adb shell monkey -p app.paraggi.mobile -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb logcat -d > android-launch-logcat.txt
+            adb shell pidof app.paraggi.mobile
+
+      - name: Upload launch logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paraggi-android-launch-logcat
+          path: android-launch-logcat.txt
+          if-no-files-found: ignore
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

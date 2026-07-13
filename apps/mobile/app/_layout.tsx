@@ -6,7 +6,6 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { assertEnv } from "@/config/env";
 import { installGlobalErrorLogger } from "@/services/clientLogger";
-import { configureNotifications } from "@/services/notifications";
 
 export default function RootLayout() {
   const queryClient = useMemo(() => new QueryClient(), []);
@@ -14,7 +13,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     installGlobalErrorLogger();
-    void configureNotifications();
   }, []);
 
   return (

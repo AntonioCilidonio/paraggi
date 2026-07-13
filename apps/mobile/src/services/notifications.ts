@@ -46,6 +46,7 @@ export async function requestNotificationPermission() {
 
 export async function sendLocalNotification(title: string, body: string) {
   try {
+    await configureNotifications();
     const granted = await requestNotificationPermission();
     if (!granted) return false;
 
