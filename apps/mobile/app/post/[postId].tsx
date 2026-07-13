@@ -1,7 +1,7 @@
 import type { ErrorBoundaryProps } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
@@ -28,9 +28,13 @@ type CommentRow = {
 const emptyDemoComments: CommentRow[] = [];
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const loggedMessageRef = useRef<string | null>(null);
+
   useEffect(() => {
+    if (loggedMessageRef.current === error.message) return;
+    loggedMessageRef.current = error.message;
     captureClientError("post_detail_screen_error", error, {}, "fatal");
-  }, [error]);
+  }, [error.message]);
 
   return (
     <Screen>
@@ -52,6 +56,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 export default function PostDetailScreen() {
   const params = useLocalSearchParams<{ postId?: string | string[] }>();
   const postId = Array.isArray(params.postId) ? params.postId[0] : params.postId;
+  const hasPostId = typeof postId === "string" && postId.length > 0;
   const queryClient = useQueryClient();
   const localDemoPosts = useAppStore((state) => state.demoPosts);
   const radiusMeters = useAppStore((state) => state.radiusMeters);
@@ -65,7 +70,9 @@ export default function PostDetailScreen() {
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
   const detail = useQuery({
     queryKey: ["post-detail", postId, radiusMeters],
+    enabled: hasPostId,
     queryFn: async () => {
+      if (!hasPostId) throw new Error("Post non ancora caricato.");
       if (demoMode) {
         const post = [...localDemoPosts, ...demoPosts].find((item) => item.id === postId) ?? null;
         return { post, comments: [...demoComments, ...localComments] };
