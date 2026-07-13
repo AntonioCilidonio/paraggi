@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { demoMode } from "@/config/env";
+import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 
 type RealtimeTarget =
@@ -53,7 +54,9 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
     }
 
     if (targetType === "notifications" && userId) {
-      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => {
+      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (payload) => {
+        const notification = payload.new as { title?: string; body?: string; type?: string };
+        void sendLocalNotification(notification.title ?? "Paraggi", notification.body ?? "Hai una nuova notifica vicina.");
         void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
       });
     }

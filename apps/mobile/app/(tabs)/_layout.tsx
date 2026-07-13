@@ -3,6 +3,7 @@ import { Redirect, Tabs } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { demoMode } from "@/config/env";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { supabase } from "@/services/supabase";
 
 const icons = {
@@ -16,6 +17,8 @@ const icons = {
 export default function TabsLayout() {
   const [isCheckingSession, setIsCheckingSession] = useState(!demoMode);
   const [hasSession, setHasSession] = useState(demoMode);
+  const [userId, setUserId] = useState<string | null>(null);
+  useRealtimeChannel(userId ? { type: "notifications", userId } : null);
 
   useEffect(() => {
     if (demoMode) return;
@@ -23,12 +26,15 @@ export default function TabsLayout() {
     let isMounted = true;
     void supabase.auth.getUser().then(({ data, error }) => {
       if (!isMounted) return;
-      setHasSession(!error && Boolean(data.user));
+      const isAuthenticated = !error && Boolean(data.user);
+      setHasSession(isAuthenticated);
+      setUserId(isAuthenticated ? data.user?.id ?? null : null);
       setIsCheckingSession(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setHasSession(Boolean(session));
+      setUserId(session?.user.id ?? null);
       setIsCheckingSession(false);
     });
 
