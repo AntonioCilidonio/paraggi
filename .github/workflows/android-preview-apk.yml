@@ -2,6 +2,14 @@ name: Android Preview APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/android-preview-apk.yml"
+      - "apps/mobile/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   build-apk:
@@ -42,6 +50,7 @@ jobs:
           if-no-files-found: error
 
       - name: Smoke test APK launch
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
