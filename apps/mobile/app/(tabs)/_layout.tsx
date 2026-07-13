@@ -1,5 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { demoMode } from "@/config/env";
+import { supabase } from "@/services/supabase";
 
 const icons = {
   feed: ["radio-outline", "radio"] as const,
@@ -10,6 +14,40 @@ const icons = {
 };
 
 export default function TabsLayout() {
+  const [isCheckingSession, setIsCheckingSession] = useState(!demoMode);
+  const [hasSession, setHasSession] = useState(demoMode);
+
+  useEffect(() => {
+    if (demoMode) return;
+
+    let isMounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setHasSession(Boolean(data.session));
+      setIsCheckingSession(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSession(Boolean(session));
+      setIsCheckingSession(false);
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (isCheckingSession) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!hasSession) return <Redirect href="/(auth)/login" />;
+
   return (
     <Tabs screenOptions={{
       headerShown: false,

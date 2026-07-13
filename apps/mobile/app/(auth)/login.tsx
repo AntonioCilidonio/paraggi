@@ -19,7 +19,10 @@ export default function LoginScreen() {
   async function submit(values: Form) {
     setErrorMessage(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword(values);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: values.email.trim(),
+        password: values.password
+      });
       if (error) throw error;
       router.replace("/(tabs)/feed");
     } catch (error) {

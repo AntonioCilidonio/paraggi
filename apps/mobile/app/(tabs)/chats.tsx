@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { Button } from "@/components/Button";
@@ -43,6 +44,7 @@ export default function ChatsScreen() {
   const requests = useAppStore((state) => state.demoRequests);
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const declineDemoRequest = useAppStore((state) => state.declineDemoRequest);
+  const [actionError, setActionError] = useState<string | null>(null);
   const chats = useQuery({
     queryKey: ["chats", demoStatusById],
     queryFn: async () => {
@@ -61,23 +63,33 @@ export default function ChatsScreen() {
   });
 
   async function accept(requestId: string) {
-    if (demoMode) {
-      acceptDemoRequest(requestId);
-    } else {
-      await callFunction("respond-connection", { body: { requestId, accept: true } });
+    setActionError(null);
+    try {
+      if (demoMode) {
+        acceptDemoRequest(requestId);
+      } else {
+        await callFunction("respond-connection", { body: { requestId, accept: true } });
+      }
+      await sendLocalNotification("Richiesta accettata", "La chat privata e ora attiva entro il raggio condiviso.");
+      await chats.refetch();
+    } catch (error) {
+      setActionError(getFriendlyError(error, "Richiesta non accettata. Controlla login e rete."));
     }
-    await sendLocalNotification("Richiesta accettata", "La chat privata e ora attiva entro il raggio condiviso.");
-    await chats.refetch();
   }
 
   async function decline(requestId: string) {
-    if (demoMode) {
-      declineDemoRequest(requestId);
-    } else {
-      await callFunction("respond-connection", { body: { requestId, accept: false } });
+    setActionError(null);
+    try {
+      if (demoMode) {
+        declineDemoRequest(requestId);
+      } else {
+        await callFunction("respond-connection", { body: { requestId, accept: false } });
+      }
+      await sendLocalNotification("Richiesta rifiutata", "La connessione privata non e stata aperta.");
+      await chats.refetch();
+    } catch (error) {
+      setActionError(getFriendlyError(error, "Richiesta non rifiutata. Controlla login e rete."));
     }
-    await sendLocalNotification("Richiesta rifiutata", "La connessione privata non e stata aperta.");
-    await chats.refetch();
   }
 
   return (
@@ -96,6 +108,7 @@ export default function ChatsScreen() {
             </View>
           </View>
         ) : null}
+        {actionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{actionError}</Text> : null}
         <View className="gap-3">
           <Text className="font-semibold text-ink">Richieste private</Text>
           {(chats.data?.requests ?? []).length === 0 ? (

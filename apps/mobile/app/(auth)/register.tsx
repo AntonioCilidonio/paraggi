@@ -16,9 +16,11 @@ type Form = {
 export default function RegisterScreen() {
   const { control, handleSubmit, formState } = useForm<Form>({ defaultValues: { email: "", password: "", displayName: "" } });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function submit(values: Form) {
     setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       const displayName = values.displayName.trim() || values.email.split("@")[0] || "Utente";
       const { data, error } = await supabase.auth.signUp({
@@ -27,10 +29,12 @@ export default function RegisterScreen() {
         options: { data: { display_name: displayName } }
       });
       if (error) throw error;
-      if (data.user) {
+      if (data.session && data.user) {
         await supabase.from("profiles").upsert({ id: data.user.id, display_name: displayName });
+        router.replace("/(tabs)/feed");
+        return;
       }
-      router.replace("/(tabs)/feed");
+      setSuccessMessage("Account creato. Controlla la tua email e poi accedi per iniziare a testare Paraggi.");
     } catch (error) {
       setErrorMessage(getFriendlyError(error, "Registrazione non riuscita. Riprova."));
     }
@@ -53,6 +57,7 @@ export default function RegisterScreen() {
           <Controller control={control} name="password" render={({ field }) => (
             <TextInput secureTextEntry placeholder="Password" className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
           )} />
+          {successMessage ? <Text className="rounded-card bg-primary/10 p-3 text-sm font-semibold text-primary">{successMessage}</Text> : null}
           {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
           <Button label="Registrati" onPress={handleSubmit(submit)} disabled={formState.isSubmitting} />
         </View>
