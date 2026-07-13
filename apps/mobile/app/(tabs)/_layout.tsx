@@ -21,9 +21,9 @@ export default function TabsLayout() {
     if (demoMode) return;
 
     let isMounted = true;
-    void supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getUser().then(({ data, error }) => {
       if (!isMounted) return;
-      setHasSession(Boolean(data.session));
+      setHasSession(!error && Boolean(data.user));
       setIsCheckingSession(false);
     });
 

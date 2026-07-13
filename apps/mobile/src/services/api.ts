@@ -41,6 +41,14 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
     throw { error: "unauthenticated" };
   }
 
+  if (requireAuth) {
+    const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+    if (userError || !userData.user) {
+      await supabase.auth.signOut();
+      throw { error: "unauthorized" };
+    }
+  }
+
   const { data, error } = await supabase.functions.invoke(`${name}${query}`, {
     method: options.method ?? "POST",
     body: options.body as Record<string, unknown> | undefined,

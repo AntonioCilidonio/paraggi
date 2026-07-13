@@ -13,8 +13,8 @@ export default function Index() {
       return;
     }
 
-    void supabase.auth.getSession().then(({ data }) => {
-      setTarget(data.session ? "/(tabs)/feed" : "/(auth)/login");
+    void supabase.auth.getUser().then(({ data, error }) => {
+      setTarget(!error && data.user ? "/(tabs)/feed" : "/(auth)/login");
     });
   }, []);
 
