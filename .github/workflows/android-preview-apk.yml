@@ -35,6 +35,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - uses: gradle/actions/setup-gradle@v4
+
       - run: npm ci
 
       - name: Generate native Android project
@@ -46,7 +48,7 @@ jobs:
         timeout-minutes: 30
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleRelease --stacktrace
+          ./gradlew :app:assembleRelease --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
