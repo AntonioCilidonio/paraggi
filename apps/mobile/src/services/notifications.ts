@@ -44,7 +44,11 @@ export async function requestNotificationPermission() {
   }
 }
 
-export async function sendLocalNotification(title: string, body: string) {
+export async function sendLocalNotification(
+  title: string,
+  body: string,
+  data: Record<string, unknown> = {}
+) {
   try {
     await configureNotifications();
     const granted = await requestNotificationPermission();
@@ -54,7 +58,8 @@ export async function sendLocalNotification(title: string, body: string) {
       content: {
         title,
         body,
-        sound: true
+        sound: true,
+        data
       },
       trigger: null
     });

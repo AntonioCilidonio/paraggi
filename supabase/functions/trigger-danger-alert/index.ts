@@ -45,12 +45,13 @@ Deno.serve(await withHttp(async (req) => {
     : `${message}. Apri Paraggi per vedere l'area approssimativa.`;
 
   const recipientIds = Array.from(new Set((recipients ?? []).map((recipient) => recipient.user_id)));
+  const deepLink = `/danger/${alert.id}`;
   const rows = recipientIds.map((recipientId) => ({
     user_id: recipientId,
     type: "danger_alert",
     title: "Allarme pericolo vicino",
     body,
-    deep_link: `/danger/${alert.id}`
+    deep_link: deepLink
   }));
 
   if (rows.length > 0) await adminClient.from("notifications").insert(rows);
@@ -62,6 +63,7 @@ Deno.serve(await withHttp(async (req) => {
     data: {
       type: "danger_alert",
       alertId: alert.id,
+      deepLink,
       latitude: sharePreciseCoordinates ? payload.latitude : undefined,
       longitude: sharePreciseCoordinates ? payload.longitude : undefined
     }

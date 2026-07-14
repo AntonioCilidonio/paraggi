@@ -84,7 +84,7 @@ Deno.serve(await withHttp(async (req) => {
       type: "private_request",
       title: "Richiesta privata",
       body: "Marta Test vuole aprire una chat contestuale.",
-      deep_link: "/requests"
+      deep_link: "/(tabs)/chats"
     }
   ]);
 

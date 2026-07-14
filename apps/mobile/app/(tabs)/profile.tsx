@@ -2,7 +2,7 @@ import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, Switch, Text, Vibration, View } from "react-native";
 import { Button } from "@/components/Button";
 import { AppHeader } from "@/components/AppHeader";
@@ -82,16 +82,35 @@ export default function ProfileScreen() {
   const [diagnosticsStatus, setDiagnosticsStatus] = useState("Non ancora controllata.");
   const [scenarioStatus, setScenarioStatus] = useState("Self-test non eseguito.");
   const [showTestTools, setShowTestTools] = useState(false);
+  const profileRadiusHydratedRef = useRef(false);
   const profile = useQuery({
     queryKey: ["profile-summary"],
     queryFn: async () => {
-      if (demoMode) return { display_name: "Antonio", reputation_score: 41 };
+      if (demoMode) return { display_name: "Antonio", reputation_score: 41, search_radius_meters: radiusMeters };
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return { display_name: "Utente Paraggi", reputation_score: 0 };
-      const { data } = await supabase.from("profiles").select("display_name,reputation_score").eq("id", auth.user.id).maybeSingle();
-      return data ?? { display_name: auth.user.user_metadata?.display_name ?? "Utente Paraggi", reputation_score: 0 };
+      if (!auth.user) return { display_name: "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters };
+      const { data } = await supabase.from("profiles").select("display_name,reputation_score,search_radius_meters").eq("id", auth.user.id).maybeSingle();
+      return data ?? { display_name: auth.user.user_metadata?.display_name ?? "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters };
     }
   });
+
+  useEffect(() => {
+    if (profileRadiusHydratedRef.current || !profile.data) return;
+    profileRadiusHydratedRef.current = true;
+    const savedRadius = profile.data?.search_radius_meters;
+    if ([100, 500, 1000, 5000, 30000, 60000].includes(savedRadius) && savedRadius !== radiusMeters) {
+      setRadius(savedRadius as 100 | 500 | 1000 | 5000 | 30000 | 60000);
+    }
+  }, [profile.data, radiusMeters, setRadius]);
+
+  async function selectRadius(radius: 100 | 500 | 1000 | 5000 | 30000 | 60000) {
+    setRadius(radius);
+    if (demoMode) return;
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+    const { error } = await supabase.from("profiles").update({ search_radius_meters: radius }).eq("id", auth.user.id);
+    if (!error) await profile.refetch();
+  }
 
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
@@ -245,7 +264,7 @@ export default function ProfileScreen() {
           <Text className="font-semibold text-ink">Raggio dei post</Text>
           <View className="flex-row flex-wrap gap-2">
             {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
-              <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => setRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
+              <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => void selectRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
             ))}
           </View>
         </View>

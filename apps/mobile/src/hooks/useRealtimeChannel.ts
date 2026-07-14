@@ -1,5 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
+import Constants from "expo-constants";
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import { demoMode } from "@/config/env";
 import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
@@ -38,6 +40,7 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
       channel.on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => {
         void queryClient.invalidateQueries({ queryKey: ["comments", postId] });
         void queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+        void queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
       });
     }
 
@@ -55,9 +58,22 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
 
     if (targetType === "notifications" && userId) {
       channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (payload) => {
-        const notification = payload.new as { title?: string; body?: string; type?: string };
-        void sendLocalNotification(notification.title ?? "Paraggi", notification.body ?? "Hai una nuova notifica vicina.");
-        void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+        const notification = payload.new as { title?: string; body?: string; type?: string; deep_link?: string };
+        const nativePushConfigured = Constants.expoConfig?.extra?.nativePushConfigured as Record<string, boolean> | undefined;
+        if (nativePushConfigured?.[Platform.OS] !== true) {
+          void sendLocalNotification(
+            notification.title ?? "Paraggi",
+            notification.body ?? "Hai una nuova notifica vicina.",
+            { type: notification.type, deepLink: notification.deep_link }
+          );
+        }
+        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        if (notification.type === "comment_received" || notification.type === "nearby_relevant_post") {
+          void queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
+        }
+        if (notification.type === "private_request" || notification.type === "request_accepted" || notification.type === "private_message") {
+          void queryClient.invalidateQueries({ queryKey: ["chats"] });
+        }
       });
     }
 

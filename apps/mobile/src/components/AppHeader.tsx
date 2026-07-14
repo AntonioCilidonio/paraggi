@@ -27,8 +27,8 @@ export function AppHeader() {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Apri chat e richieste"
-        onPress={() => router.push("/(tabs)/chats")}
+        accessibilityLabel="Apri notifiche"
+        onPress={() => router.push("/notifications")}
         className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
       >
         <Ionicons name="notifications-outline" size={21} color="#17232b" />

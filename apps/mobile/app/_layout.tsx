@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { assertEnv } from "@/config/env";
 import { installGlobalErrorLogger } from "@/services/clientLogger";
+import { NotificationResponseHandler } from "@/components/NotificationResponseHandler";
 
 export default function RootLayout() {
   const queryClient = useMemo(() => new QueryClient(), []);
@@ -18,6 +19,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="auto" />
+      <NotificationResponseHandler />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
@@ -25,6 +27,8 @@ export default function RootLayout() {
         <Stack.Screen name="post" />
         <Stack.Screen name="chat" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="danger" />
       </Stack>
     </QueryClientProvider>
   );

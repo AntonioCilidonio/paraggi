@@ -1,4 +1,5 @@
 import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { sendPushToUsers } from "../_shared/push.ts";
 
 type CreatePostPayload = {
   category: string;
@@ -13,6 +14,7 @@ type CreatePostPayload = {
     latitude?: number;
     longitude?: number;
   }>;
+  radiusMeters?: 100 | 500 | 1000 | 5000 | 30000 | 60000;
 };
 
 Deno.serve(await withHttp(async (req) => {
@@ -56,6 +58,30 @@ Deno.serve(await withHttp(async (req) => {
     if (attachmentError) return jsonResponse({ error: "create_attachments_failed", details: attachmentError.message }, 400);
   }
 
+  if (payload.radiusMeters) {
+    await adminClient.from("profiles").update({ search_radius_meters: payload.radiusMeters }).eq("id", user.id);
+  }
+
+  const { data: nearbyUsers } = await adminClient.rpc("nearby_users_for_post", { post_id_input: data.id });
+  const recipientIds = Array.from(new Set((nearbyUsers ?? []).map((recipient) => recipient.user_id)));
+  if (recipientIds.length > 0) {
+    const deepLink = `/post/${data.id}`;
+    const { data: author } = await adminClient.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+    const body = `${author?.display_name ?? "Una persona vicina"} ha pubblicato qualcosa nel tuo raggio.`;
+    await adminClient.from("notifications").insert(recipientIds.map((recipientId) => ({
+      user_id: recipientId,
+      type: "nearby_relevant_post",
+      title: "Nuovo post vicino",
+      body,
+      deep_link: deepLink
+    })));
+    await sendPushToUsers(adminClient, recipientIds, {
+      title: "Nuovo post vicino",
+      body,
+      data: { type: "nearby_relevant_post", postId: data.id, deepLink }
+    });
+  }
+
   await audit(adminClient, { actorId: user.id, eventType: "post", action: "create_post", targetTable: "posts", targetId: data.id });
-  return jsonResponse({ post: data }, 201);
+  return jsonResponse({ post: data, notifiedUsers: recipientIds.length }, 201);
 }));

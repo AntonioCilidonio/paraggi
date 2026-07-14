@@ -37,17 +37,18 @@ Deno.serve(await withHttp(async (req) => {
       return jsonResponse({ error: "request_update_failed", details: requestUpdateError.message }, 400);
     }
 
+    const deepLink = `/chat/${data.id}`;
     await adminClient.from("notifications").insert({
       user_id: requestRow.requester_id,
       type: "request_accepted",
       title: "Richiesta accettata",
       body: "La chat privata e pronta finche siete vicini.",
-      deep_link: `/chat/${data.id}`
+      deep_link: deepLink
     });
     await sendPushToUsers(adminClient, [requestRow.requester_id], {
       title: "Richiesta accettata",
       body: "La chat privata e pronta finche siete vicini.",
-      data: { type: "request_accepted", chatId: data.id }
+      data: { type: "request_accepted", chatId: data.id, deepLink }
     });
   } else {
     const { error: requestUpdateError } = await adminClient.from("connection_requests").update({

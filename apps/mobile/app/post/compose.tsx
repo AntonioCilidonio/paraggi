@@ -54,6 +54,7 @@ function assertMediaSize(kind: keyof typeof mediaLimits, size?: number | null) {
 
 export default function ComposePostScreen() {
   const addDemoPost = useAppStore((state) => state.addDemoPost);
+  const radiusMeters = useAppStore((state) => state.radiusMeters);
   const syncLocation = useLocationSync();
   const [mediaAttachments, setMediaAttachments] = useState<MediaAttachment[]>([]);
   const [shareApproxLocation, setShareApproxLocation] = useState(false);
@@ -227,7 +228,7 @@ export default function ComposePostScreen() {
       }
 
       setStatusMessage("Invio a Supabase...");
-      await callFunction("create-post", { body: { ...values, attachments } });
+      await callFunction("create-post", { body: { ...values, attachments, radiusMeters } });
       router.replace("/(tabs)/feed");
     } catch (error) {
       captureClientError("compose_post_failed", error, {

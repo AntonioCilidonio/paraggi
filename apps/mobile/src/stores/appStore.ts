@@ -1,5 +1,7 @@
 import type { ChatStatus, PostCategory, PostTtlMinutes, RadiusMeters } from "@paraggi/domain";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { FeedPost } from "@/components/FeedPostCard";
 
 export type DemoComment = {
@@ -93,7 +95,7 @@ function makeDemoPost(values: { category: PostCategory; body: string; ttlMinutes
   };
 }
 
-export const useAppStore = create<AppStore>((set) => ({
+export const useAppStore = create<AppStore>()(persist((set) => ({
   radiusMeters: 500,
   locationPermission: "unknown",
   notificationPermission: "unknown",
@@ -194,4 +196,8 @@ export const useAppStore = create<AppStore>((set) => ({
       }
     ]
   })
+}), {
+  name: "paraggi-preferences",
+  storage: createJSONStorage(() => AsyncStorage),
+  partialize: (state) => ({ radiusMeters: state.radiusMeters })
 }));

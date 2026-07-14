@@ -35,7 +35,7 @@ Deno.serve(await withHttp(async (req) => {
   }, { onConflict: "expo_push_token" }).select("id").single();
 
   if (error) return jsonResponse({ error: "push_token_register_failed", details: error.message }, 400);
+  await adminClient.from("profiles").update({ notification_consent_at: new Date().toISOString() }).eq("id", user.id);
   await audit(adminClient, { actorId: user.id, eventType: "system", action: "register_push_token", targetTable: "push_tokens", targetId: data.id });
   return jsonResponse({ pushToken: data });
 }));
-

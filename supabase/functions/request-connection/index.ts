@@ -48,17 +48,18 @@ Deno.serve(await withHttp(async (req) => {
     return jsonResponse({ error: "request_connection_failed", details: error.message }, 400);
   }
 
+  const deepLink = "/(tabs)/chats";
   await adminClient.from("notifications").insert({
     user_id: payload.recipientId,
     type: "private_request",
     title: "Richiesta privata",
     body: "Una persona vicina vuole aprire una chat contestuale.",
-    deep_link: "/requests"
+    deep_link: deepLink
   });
   await sendPushToUsers(adminClient, [payload.recipientId], {
     title: "Richiesta privata",
     body: "Una persona vicina vuole aprire una chat contestuale.",
-    data: { type: "private_request", requestId: data.id }
+    data: { type: "private_request", requestId: data.id, deepLink }
   });
 
   await audit(adminClient, { actorId: user.id, eventType: "connection", action: "request_connection", targetTable: "connection_requests", targetId: data.id });

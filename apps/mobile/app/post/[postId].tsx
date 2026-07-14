@@ -107,6 +107,7 @@ export default function PostDetailScreen() {
       reset();
       await sendLocalNotification("Nuovo commento", "Il tuo commento locale e stato aggiunto al post.");
       await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+      await queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
     },
     onError: (error) => {
       setCommentError(getFriendlyError(error, "Commento non inviato. Aggiorna GPS e riprova."));

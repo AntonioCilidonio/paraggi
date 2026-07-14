@@ -26,17 +26,18 @@ Deno.serve(await withHttp(async (req) => {
   const { data: chat } = await adminClient.from("private_chats").select("user_a_id,user_b_id").eq("id", payload.chatId).single();
   const recipientId = chat ? (chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id) : null;
   if (recipientId) {
+    const deepLink = `/chat/${payload.chatId}`;
     await adminClient.from("notifications").insert({
       user_id: recipientId,
-      type: "nearby_relevant_post",
+      type: "private_message",
       title: "Nuovo messaggio",
       body: "Hai ricevuto un messaggio in una chat privata.",
-      deep_link: `/chat/${payload.chatId}`
+      deep_link: deepLink
     });
     await sendPushToUsers(adminClient, [recipientId], {
       title: "Nuovo messaggio",
       body: "Hai ricevuto un messaggio in una chat privata.",
-      data: { type: "private_message", chatId: payload.chatId }
+      data: { type: "private_message", chatId: payload.chatId, deepLink }
     });
 
     const { data: recipientProfile } = await adminClient.from("profiles").select("display_name").eq("id", recipientId).single();
