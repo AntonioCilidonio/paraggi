@@ -50,7 +50,7 @@ export default function TabsLayout() {
   useEffect(() => {
     if (demoMode || !userId || pushRegistrationStartedRef.current) return;
     pushRegistrationStartedRef.current = true;
-    void registerPush();
+    void registerPush({ showLocalConfirmation: false });
   }, [registerPush, userId]);
 
   if (isCheckingSession) {

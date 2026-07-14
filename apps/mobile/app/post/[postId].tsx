@@ -13,6 +13,7 @@ import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
 import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
+import { supabase } from "@/services/supabase";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { useAppStore } from "@/stores/appStore";
 import { type FeedPost } from "@/components/FeedPostCard";
@@ -80,8 +81,18 @@ export default function PostDetailScreen() {
       return callFunction<{ post: FeedPost; comments: CommentRow[] }>("get-post-detail", { method: "GET", query: { postId, radiusMeters } });
     }
   });
+  const currentUser = useQuery({
+    queryKey: ["current-user"],
+    enabled: !demoMode,
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    }
+  });
   const selectedPost = detail.data?.post;
   const comments = detail.data?.comments ?? [];
+  const isOwnPost = demoMode || Boolean(selectedPost?.author_id && selectedPost.author_id === currentUser.data?.id);
 
   const createComment = useMutation({
     mutationFn: async (values: { body: string }) => {
@@ -160,7 +171,7 @@ export default function PostDetailScreen() {
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
         <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
         {demoMode ? <Button label="Apri chat demo" icon="chatbubbles-outline" onPress={() => router.push("/chat/demo-active-chat")} /> : null}
-        {!demoMode ? (
+        {!demoMode && isOwnPost ? (
           <View className="gap-2 rounded-card border border-border bg-surface p-4">
             <Text className="font-semibold text-ink">Test interazione</Text>
             <Text className="text-sm leading-5 text-muted">Crea una persona vicina che commenta il post e ti manda una richiesta privata.</Text>
