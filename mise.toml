@@ -1,0 +1,19 @@
+[tools]
+node = "latest"
+gradle = "latest"
+java = "21"
+
+[tasks.debug]
+description = "Build the Android debug APK locally"
+run = """
+npm ci
+npm --workspace apps/mobile exec expo prebuild -- --platform android --clean --no-install
+cd apps/mobile/android
+chmod +x ./gradlew
+./gradlew :app:assembleDebug --no-daemon
+echo "APK ready: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+"""
+
+[tasks.build-apk]
+description = "Alias for the local Android debug build"
+depends = ["debug"]
