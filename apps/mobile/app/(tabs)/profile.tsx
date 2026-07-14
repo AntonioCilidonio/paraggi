@@ -154,6 +154,14 @@ export default function ProfileScreen() {
 
     setScenarioStatus("Creo scenario backend...");
     try {
+      setScenarioStatus("Sincronizzo GPS per il self-test...");
+      const locationResult = await syncLocation();
+      if (!locationResult.ok) {
+        setScenarioStatus(locationResult.message ?? "GPS non sincronizzato. Abilita i permessi e riprova.");
+        return;
+      }
+
+      setScenarioStatus("Creo scenario backend...");
       const result = await callFunction<{ post: { id: string }; chat: { id: string }; messages: unknown[] }>("run-test-scenario");
       setScenarioStatus(`Scenario creato: post ${result.post.id.slice(0, 8)}, chat ${result.chat.id.slice(0, 8)}, messaggi ${result.messages.length}.`);
       await sendLocalNotification("Self-test completato", "Post, commento, richiesta, chat e messaggi sono stati creati.");
