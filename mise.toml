@@ -5,14 +5,19 @@ java = "21"
 
 [tasks.debug]
 description = "Build the Android debug APK locally"
-run = """
+run = '''
+export NODE_ENV=development
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+./scripts/setup-android-sdk.sh "$ANDROID_HOME"
 npm ci
 npm --workspace apps/mobile exec expo prebuild -- --platform android --clean --no-install
+printf 'sdk.dir=%s\n' "$ANDROID_HOME" > apps/mobile/android/local.properties
 cd apps/mobile/android
 chmod +x ./gradlew
 ./gradlew :app:assembleDebug --no-daemon
 echo "APK ready: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
-"""
+'''
 
 [tasks.build-apk]
 description = "Alias for the local Android debug build"
