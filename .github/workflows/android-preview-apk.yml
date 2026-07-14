@@ -2,14 +2,6 @@ name: Android Preview APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/android-preview-apk.yml"
-      - "apps/mobile/**"
-      - "packages/**"
-      - "package.json"
-      - "package-lock.json"
 
 concurrency:
   group: android-preview-apk-${{ github.ref }}
