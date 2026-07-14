@@ -1,40 +1,96 @@
-import { Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Alert, Pressable, Share, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
-import { sendLocalNotification } from "@/services/notifications";
+import { getFriendlyError } from "@/services/errors";
+import { supabase } from "@/services/supabase";
+import { useAppStore } from "@/stores/appStore";
 
 export default function PrivacyScreen() {
+  const locationPermission = useAppStore((state) => state.locationPermission);
+  const notificationPermission = useAppStore((state) => state.notificationPermission);
+  const [pendingAction, setPendingAction] = useState<"export" | "delete" | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
   async function exportData() {
-    if (demoMode) {
-      await sendLocalNotification("Export dati pronto", "Demo: il file dati utente sarebbe generato dal backend GDPR.");
-      return;
+    setPendingAction("export");
+    setStatus(null);
+    try {
+      const data = demoMode
+        ? { exportedAt: new Date().toISOString(), profile: { display_name: "Utente demo" }, posts: [], comments: [], areaHistory: [] }
+        : await callFunction<Record<string, unknown>>("export-account-data", { method: "GET" });
+      await Share.share({ title: "Esportazione dati Paraggi", message: JSON.stringify(data, null, 2) });
+      setStatus("Esportazione preparata correttamente.");
+    } catch (error) {
+      setStatus(getFriendlyError(error, "Esportazione non riuscita. Riprova."));
+    } finally {
+      setPendingAction(null);
     }
-    await callFunction("export-account-data", { method: "GET" });
   }
 
   async function deleteAccount() {
-    if (demoMode) {
-      await sendLocalNotification("Eliminazione simulata", "Demo: account e dati sarebbero eliminati dal backend.");
-      return;
+    setPendingAction("delete");
+    setStatus(null);
+    try {
+      if (!demoMode) await callFunction("delete-account", { method: "DELETE" });
+      await supabase.auth.signOut();
+      router.replace("/(auth)/login");
+    } catch (error) {
+      setStatus(getFriendlyError(error, "Account non eliminato. Riprova."));
+      setPendingAction(null);
     }
-    await callFunction("delete-account", { method: "DELETE" });
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      "Eliminare definitivamente l'account?",
+      "Post, commenti, chat e cronologia personale verranno rimossi. Questa operazione non puo essere annullata.",
+      [
+        { text: "Annulla", style: "cancel" },
+        { text: "Elimina account", style: "destructive", onPress: () => void deleteAccount() }
+      ]
+    );
   }
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Privacy e dati</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Coordinate precise mai mostrate. Puoi esportare o eliminare i dati.</Text>
+      <View className="gap-6">
+        <View className="flex-row items-center gap-3 border-b border-border pb-4">
+          <Pressable accessibilityRole="button" accessibilityLabel="Torna al profilo" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
+            <Ionicons name="arrow-back" size={21} color="#17232b" />
+          </Pressable>
+          <View className="flex-1"><Text className="text-2xl font-bold text-ink">Privacy e dati</Text><Text className="mt-1 text-sm leading-5 text-muted">Controlla consensi e dati del tuo account.</Text></View>
         </View>
-        <View className="rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">Consensi</Text>
-          <Text className="mt-2 text-sm leading-5 text-muted">Posizione usata solo per prossimita, mai mostrata come coordinate. Notifiche revocabili dal sistema operativo.</Text>
+
+        <View className="gap-4">
+          <Text className="text-lg font-bold text-ink">Consensi del dispositivo</Text>
+          <View className="flex-row items-center gap-3 border-b border-border pb-4">
+            <Ionicons name="navigate-outline" size={22} color="#16808a" />
+            <View className="flex-1"><Text className="font-semibold text-ink">Posizione</Text><Text className="mt-1 text-sm text-muted">{locationPermission === "granted" ? "Consentita. Usata per prossimita e mai mostrata nel feed." : "Non consentita su questo dispositivo."}</Text></View>
+          </View>
+          <View className="flex-row items-center gap-3 border-b border-border pb-4">
+            <Ionicons name="notifications-outline" size={22} color="#16808a" />
+            <View className="flex-1"><Text className="font-semibold text-ink">Notifiche</Text><Text className="mt-1 text-sm text-muted">{notificationPermission === "granted" ? "Consentite su questo dispositivo." : "Non consentite su questo dispositivo."}</Text></View>
+          </View>
         </View>
-        <Button label="Esporta dati" variant="secondary" onPress={() => void exportData()} />
-        <Button label="Elimina account" variant="danger" onPress={() => void deleteAccount()} />
+
+        <View className="gap-3">
+          <Text className="text-lg font-bold text-ink">I tuoi dati</Text>
+          <Text className="text-sm leading-5 text-muted">L'esportazione include profilo, post, commenti, richieste private, chat e cronologia delle aree.</Text>
+          <Button label="Esporta e condividi dati" icon="download-outline" variant="secondary" loading={pendingAction === "export"} disabled={pendingAction !== null} onPress={() => void exportData()} />
+        </View>
+
+        <View className="gap-3 border-t border-border pt-5">
+          <Text className="text-lg font-bold text-danger">Eliminazione account</Text>
+          <Text className="text-sm leading-5 text-muted">L'eliminazione e definitiva e chiude immediatamente la sessione.</Text>
+          <Button label="Elimina account" icon="trash-outline" variant="danger" loading={pendingAction === "delete"} disabled={pendingAction !== null} onPress={confirmDelete} />
+        </View>
+
+        {status ? <Text className="rounded-card bg-surface p-3 text-sm font-semibold text-ink">{status}</Text> : null}
       </View>
     </Screen>
   );

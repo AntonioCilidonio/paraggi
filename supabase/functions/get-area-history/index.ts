@@ -1,5 +1,16 @@
 import { jsonResponse, requireUser, withHttp } from "../_shared/http.ts";
 
+type AreaHistoryRow = {
+  id: string;
+  area_id: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  post_count: number;
+  comment_count: number;
+  connection_count: number;
+  areas: unknown;
+};
+
 Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
 
@@ -12,26 +23,47 @@ Deno.serve(await withHttp(async (req) => {
 
   if (error) return jsonResponse({ error: "area_history_failed", details: error.message }, 400);
 
-  const rows = await Promise.all((data ?? []).map(async (item) => {
-    const [{ count: postCount }, { count: commentCount }, { count: connectionCount }] = await Promise.all([
-      adminClient.from("posts").select("id", { count: "exact", head: true }).eq("area_id", item.area_id),
-      adminClient.from("comments").select("id", { count: "exact", head: true }).in("post_id", await postIdsForArea(adminClient, item.area_id)),
-      adminClient.from("connection_requests").select("id", { count: "exact", head: true }).eq("recipient_id", user.id)
-    ]);
+  const history = (data ?? []) as AreaHistoryRow[];
+  const areaIds = history.map((item) => item.area_id);
+  if (areaIds.length === 0) return jsonResponse({ history: [] });
 
-    return {
+  const { data: posts } = await adminClient
+    .from("posts")
+    .select("id,area_id,author_id")
+    .in("area_id", areaIds)
+    .limit(2000);
+
+  const postRows = posts ?? [];
+  const postIds = postRows.map((post) => post.id);
+  const [{ data: comments }, { data: connections }] = postIds.length > 0
+    ? await Promise.all([
+      adminClient.from("comments").select("id,post_id,author_id").in("post_id", postIds).eq("author_id", user.id).limit(2000),
+      adminClient.from("connection_requests").select("id,post_id,requester_id,recipient_id").in("post_id", postIds).or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`).limit(2000)
+    ])
+    : [{ data: [] }, { data: [] }];
+
+  const areaByPost = new Map(postRows.map((post) => [post.id, post.area_id]));
+  const counts = new Map<string, { posts: number; comments: number; connections: number }>();
+  for (const areaId of areaIds) counts.set(areaId, { posts: 0, comments: 0, connections: 0 });
+
+  for (const post of postRows) {
+    if (post.author_id === user.id) counts.get(post.area_id)!.posts += 1;
+  }
+  for (const comment of comments ?? []) {
+    const areaId = areaByPost.get(comment.post_id);
+    if (areaId) counts.get(areaId)!.comments += 1;
+  }
+  for (const connection of connections ?? []) {
+    const areaId = areaByPost.get(connection.post_id);
+    if (areaId) counts.get(areaId)!.connections += 1;
+  }
+
+  return jsonResponse({
+    history: history.map((item) => ({
       ...item,
-      post_count: postCount ?? item.post_count ?? 0,
-      comment_count: commentCount ?? item.comment_count ?? 0,
-      connection_count: connectionCount ?? item.connection_count ?? 0
-    };
-  }));
-
-  return jsonResponse({ history: rows });
+      post_count: counts.get(item.area_id)?.posts ?? 0,
+      comment_count: counts.get(item.area_id)?.comments ?? 0,
+      connection_count: counts.get(item.area_id)?.connections ?? 0
+    }))
+  });
 }));
-
-async function postIdsForArea(adminClient: any, areaId: string) {
-  const { data } = await adminClient.from("posts").select("id").eq("area_id", areaId).limit(200);
-  const ids = (data ?? []).map((post) => post.id);
-  return ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
-}

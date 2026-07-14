@@ -50,12 +50,12 @@ export default function ChatDetailScreen() {
       if (demoMode) {
         const base = demoChats.find((item) => item.id === chatId) ?? demoChats[0];
         return {
-          chat: { ...base, status: demoStatus ?? base.status },
+          chat: { ...base, status: demoStatus ?? base.status, other_profile: { display_name: chatId === "demo-active-chat" ? "Marta" : "Luca", reputation_score: 24 } },
           messages: [...demoMessages, ...demoExtraMessages],
           currentUserId: "me"
         };
       }
-      return callFunction<{ chat: { id: string; user_a_id: string; user_b_id: string; status: ChatStatus; last_distance_meters: number | null }; messages: Message[]; currentUserId: string }>("get-chat-messages", {
+      return callFunction<{ chat: { id: string; user_a_id: string; user_b_id: string; status: ChatStatus; last_distance_meters: number | null; other_profile?: { display_name: string; reputation_score: number } | null }; messages: Message[]; currentUserId: string }>("get-chat-messages", {
         method: "GET",
         query: { chatId }
       });
@@ -78,6 +78,7 @@ export default function ChatDetailScreen() {
 
   const status = thread.data?.chat.status ?? "frozen_permission";
   const canSend = status === "active";
+  const otherName = thread.data?.chat.other_profile?.display_name ?? "Persona vicina";
 
   async function setDistanceStatus(nextStatus: ChatStatus) {
     if (!chatId) return;
@@ -98,7 +99,7 @@ export default function ChatDetailScreen() {
           </Pressable>
           <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Ionicons name="person-outline" size={20} color="#16808a" /></View>
           <View className="flex-1">
-            <Text className="text-lg font-bold text-ink">Conversazione vicina</Text>
+            <Text className="text-lg font-bold text-ink">{otherName}</Text>
             <Text className="text-xs text-muted">{canSend ? "Attiva · siete nel raggio" : "Sospesa · storico disponibile"}</Text>
           </View>
         </View>
@@ -126,6 +127,13 @@ export default function ChatDetailScreen() {
           </View>
         ) : null}
         <View className="gap-3 py-2">
+          {!thread.isLoading && !thread.isError && thread.data?.messages.length === 0 ? (
+            <View className="items-center gap-2 py-10">
+              <Ionicons name="chatbubbles-outline" size={28} color="#62717a" />
+              <Text className="font-semibold text-ink">La conversazione inizia qui</Text>
+              <Text className="text-center text-sm leading-5 text-muted">Scrivi il primo messaggio finche siete nel raggio condiviso.</Text>
+            </View>
+          ) : null}
           {thread.data?.messages.map((message) => (
             <View key={message.id} className={`rounded-card p-3 ${message.sender_id === thread.data?.currentUserId ? "ml-12 bg-primary" : "mr-12 bg-surface"}`}>
               <Text className={`text-base ${message.sender_id === thread.data?.currentUserId ? "text-white" : "text-ink"}`}>{message.body}</Text>

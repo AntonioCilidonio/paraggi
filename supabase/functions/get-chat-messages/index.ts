@@ -25,5 +25,19 @@ Deno.serve(await withHttp(async (req) => {
     .order("created_at", { ascending: true });
   if (messagesError) return jsonResponse({ error: "messages_failed", details: messagesError.message }, 400);
 
-  return jsonResponse({ chat: { ...chat, status }, messages: messages ?? [], currentUserId: user.id });
+  const otherUserId = chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id;
+  const { data: otherProfile } = await adminClient
+    .from("profiles")
+    .select("id,display_name,avatar_path,reputation_score")
+    .eq("id", otherUserId)
+    .maybeSingle();
+
+  await adminClient
+    .from("private_messages")
+    .update({ delivered_at: new Date().toISOString(), read_at: new Date().toISOString() })
+    .eq("chat_id", chatId)
+    .neq("sender_id", user.id)
+    .is("read_at", null);
+
+  return jsonResponse({ chat: { ...chat, status, other_profile: otherProfile }, messages: messages ?? [], currentUserId: user.id });
 }));

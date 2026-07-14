@@ -91,6 +91,7 @@ export const demoMessages = [
 export const demoHistory = [
   {
     id: "demo-area-1",
+    area_id: "demo-area-1",
     first_seen_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     last_seen_at: new Date().toISOString(),
     post_count: 4,
@@ -100,6 +101,7 @@ export const demoHistory = [
   },
   {
     id: "demo-area-2",
+    area_id: "demo-area-2",
     first_seen_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
     last_seen_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     post_count: 1,

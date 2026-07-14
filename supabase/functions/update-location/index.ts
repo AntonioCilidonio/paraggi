@@ -26,12 +26,23 @@ Deno.serve(await withHttp(async (req) => {
     const roundedLongitude = Math.round(payload.longitude * 100) / 100;
     const geohash = `${roundedLatitude.toFixed(2)}:${roundedLongitude.toFixed(2)}`;
     const areaName = payload.areaName || payload.city || "Area vicina";
+    const normalizeAreaPart = (value?: string) => (value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("it-IT");
+    const canonicalKey = `${normalizeAreaPart(areaName)}|${normalizeAreaPart(payload.city)}|${(payload.countryCode || "IT").toUpperCase()}`;
 
-    const { data: area } = await adminClient
+    const { data: canonicalArea } = await adminClient
       .from("areas")
       .select("id,name,city")
-      .eq("geohash", geohash)
+      .eq("canonical_key", canonicalKey)
       .maybeSingle();
+
+    const { data: geohashArea } = canonicalArea?.id
+      ? { data: null }
+      : await adminClient
+        .from("areas")
+        .select("id,name,city")
+        .eq("geohash", geohash)
+        .maybeSingle();
+    const area = canonicalArea ?? geohashArea;
 
     if (area?.id) {
       areaId = area.id;
@@ -44,7 +55,7 @@ Deno.serve(await withHttp(async (req) => {
         }).eq("id", area.id);
       }
     } else {
-      const { data: createdArea } = await adminClient.from("areas").insert({
+      const { data: createdArea, error: createAreaError } = await adminClient.from("areas").insert({
         name: areaName,
         city: payload.city,
         country_code: payload.countryCode || "IT",
@@ -52,7 +63,17 @@ Deno.serve(await withHttp(async (req) => {
         centroid: `POINT(${payload.longitude} ${payload.latitude})`,
         geohash
       }).select("id").single();
-      areaId = createdArea?.id;
+
+      if (createAreaError?.code === "23505") {
+        const { data: existingArea } = await adminClient
+          .from("areas")
+          .select("id")
+          .eq("canonical_key", canonicalKey)
+          .single();
+        areaId = existingArea?.id;
+      } else {
+        areaId = createdArea?.id;
+      }
     }
   }
 

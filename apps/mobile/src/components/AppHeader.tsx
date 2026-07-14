@@ -25,14 +25,24 @@ export function AppHeader() {
           <Text className="mt-0.5 text-xs text-muted" numberOfLines={1}>{place} · entro {formatRadius(radiusMeters)}</Text>
         </View>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Apri notifiche"
-        onPress={() => router.push("/notifications")}
-        className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
-      >
-        <Ionicons name="notifications-outline" size={21} color="#17232b" />
-      </Pressable>
+      <View className="flex-row gap-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Apri notifiche"
+          onPress={() => router.push("/notifications")}
+          className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
+        >
+          <Ionicons name="notifications-outline" size={21} color="#17232b" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Apri profilo"
+          onPress={() => router.push("/(tabs)/profile")}
+          className="h-11 w-11 items-center justify-center rounded-card bg-primary"
+        >
+          <Ionicons name="person-outline" size={21} color="#ffffff" />
+        </Pressable>
+      </View>
     </View>
   );
 }
