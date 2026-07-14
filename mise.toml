@@ -4,21 +4,25 @@ gradle = "latest"
 java = "21"
 
 [tasks.debug]
-description = "Build the Android debug APK locally"
+description = "Build a standalone Android test APK locally"
 run = '''
-export NODE_ENV=development
+export NODE_ENV=production
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 ./scripts/setup-android-sdk.sh "$ANDROID_HOME"
-npm ci
+npm ci --include=dev
 npm --workspace apps/mobile exec expo prebuild -- --platform android --clean --no-install
 printf 'sdk.dir=%s\n' "$ANDROID_HOME" > apps/mobile/android/local.properties
 cd apps/mobile/android
 chmod +x ./gradlew
-./gradlew :app:assembleDebug --no-daemon
-echo "APK ready: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+./gradlew :app:assembleRelease --no-daemon
+APK="$PWD/app/build/outputs/apk/release/app-release.apk"
+test -f "$APK"
+unzip -l "$APK" | grep -q 'assets/index.android.bundle'
+"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+echo "APK ready: apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
 '''
 
 [tasks.build-apk]
-description = "Alias for the local Android debug build"
+description = "Alias for the local standalone Android build"
 depends = ["debug"]
