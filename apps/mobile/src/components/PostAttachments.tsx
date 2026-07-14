@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { router } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Image, Linking, Platform, Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
@@ -99,14 +100,33 @@ function LocationAttachmentView({ attachment, compact }: { attachment: PostAttac
   );
 }
 
-export function PostAttachments({ attachments, compact = false }: { attachments?: PostAttachment[]; compact?: boolean }) {
+export function PostAttachments({ attachments, compact = false, enableImageViewer = true }: { attachments?: PostAttachment[]; compact?: boolean; enableImageViewer?: boolean }) {
   if (!attachments?.length) return null;
 
   return (
     <View className="gap-3">
       {attachments.map((attachment) => {
         if (attachment.kind === "image" && attachment.url) {
-          return <Image key={attachment.id} source={{ uri: attachment.url }} resizeMode="cover" className="w-full rounded-card bg-surface" style={{ aspectRatio: compact ? 16 / 10 : 4 / 3 }} />;
+          return (
+            <Pressable
+              key={attachment.id}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="Apri immagine a schermo intero"
+              disabled={!enableImageViewer}
+              onPress={(event) => {
+                event.stopPropagation();
+                router.push({ pathname: "/media-view", params: { url: attachment.url!, label: attachment.label ?? "Immagine del post" } });
+              }}
+              className="overflow-hidden rounded-card bg-surface"
+            >
+              <Image source={{ uri: attachment.url }} resizeMode="cover" className="w-full" style={{ aspectRatio: compact ? 16 / 10 : 4 / 3 }} />
+              {enableImageViewer ? (
+                <View className="absolute bottom-3 right-3 h-10 w-10 items-center justify-center rounded-card bg-ink/80">
+                  <Ionicons name="expand-outline" size={20} color="#ffffff" />
+                </View>
+              ) : null}
+            </Pressable>
+          );
         }
         if (attachment.kind === "video") {
           return compact ? (

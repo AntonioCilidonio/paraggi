@@ -17,49 +17,16 @@ import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
 
-type TestDiagnostics = {
-  readiness: {
-    hasProfile: boolean;
-    hasRecentLocation: boolean;
-    hasPushToken: boolean;
-    canTestFeed: boolean;
-    canReceiveRemotePush: boolean;
-    canUseRealtimeNotifications: boolean;
-  };
-  counts: {
-    enabledPushTokens: number;
-    ownPosts: number;
-    ownComments: number;
-    pendingIncomingRequests: number;
-    outgoingRequests: number;
-    chats: number;
-    sentMessages: number;
-    unreadNotifications: number;
-  };
-  latestLocation?: {
-    captured_at: string;
-    accuracy_meters: number;
-    trust_status: string;
-    trust_score: number;
-  } | null;
-  lastE2e?: {
-    created_at: string;
-    metadata?: { checks?: string[]; pushTokenReady?: boolean };
-  } | null;
-  recentErrors: Array<{
-    created_at: string;
-    source: string;
-    message: string;
-  }>;
-};
-
 function formatTime(value: string | null) {
   if (!value) return "mai";
   return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
-function yesNo(value: boolean) {
-  return value ? "ok" : "no";
+function reputationLabel(score: number) {
+  if (score >= 75) return "Affidabilita alta";
+  if (score >= 40) return "Affidabilita consolidata";
+  if (score >= 15) return "Affidabilita in crescita";
+  return "Nuovo nella piazza";
 }
 
 export default function ProfileScreen() {
@@ -78,19 +45,15 @@ export default function ProfileScreen() {
   const [pushStatus, setPushStatus] = useState("Premi il bottone per registrare questo dispositivo alle notifiche push.");
   const [shareDangerCoordinates, setShareDangerCoordinates] = useState(true);
   const [dangerStatus, setDangerStatus] = useState("Allarme non inviato");
-  const [diagnostics, setDiagnostics] = useState<TestDiagnostics | null>(null);
-  const [diagnosticsStatus, setDiagnosticsStatus] = useState("Non ancora controllata.");
-  const [scenarioStatus, setScenarioStatus] = useState("Self-test non eseguito.");
-  const [showTestTools, setShowTestTools] = useState(false);
   const profileRadiusHydratedRef = useRef(false);
   const profile = useQuery({
     queryKey: ["profile-summary"],
     queryFn: async () => {
-      if (demoMode) return { display_name: "Antonio", reputation_score: 41, search_radius_meters: radiusMeters };
+      if (demoMode) return { display_name: "Antonio", reputation_score: 41, search_radius_meters: radiusMeters, sos_blocked_until: null, sos_false_alarm_strikes: 0 };
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return { display_name: "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters };
-      const { data } = await supabase.from("profiles").select("display_name,reputation_score,search_radius_meters").eq("id", auth.user.id).maybeSingle();
-      return data ?? { display_name: auth.user.user_metadata?.display_name ?? "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters };
+      if (!auth.user) return { display_name: "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters, sos_blocked_until: null, sos_false_alarm_strikes: 0 };
+      const { data } = await supabase.from("profiles").select("display_name,reputation_score,search_radius_meters,sos_blocked_until,sos_false_alarm_strikes").eq("id", auth.user.id).maybeSingle();
+      return data ?? { display_name: auth.user.user_metadata?.display_name ?? "Utente Paraggi", reputation_score: 0, search_radius_meters: radiusMeters, sos_blocked_until: null, sos_false_alarm_strikes: 0 };
     }
   });
 
@@ -115,7 +78,7 @@ export default function ProfileScreen() {
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
     const result = await syncLocation();
-    setGpsStatus(result.ok ? "GPS attivo e sincronizzato. Ora puoi pubblicare post e testare le chat." : result.message ?? "GPS non sincronizzato. Controlla permessi, rete e posizione.");
+    setGpsStatus(result.ok ? "GPS attivo e sincronizzato. Post e chat useranno la tua prossimita." : result.message ?? "GPS non sincronizzato. Controlla permessi, rete e posizione.");
   }
 
   async function triggerDangerAlert() {
@@ -153,8 +116,11 @@ export default function ProfileScreen() {
         }
       });
       setDangerStatus(`SOS inviato a ${result.recipientCount} utenti vicini`);
-    } catch {
-      setDangerStatus("SOS non inviato: GPS o rete non disponibili");
+    } catch (error) {
+      const unblockAt = error && typeof error === "object" && "unblockAt" in error ? String((error as { unblockAt?: string }).unblockAt) : null;
+      setDangerStatus(unblockAt
+        ? `SOS sospeso fino al ${new Date(unblockAt).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.`
+        : getFriendlyError(error, "SOS non inviato: GPS o rete non disponibili."));
     }
   }
 
@@ -174,56 +140,6 @@ export default function ProfileScreen() {
     }
   }
 
-  async function loadDiagnostics() {
-    if (demoMode) {
-      setDiagnosticsStatus("Diagnostica demo: usa Supabase per i test reali.");
-      return;
-    }
-
-    setDiagnosticsStatus("Controllo backend...");
-    try {
-      const result = await callFunction<TestDiagnostics>("get-test-diagnostics", { method: "GET" });
-      setDiagnostics(result);
-      setDiagnosticsStatus("Diagnostica aggiornata.");
-    } catch {
-      setDiagnosticsStatus("Diagnostica non disponibile. Controlla login e rete.");
-    }
-  }
-
-  async function runTestScenario() {
-    if (demoMode) {
-      setScenarioStatus("Self-test demo non necessario: usa Supabase per validare il backend reale.");
-      return;
-    }
-
-    setScenarioStatus("Creo scenario backend...");
-    try {
-      setScenarioStatus("Sincronizzo GPS per il self-test...");
-      const locationResult = await syncLocation();
-      if (!locationResult.ok) {
-        setScenarioStatus(locationResult.message ?? "GPS non sincronizzato. Abilita i permessi e riprova.");
-        return;
-      }
-
-      setScenarioStatus("Creo scenario backend...");
-      const result = await callFunction<{
-        passed: boolean;
-        checks: Array<{ name: string; status: "passed" }>;
-        post: { id: string };
-        chat: { id: string };
-        messages: unknown[];
-        notifications: { currentUser: number; testUser: number; remotePushReady: boolean };
-      }>("run-test-scenario", {
-        body: locationResult.coordinates
-      });
-      setScenarioStatus(`E2E superato: ${result.checks.length} controlli, chat ${result.chat.id.slice(0, 8)}, ${result.messages.length} messaggi, push ${result.notifications.remotePushReady ? "pronto" : "senza token"}.`);
-      await sendLocalNotification("Self-test completato", "Post, commento, richiesta, chat e messaggi sono stati creati.");
-      await loadDiagnostics();
-    } catch (error) {
-      setScenarioStatus(getFriendlyError(error, "Self-test non riuscito. Sincronizza GPS e riprova."));
-    }
-  }
-
   function confirmDangerAlert() {
     Alert.alert(
       "Inviare SOS?",
@@ -236,6 +152,10 @@ export default function ProfileScreen() {
       ]
     );
   }
+
+  const reputationScore = profile.data?.reputation_score ?? 0;
+  const sosBlockedUntil = profile.data?.sos_blocked_until ? new Date(profile.data.sos_blocked_until) : null;
+  const sosIsBlocked = Boolean(sosBlockedUntil && sosBlockedUntil.getTime() > Date.now());
 
   return (
     <Screen>
@@ -255,7 +175,7 @@ export default function ProfileScreen() {
             <Text className="text-lg font-bold text-ink">{profile.data?.display_name ?? "Profilo Paraggi"}</Text>
             <View className="mt-1 flex-row items-center gap-1.5">
               <Ionicons name="shield-checkmark-outline" size={15} color="#16808a" />
-              <Text className="text-xs font-semibold text-muted">Utente affidabile · reputazione {profile.data?.reputation_score ?? 0}</Text>
+              <Text className="text-xs font-semibold text-muted">{reputationLabel(reputationScore)} · {reputationScore} punti locali</Text>
             </View>
           </View>
         </View>
@@ -289,13 +209,12 @@ export default function ProfileScreen() {
             </View>
           </View>
           <Button label="Attiva notifiche" icon="notifications-outline" variant="secondary" onPress={() => void activatePushNotifications()} />
-          <Button label="Prova un avviso sul telefono" icon="phone-portrait-outline" onPress={() => void sendLocalNotification("Paraggi test", "Le notifiche locali funzionano su questo dispositivo.")} />
         </View>
 
         <View className="gap-4 rounded-card border border-danger bg-white p-4">
           <View>
             <Text className="font-semibold text-danger">SOS di vicinanza</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Avvisa le persone nel raggio. Confermerai sempre prima dell'invio.</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Avvisa le persone nel raggio. Gli utenti raggiunti potranno confermare l'allarme o segnalare un abuso.</Text>
           </View>
           <View className="flex-row items-center justify-between gap-4">
             <View className="flex-1">
@@ -304,7 +223,10 @@ export default function ProfileScreen() {
             </View>
             <Switch value={shareDangerCoordinates} onValueChange={setShareDangerCoordinates} trackColor={{ false: "#d9e2e3", true: "#8bc7c8" }} thumbColor={shareDangerCoordinates ? "#16808a" : "#62717a"} />
           </View>
-          <Button label="Invia SOS vicino" icon="warning-outline" variant="danger" onPress={confirmDangerAlert} />
+          <Button label={sosIsBlocked ? "SOS temporaneamente sospeso" : "Invia SOS vicino"} icon="warning-outline" variant="danger" disabled={sosIsBlocked} onPress={confirmDangerAlert} />
+          {sosIsBlocked && sosBlockedUntil ? (
+            <Text className="text-sm font-semibold text-danger">Disponibile di nuovo il {sosBlockedUntil.toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</Text>
+          ) : null}
           {dangerStatus !== "Allarme non inviato" ? <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text> : null}
         </View>
 
@@ -316,34 +238,6 @@ export default function ProfileScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color="#62717a" />
         </Pressable>
-
-        <View className="border-t border-border pt-5">
-          <Pressable accessibilityRole="button" accessibilityLabel={showTestTools ? "Nascondi strumenti di test" : "Mostra strumenti di test"} onPress={() => setShowTestTools((value) => !value)} className="flex-row items-center justify-between py-2">
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="flask-outline" size={22} color="#62717a" />
-              <Text className="font-semibold text-ink">Strumenti di test</Text>
-            </View>
-            <Ionicons name={showTestTools ? "chevron-up" : "chevron-down"} size={20} color="#62717a" />
-          </Pressable>
-          {showTestTools ? (
-            <View className="mt-3 gap-3">
-              <Text className="text-sm leading-5 text-muted">{diagnosticsStatus}</Text>
-              {diagnostics ? (
-                <View className="gap-1 border-y border-border py-3">
-                  <Text className="text-sm text-ink">Profilo/GPS: {yesNo(diagnostics.readiness.hasProfile)}/{yesNo(diagnostics.readiness.hasRecentLocation)}</Text>
-                  <Text className="text-sm text-ink">Token push: {diagnostics.counts.enabledPushTokens}</Text>
-                  <Text className="text-sm text-ink">Post/commenti: {diagnostics.counts.ownPosts}/{diagnostics.counts.ownComments}</Text>
-                  <Text className="text-sm text-ink">Chat/messaggi: {diagnostics.counts.chats}/{diagnostics.counts.sentMessages}</Text>
-                  <Text className="text-sm text-muted">Errori recenti: {diagnostics.recentErrors.length}</Text>
-                </View>
-              ) : null}
-              <Button label="Controlla diagnostica" icon="pulse-outline" variant="secondary" onPress={() => void loadDiagnostics()} />
-              <Text className="text-sm leading-5 text-muted">{scenarioStatus}</Text>
-              <Button label="Esegui test completo" icon="checkmark-done-outline" onPress={() => void runTestScenario()} />
-              {demoMode ? <Button label="Ripristina dati demo" variant="secondary" onPress={() => resetDemoScenario()} /> : null}
-            </View>
-          ) : null}
-        </View>
 
         <Button label="Esci" icon="log-out-outline" variant="secondary" onPress={() => {
           if (demoMode) {

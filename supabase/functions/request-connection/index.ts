@@ -14,6 +14,14 @@ Deno.serve(await withHttp(async (req) => {
 
   if (payload.recipientId === user.id) return jsonResponse({ error: "cannot_request_self" }, 400);
 
+  const participantPair = [user.id, payload.recipientId].sort().join(":");
+  const { data: existingChat } = await adminClient
+    .from("private_chats")
+    .select("id,status,updated_at")
+    .eq("participant_pair", participantPair)
+    .maybeSingle();
+  if (existingChat) return jsonResponse({ chat: existingChat, alreadyConnected: true });
+
   const findPendingRequest = () => adminClient
     .from("connection_requests")
     .select("id, status, created_at")
@@ -48,7 +56,7 @@ Deno.serve(await withHttp(async (req) => {
     return jsonResponse({ error: "request_connection_failed", details: error.message }, 400);
   }
 
-  const deepLink = "/(tabs)/chats";
+  const deepLink = "/chats";
   await adminClient.from("notifications").insert({
     user_id: payload.recipientId,
     type: "private_request",

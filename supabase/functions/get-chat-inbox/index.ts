@@ -26,10 +26,17 @@ Deno.serve(await withHttp(async (req) => {
     : { data: [] };
 
   const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-  const decoratedChats = (chats ?? []).map((chat) => ({
-    ...chat,
-    other_profile: profileById.get(chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id) ?? null
-  }));
+  const seenUsers = new Set<string>();
+  const decoratedChats = (chats ?? []).flatMap((chat) => {
+    const otherUserId = chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id;
+    if (seenUsers.has(otherUserId)) return [];
+    seenUsers.add(otherUserId);
+    return [{
+      ...chat,
+      other_user_id: otherUserId,
+      other_profile: profileById.get(otherUserId) ?? null
+    }];
+  });
 
   return jsonResponse({ requests: requests ?? [], chats: decoratedChats });
 }));

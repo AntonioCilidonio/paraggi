@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { Linking, Platform, Pressable, Text, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
@@ -20,6 +20,11 @@ type DangerAlert = {
   share_precise_coordinates: boolean;
   active: boolean;
   created_at: string;
+  moderation_status: "unreviewed" | "confirmed_helpful" | "false_alarm";
+  viewer_is_author: boolean;
+  viewer_feedback: "helpful" | "false_alarm" | null;
+  helpful_count: number;
+  false_alarm_count: number;
 };
 
 export default function DangerAlertScreen() {
@@ -31,6 +36,27 @@ export default function DangerAlertScreen() {
     queryFn: async () => callFunction<{ alert: DangerAlert }>("get-danger-alert", { method: "GET", query: { alertId: alertId ?? "" } })
   });
   const item = alert.data?.alert;
+
+  async function sendFeedback(verdict: "helpful" | "false_alarm") {
+    if (!alertId) return;
+    try {
+      await callFunction("submit-danger-feedback", { body: { alertId, verdict } });
+      await alert.refetch();
+    } catch (error) {
+      Alert.alert("Valutazione non inviata", getFriendlyError(error, "Riprova tra qualche secondo."));
+    }
+  }
+
+  function confirmFalseAlarm() {
+    Alert.alert(
+      "Segnalare un falso allarme?",
+      "La segnalazione viene conteggiata una sola volta. Servono conferme da piu persone prima di limitare l'account.",
+      [
+        { text: "Annulla", style: "cancel" },
+        { text: "Conferma", style: "destructive", onPress: () => void sendFeedback("false_alarm") }
+      ]
+    );
+  }
 
   function openNavigation() {
     if (!item) return;
@@ -66,7 +92,7 @@ export default function DangerAlertScreen() {
         {item ? (
           <>
             <View className="gap-2 rounded-card border border-danger bg-white p-4">
-              <View className="flex-row items-center gap-2"><Ionicons name="warning" size={22} color="#b42318" /><Text className="text-lg font-bold text-danger">SOS attivo</Text></View>
+              <View className="flex-row items-center gap-2"><Ionicons name="warning" size={22} color="#b42318" /><Text className="text-lg font-bold text-danger">{item.active ? "SOS attivo" : "SOS concluso"}</Text></View>
               <Text className="text-base leading-6 text-ink">{item.message}</Text>
               <Text className="text-sm text-muted">Inviato da {item.author_name}{item.distance_meters !== null ? ` · a circa ${item.distance_meters} m da te` : ""}</Text>
             </View>
@@ -85,6 +111,36 @@ export default function DangerAlertScreen() {
               {item.share_precise_coordinates ? "L'utente ha scelto di condividere la posizione precisa per questo SOS." : "La mappa mostra soltanto un'area approssimativa per proteggere la posizione dell'utente."}
             </Text>
             <Button label="Apri nel navigatore" icon="navigate" variant="danger" onPress={openNavigation} />
+            {!item.viewer_is_author ? (
+              <View className="gap-3 border-t border-border pt-4">
+                <View>
+                  <Text className="font-semibold text-ink">Questo allarme era reale?</Text>
+                  <Text className="mt-1 text-sm leading-5 text-muted">Il tuo riscontro protegge la funzione SOS dagli abusi. Ogni account puo esprimersi una sola volta.</Text>
+                </View>
+                <View className="flex-row gap-2">
+                  <Button
+                    className="flex-1"
+                    label={item.viewer_feedback === "helpful" ? "Confermato" : "Era reale"}
+                    icon="checkmark-circle-outline"
+                    disabled={item.viewer_feedback === "helpful"}
+                    onPress={() => void sendFeedback("helpful")}
+                  />
+                  <Button
+                    className="flex-1"
+                    label={item.viewer_feedback === "false_alarm" ? "Segnalato" : "Falso allarme"}
+                    variant="secondary"
+                    disabled={item.viewer_feedback === "false_alarm"}
+                    onPress={confirmFalseAlarm}
+                  />
+                </View>
+                {(item.helpful_count > 0 || item.false_alarm_count > 0) ? (
+                  <Text className="text-xs text-muted">Conferme utili: {item.helpful_count} · segnalazioni: {item.false_alarm_count}</Text>
+                ) : null}
+                {item.moderation_status === "false_alarm" ? <Text className="text-sm font-semibold text-danger">Allarme chiuso dopo verifiche negative di piu utenti.</Text> : null}
+              </View>
+            ) : (
+              <Text className="border-t border-border pt-4 text-sm text-muted">Gli utenti raggiunti possono confermare l'utilita dell'allarme o segnalare un abuso.</Text>
+            )}
           </>
         ) : null}
       </View>

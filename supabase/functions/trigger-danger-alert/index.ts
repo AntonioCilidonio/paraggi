@@ -17,6 +17,24 @@ Deno.serve(await withHttp(async (req) => {
   const sharePreciseCoordinates = payload.sharePreciseCoordinates ?? true;
   const message = payload.message ?? "Richiesta urgente di aiuto nelle vicinanze";
 
+  const { data: profile } = await adminClient.from("profiles")
+    .select("sos_blocked_until")
+    .eq("id", user.id)
+    .single();
+  if (profile?.sos_blocked_until && new Date(profile.sos_blocked_until).getTime() > Date.now()) {
+    return jsonResponse({ error: "sos_temporarily_blocked", unblockAt: profile.sos_blocked_until }, 403);
+  }
+
+  const { data: activeAlert } = await adminClient.from("danger_alerts")
+    .select("id,created_at")
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (activeAlert) return jsonResponse({ error: "sos_already_active", alertId: activeAlert.id }, 409);
+
   if (!Number.isFinite(payload.latitude) || !Number.isFinite(payload.longitude)) {
     return jsonResponse({ error: "invalid_coordinates" }, 400);
   }

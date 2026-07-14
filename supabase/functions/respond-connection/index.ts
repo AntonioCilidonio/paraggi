@@ -19,25 +19,41 @@ Deno.serve(await withHttp(async (req) => {
   const status = payload.accept ? "accepted" : "rejected";
   let chat = null;
   if (payload.accept) {
-    const { data, error } = await adminClient.from("private_chats").insert({
-      connection_request_id: payload.requestId,
-      user_a_id: requestRow.requester_id,
-      user_b_id: requestRow.recipient_id,
-      radius_meters: payload.radiusMeters ?? 500
-    }).select("*").single();
-    if (error) return jsonResponse({ error: "create_chat_failed", details: error.message }, 400);
-    chat = data;
+    const participantPair = [requestRow.requester_id, requestRow.recipient_id].sort().join(":");
+    const { data: existingChat } = await adminClient.from("private_chats").select("*").eq("participant_pair", participantPair).maybeSingle();
+    let chatCreated = false;
+    if (existingChat) {
+      chat = existingChat;
+    } else {
+      const { data, error } = await adminClient.from("private_chats").insert({
+        connection_request_id: payload.requestId,
+        user_a_id: requestRow.requester_id,
+        user_b_id: requestRow.recipient_id,
+        radius_meters: payload.radiusMeters ?? 500
+      }).select("*").single();
+      if (error?.code === "23505") {
+        const racedChat = await adminClient.from("private_chats").select("*").eq("participant_pair", participantPair).maybeSingle();
+        if (!racedChat.data) return jsonResponse({ error: "create_chat_failed", details: error.message }, 400);
+        chat = racedChat.data;
+      } else if (error || !data) {
+        return jsonResponse({ error: "create_chat_failed", details: error?.message }, 400);
+      } else {
+        chat = data;
+        chatCreated = true;
+      }
+    }
+    if (!chat) return jsonResponse({ error: "create_chat_failed" }, 400);
 
     const { error: requestUpdateError } = await adminClient.from("connection_requests").update({
       status,
       responded_at: new Date().toISOString()
     }).eq("id", payload.requestId);
     if (requestUpdateError) {
-      await adminClient.from("private_chats").delete().eq("id", data.id);
+      if (chatCreated) await adminClient.from("private_chats").delete().eq("id", chat.id);
       return jsonResponse({ error: "request_update_failed", details: requestUpdateError.message }, 400);
     }
 
-    const deepLink = `/chat/${data.id}`;
+    const deepLink = `/chat/${chat.id}`;
     await adminClient.from("notifications").insert({
       user_id: requestRow.requester_id,
       type: "request_accepted",
@@ -48,7 +64,7 @@ Deno.serve(await withHttp(async (req) => {
     await sendPushToUsers(adminClient, [requestRow.requester_id], {
       title: "Richiesta accettata",
       body: "La chat privata e pronta finche siete vicini.",
-      data: { type: "request_accepted", chatId: data.id, deepLink }
+      data: { type: "request_accepted", chatId: chat.id, deepLink }
     });
   } else {
     const { error: requestUpdateError } = await adminClient.from("connection_requests").update({

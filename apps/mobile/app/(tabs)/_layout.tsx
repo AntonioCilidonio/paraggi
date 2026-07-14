@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { demoMode } from "@/config/env";
 import { usePushRegistration } from "@/hooks/usePushRegistration";
+import { useLocationSync } from "@/hooks/useLocationSync";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { supabase } from "@/services/supabase";
 
@@ -19,8 +20,9 @@ export default function TabsLayout() {
   const [isCheckingSession, setIsCheckingSession] = useState(!demoMode);
   const [hasSession, setHasSession] = useState(demoMode);
   const [userId, setUserId] = useState<string | null>(null);
-  const pushRegistrationStartedRef = useRef(false);
+  const startupPermissionsStartedRef = useRef(false);
   const registerPush = usePushRegistration();
+  const syncLocation = useLocationSync();
   useRealtimeChannel(userId ? { type: "notifications", userId } : null);
 
   useEffect(() => {
@@ -48,10 +50,13 @@ export default function TabsLayout() {
   }, []);
 
   useEffect(() => {
-    if (demoMode || !userId || pushRegistrationStartedRef.current) return;
-    pushRegistrationStartedRef.current = true;
-    void registerPush({ showLocalConfirmation: false });
-  }, [registerPush, userId]);
+    if (demoMode || !userId || startupPermissionsStartedRef.current) return;
+    startupPermissionsStartedRef.current = true;
+    void (async () => {
+      await syncLocation();
+      await registerPush({ showLocalConfirmation: false });
+    })();
+  }, [registerPush, syncLocation, userId]);
 
   if (isCheckingSession) {
     return (

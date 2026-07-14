@@ -50,12 +50,6 @@ export default function FeedScreen() {
             <Ionicons name="refresh" size={19} color="#16808a" />
           </Pressable>
         </View>
-        {demoMode ? (
-          <View className="border-y border-border py-4">
-            <Text className="font-semibold text-ink">Modalita demo APK</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Supabase non e ancora collegato: puoi navigare l'esperienza con dati locali realistici.</Text>
-          </View>
-        ) : null}
         {!demoMode && !lastLocationSyncAt ? (
           <View className="border-y border-border py-4">
             <Text className="font-semibold text-ink">Attiva il GPS per vedere la piazza</Text>

@@ -67,7 +67,6 @@ export default function PostDetailScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [testStatus, setTestStatus] = useState<string | null>(null);
   const { control, handleSubmit, reset } = useForm<{ body: string }>({ defaultValues: { body: "" } });
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
   const detail = useQuery({
@@ -128,13 +127,17 @@ export default function PostDetailScreen() {
     }
 
     try {
-      await callFunction("request-connection", {
+      const result = await callFunction<{ chat?: { id: string }; alreadyConnected?: boolean }>("request-connection", {
         body: {
           postId,
           recipientId: selectedPost.author_id,
           message: "Vorrei aprire una chat privata contestuale."
         }
       });
+      if (result.alreadyConnected && result.chat?.id) {
+        router.push(`/chat/${result.chat.id}`);
+        return;
+      }
       await sendLocalNotification("Richiesta inviata", "La persona vicina potra accettare o rifiutare.");
     } catch (error) {
       setConnectionError(getFriendlyError(error, "Richiesta privata non inviata. Riprova."));
@@ -142,19 +145,6 @@ export default function PostDetailScreen() {
   }
 
   const canComment = Boolean(postId && selectedPost && !detail.isLoading && !detail.isError);
-
-  async function createTestInteraction() {
-    if (!postId || !selectedPost) return;
-    setTestStatus("Creo una persona test vicina...");
-    try {
-      await callFunction("create-test-interaction", { body: { postId } });
-      await sendLocalNotification("Richiesta privata test", "Marta Test ha commentato e ti ha inviato una richiesta privata.");
-      await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
-      setTestStatus("Richiesta test creata. Vai nella tab Chat e accettala.");
-    } catch (error) {
-      setTestStatus(getFriendlyError(error, "Non sono riuscito a creare l'interazione test."));
-    }
-  }
 
   return (
     <Screen>
@@ -177,15 +167,6 @@ export default function PostDetailScreen() {
         {detail.isLoading ? <Text className="text-muted">Carico post e commenti...</Text> : null}
         {selectedPost ? <FeedPostCard post={selectedPost} mediaMode="full" /> : null}
         {!isOwnPost ? <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} /> : null}
-        {demoMode ? <Button label="Apri chat demo" icon="chatbubbles-outline" onPress={() => router.push("/chat/demo-active-chat")} /> : null}
-        {!demoMode && isOwnPost ? (
-          <View className="gap-2 rounded-card border border-border bg-surface p-4">
-            <Text className="font-semibold text-ink">Test interazione</Text>
-            <Text className="text-sm leading-5 text-muted">Crea una persona vicina che commenta il post e ti manda una richiesta privata.</Text>
-            <Button label="Crea richiesta test" variant="secondary" disabled={!selectedPost} onPress={() => void createTestInteraction()} />
-            {testStatus ? <Text className="text-sm leading-5 text-muted">{testStatus}</Text> : null}
-          </View>
-        ) : null}
         {connectionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{connectionError}</Text> : null}
         {comments.map((comment) => (
           <View key={comment.id} className="flex-row items-start gap-3">

@@ -17,6 +17,7 @@ import { useAppStore } from "@/stores/appStore";
 
 type ChatRow = {
   id: string;
+  other_user_id?: string;
   status: string;
   last_distance_meters: number | null;
   last_message_at: string | null;
@@ -58,6 +59,7 @@ export default function ChatsScreen() {
           chats: demoChats.map((chat) => ({
             ...chat,
             status: demoStatusById[chat.id] ?? chat.status,
+            other_user_id: chat.id === "demo-active-chat" ? "demo-marta" : "demo-luca",
             other_profile: { display_name: chat.id === "demo-active-chat" ? "Marta" : "Luca", reputation_score: 24 }
           }))
         };
@@ -145,7 +147,10 @@ export default function ChatsScreen() {
           </View>
         ) : null}
         <View className="gap-3">
-          {chats.data?.chats.map((chat) => (
+          {chats.data?.chats.filter((chat, index, allChats) => {
+            const identity = chat.other_user_id ?? chat.other_profile?.display_name ?? chat.id;
+            return allChats.findIndex((candidate) => (candidate.other_user_id ?? candidate.other_profile?.display_name ?? candidate.id) === identity) === index;
+          }).map((chat) => (
             <Pressable
               key={chat.id}
               accessibilityRole="button"

@@ -79,7 +79,7 @@ export function FeedPostCard({ post, mediaMode = "preview" }: { post: FeedPost; 
         </View>
         <View className="ml-auto flex-row items-center gap-1">
           <Ionicons name="shield-checkmark-outline" size={15} color="#16808a" />
-          <Text className="text-xs font-semibold text-primary">Rep {post.reputation_score}</Text>
+          <Text className="text-xs font-semibold text-primary">Affidabilita {post.reputation_score}</Text>
         </View>
       </View>
     </View>

@@ -373,7 +373,7 @@ export default function ComposePostScreen() {
           ) : null}
           {mediaAttachments.length > 0 ? (
             <View className="gap-3">
-              <PostAttachments attachments={mediaAttachments.map((item) => ({
+              <PostAttachments enableImageViewer={false} attachments={mediaAttachments.map((item) => ({
                 id: item.id,
                 kind: item.kind,
                 url: item.uri,

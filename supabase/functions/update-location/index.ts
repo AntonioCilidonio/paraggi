@@ -29,12 +29,20 @@ Deno.serve(await withHttp(async (req) => {
 
     const { data: area } = await adminClient
       .from("areas")
-      .select("id")
+      .select("id,name,city")
       .eq("geohash", geohash)
       .maybeSingle();
 
     if (area?.id) {
       areaId = area.id;
+      const hasWeakName = /^\s*\d+[a-z]?\s*$/i.test(area.name ?? "") || (area.name ?? "").toLowerCase() === "area vicina";
+      if (hasWeakName && areaName !== "Area vicina") {
+        await adminClient.from("areas").update({
+          name: areaName,
+          city: payload.city ?? area.city,
+          place_label: payload.placeLabel
+        }).eq("id", area.id);
+      }
     } else {
       const { data: createdArea } = await adminClient.from("areas").insert({
         name: areaName,

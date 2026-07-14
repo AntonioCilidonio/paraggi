@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { demoMode } from "@/config/env";
 import { getFriendlyError } from "@/services/errors";
 import { callFunction } from "@/services/api";
+import { getLocationLabels } from "@/services/locationLabels";
 import { useAppStore } from "@/stores/appStore";
 
 export function useLocationSync() {
@@ -27,9 +28,7 @@ export function useLocationSync() {
         latitude: current.coords.latitude,
         longitude: current.coords.longitude
       }).catch(() => []);
-      const city = place?.city ?? place?.subregion ?? undefined;
-      const areaName = place?.district ?? place?.name ?? city ?? "Area vicina";
-      const placeLabel = [place?.street, place?.district].filter(Boolean).join(", ") || undefined;
+      const { city, areaName, placeLabel } = getLocationLabels(place);
 
       if (demoMode) {
         setLocationStatus({

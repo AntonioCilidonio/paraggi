@@ -40,16 +40,6 @@ Deno.serve(await withHttp(async (req) => {
       data: { type: "private_message", chatId: payload.chatId, deepLink }
     });
 
-    const { data: recipientProfile } = await adminClient.from("profiles").select("display_name").eq("id", recipientId).single();
-    if (recipientProfile?.display_name === "Marta Test") {
-      const replyBody = "Perfetto, chat attiva. Se ti allontani, Paraggi blocchera l'invio ma lascera lo storico visibile.";
-      await adminClient.from("private_messages").insert({
-        chat_id: payload.chatId,
-        sender_id: recipientId,
-        body: replyBody
-      });
-      await adminClient.from("private_chats").update({ last_message_at: new Date().toISOString() }).eq("id", payload.chatId);
-    }
   }
   await audit(adminClient, { actorId: user.id, eventType: "chat", action: "send_private_message", targetTable: "private_messages", targetId: data.id });
   return jsonResponse({ message: data }, 201);

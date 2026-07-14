@@ -14,7 +14,7 @@ export async function configureNotifications() {
 
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("paraggi-local", {
-        name: "Paraggi test",
+        name: "Notifiche Paraggi",
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 220, 120, 220],
         lightColor: "#16808a"
@@ -28,7 +28,7 @@ export async function configureNotifications() {
       });
     }
   } catch {
-    // Notification support can vary across Android test devices. The app must keep running.
+    // Notification support can vary across Android devices. The app must keep running.
   }
 }
 

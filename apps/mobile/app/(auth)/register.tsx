@@ -34,7 +34,7 @@ export default function RegisterScreen() {
         router.replace("/(tabs)/feed");
         return;
       }
-      setSuccessMessage("Account creato. Controlla la tua email e poi accedi per iniziare a testare Paraggi.");
+      setSuccessMessage("Account creato. Controlla la tua email e poi accedi a Paraggi.");
     } catch (error) {
       setErrorMessage(getFriendlyError(error, "Registrazione non riuscita. Riprova."));
     }
