@@ -25,5 +25,5 @@ Deno.serve(await withHttp(async (req) => {
     .order("created_at", { ascending: true });
   if (messagesError) return jsonResponse({ error: "messages_failed", details: messagesError.message }, 400);
 
-  return jsonResponse({ chat: { ...chat, status }, messages: messages ?? [] });
+  return jsonResponse({ chat: { ...chat, status }, messages: messages ?? [], currentUserId: user.id });
 }));

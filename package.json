@@ -25,9 +25,12 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@react-native/js-polyfills": "0.79.5",
+    "globals": "^17.7.0",
     "metro": "0.82.5",
-    "nativewind": "4.1.23"
+    "nativewind": "4.1.23",
+    "typescript-eslint": "^8.64.0"
   },
   "overrides": {
     "@react-native/community-cli-plugin": "0.79.5",

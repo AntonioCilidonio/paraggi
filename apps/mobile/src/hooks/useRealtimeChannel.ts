@@ -43,13 +43,13 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
 
     if (targetType === "chat-messages" && chatId) {
       channel.on("postgres_changes", { event: "*", schema: "public", table: "private_messages", filter: `chat_id=eq.${chatId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+        void queryClient.invalidateQueries({ queryKey: ["chat-thread", chatId] });
       });
     }
 
     if (targetType === "chat-status" && chatId) {
       channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "private_chats", filter: `id=eq.${chatId}` }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["chat", chatId] });
+        void queryClient.invalidateQueries({ queryKey: ["chat-thread", chatId] });
       });
     }
 
