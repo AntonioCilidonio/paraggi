@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
 import { HeaderIconButton, PageHeader } from "@/components/PageHeader";
@@ -18,6 +19,7 @@ export default function FeedScreen() {
   const localDemoPosts = useAppStore((state) => state.demoPosts);
   const lastLocationSyncAt = useAppStore((state) => state.lastLocationSyncAt);
   const syncLocation = useLocationSync();
+  const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
   const feed = useQuery({
     queryKey: ["nearby-feed", radiusMeters, localDemoPosts.length],
     queryFn: async () => {
@@ -28,8 +30,14 @@ export default function FeedScreen() {
   });
 
   async function refreshPositionAndFeed() {
-    const result = await syncLocation();
-    if (result.ok) await feed.refetch();
+    if (isRefreshingLocation) return;
+    setIsRefreshingLocation(true);
+    try {
+      const result = await syncLocation();
+      if (result.ok) await feed.refetch();
+    } finally {
+      setIsRefreshingLocation(false);
+    }
   }
 
   return (
@@ -46,10 +54,11 @@ export default function FeedScreen() {
             <Ionicons name={lastLocationSyncAt ? "location" : "location-outline"} size={18} color={lastLocationSyncAt ? "#16808a" : "#62717a"} />
             <Text className="text-sm font-medium text-ink">{lastLocationSyncAt ? `GPS attivo · raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione e feed" onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 justify-center px-2">
-            <Ionicons name="refresh" size={19} color="#16808a" />
+          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione e feed" accessibilityState={{ busy: isRefreshingLocation, disabled: isRefreshingLocation }} disabled={isRefreshingLocation} onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 min-w-11 items-center justify-center px-2">
+            {isRefreshingLocation ? <ActivityIndicator size="small" color="#16808a" /> : <Ionicons name="refresh" size={19} color="#16808a" />}
           </Pressable>
         </View>
+        {isRefreshingLocation ? <Text accessibilityLiveRegion="polite" className="-mt-3 text-xs font-medium text-primary">Aggiorno posizione e contenuti vicini...</Text> : null}
         {!demoMode && !lastLocationSyncAt ? (
           <View className="border-y border-border py-4">
             <Text className="font-semibold text-ink">Attiva il GPS per vedere la piazza</Text>

@@ -12,6 +12,8 @@ const messages: Record<string, string> = {
   chat_status_failed: "Non riesco a verificare la distanza della chat. Aggiorna il GPS e riprova.",
   messages_failed: "Non riesco a caricare i messaggi. Riprova.",
   chat_not_found: "Chat non trovata o non piu disponibile.",
+  chat_disconnected: "Questa connessione e stata rimossa. Puoi richiederla di nuovo da un post della persona.",
+  disconnect_chat_failed: "Non sono riuscito a rimuovere la connessione. Riprova.",
   post_not_visible: "Post non visibile da questa posizione o non piu attivo.",
   post_not_commentable: "Questo post non puo piu ricevere commenti.",
   create_comment_failed: "Commento non salvato. Riprova.",

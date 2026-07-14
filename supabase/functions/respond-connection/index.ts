@@ -23,7 +23,23 @@ Deno.serve(await withHttp(async (req) => {
     const { data: existingChat } = await adminClient.from("private_chats").select("*").eq("participant_pair", participantPair).maybeSingle();
     let chatCreated = false;
     if (existingChat) {
-      chat = existingChat;
+      const { data: reconnectedChat, error: reconnectError } = await adminClient
+        .from("private_chats")
+        .update({
+          connection_request_id: payload.requestId,
+          is_connected: true,
+          status: "frozen_permission",
+          disconnected_at: null,
+          disconnected_by_id: null,
+          last_status_reason: "connection_accepted"
+        })
+        .eq("id", existingChat.id)
+        .select("*")
+        .single();
+      if (reconnectError || !reconnectedChat) {
+        return jsonResponse({ error: "create_chat_failed", details: reconnectError?.message }, 400);
+      }
+      chat = reconnectedChat;
     } else {
       const { data, error } = await adminClient.from("private_chats").insert({
         connection_request_id: payload.requestId,

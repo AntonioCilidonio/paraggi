@@ -33,6 +33,7 @@ export default function ProfileScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
   const setRadius = useAppStore((state) => state.setRadius);
   const notificationPermission = useAppStore((state) => state.notificationPermission);
+  const pushDeliveryState = useAppStore((state) => state.pushDeliveryState);
   const locationPermission = useAppStore((state) => state.locationPermission);
   const lastLocationSyncAt = useAppStore((state) => state.lastLocationSyncAt);
   const lastLocationAccuracyMeters = useAppStore((state) => state.lastLocationAccuracyMeters);
@@ -205,7 +206,15 @@ export default function ProfileScreen() {
             <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name={notificationPermission === "granted" ? "notifications" : "notifications-outline"} size={21} color={notificationPermission === "granted" ? "#16808a" : "#62717a"} /></View>
             <View className="flex-1">
               <Text className="font-semibold text-ink">Notifiche {notificationPermission === "granted" ? "consentite" : "da attivare"}</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">{pushStatus}</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">{
+                pushDeliveryState === "registered"
+                  ? "Push remoto registrato: gli avvisi possono arrivare anche ad app chiusa."
+                  : pushDeliveryState === "local_only"
+                    ? "Permesso attivo, ma questa build supporta solo avvisi mentre Paraggi e aperta."
+                    : pushDeliveryState === "failed"
+                      ? pushStatus
+                      : pushStatus
+              }</Text>
             </View>
           </View>
           <Button label="Attiva notifiche" icon="notifications-outline" variant="secondary" onPress={() => void activatePushNotifications()} />

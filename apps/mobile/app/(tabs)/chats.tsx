@@ -102,7 +102,7 @@ export default function ChatsScreen() {
     <Screen>
       <View className="gap-5">
         <AppHeader />
-        <PageHeader title="Chat di vicinanza" subtitle="Restano attive solo finche siete abbastanza vicini." action={<StatusPill label={`${chats.data?.chats.filter((chat) => chat.status === "active").length ?? 0} attive`} tone="success" />} />
+        <PageHeader title="Le tue connessioni" subtitle="Una sola chat per persona. La distanza sospende i messaggi, non la connessione." action={<StatusPill label={`${chats.data?.chats.filter((chat) => chat.status === "active").length ?? 0} vicine`} tone="success" />} />
         {chats.isError ? (
           <View className="rounded-card border border-danger bg-surface p-4">
             <Text className="font-semibold text-danger">Chat non caricate</Text>

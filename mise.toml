@@ -12,6 +12,9 @@ export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 ./scripts/setup-android-sdk.sh "$ANDROID_HOME"
 npm ci --include=dev
 npm --workspace apps/mobile exec expo prebuild -- --platform android --clean --no-install
+if [ ! -f apps/mobile/google-services.json ]; then
+  echo "WARNING: google-services.json missing; remote Android push notifications will not be included in this APK."
+fi
 printf 'sdk.dir=%s\n' "$ANDROID_HOME" > apps/mobile/android/local.properties
 cd apps/mobile/android
 chmod +x ./gradlew

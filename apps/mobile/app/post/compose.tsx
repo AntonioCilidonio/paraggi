@@ -10,6 +10,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { PostAttachments } from "@/components/PostAttachments";
+import { getPostCategoryTheme, postCategoryOrder } from "@/design/postCategories";
 import { Screen } from "@/components/Screen";
 import { demoMode, env } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
@@ -33,16 +34,6 @@ type MediaAttachment = {
   name: string;
   mimeType: string;
   durationSeconds?: number;
-};
-
-const categoryLabels: Record<PostCategory, string> = {
-  question: "Domanda",
-  information: "Informazione",
-  lost_item: "Oggetto smarrito",
-  help: "Aiuto",
-  event: "Evento",
-  social: "Social",
-  emergency: "Emergenza"
 };
 
 const mediaLimits = {
@@ -334,9 +325,23 @@ export default function ComposePostScreen() {
         <View className="gap-2">
           <Text className="font-semibold text-ink">Categoria</Text>
           <View className="flex-row flex-wrap gap-2">
-            {(["question", "information", "lost_item", "help", "event", "social", "emergency"] as PostCategory[]).map((category) => (
-              <Button key={category} label={categoryLabels[category]} variant={selectedCategory === category ? "primary" : "secondary"} onPress={() => setValue("category", category)} />
-            ))}
+            {postCategoryOrder.map((category) => {
+              const theme = getPostCategoryTheme(category);
+              const selected = selectedCategory === category;
+              return (
+                <Pressable
+                  key={category}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  onPress={() => setValue("category", category)}
+                  className={`min-h-11 flex-row items-center gap-1.5 rounded-full border px-3 ${theme.backgroundClass} ${selected ? theme.borderClass : "border-transparent"}`}
+                >
+                  <Ionicons name={theme.icon} size={16} color={theme.iconColor} />
+                  <Text className={`text-sm font-semibold ${theme.textClass}`}>{theme.label}</Text>
+                  {selected ? <Ionicons name="checkmark-circle" size={16} color={theme.iconColor} /> : null}
+                </Pressable>
+              );
+            })}
           </View>
         </View>
         <View className="gap-2">

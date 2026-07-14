@@ -14,8 +14,9 @@ Deno.serve(await withHttp(async (req) => {
 
   const { data: chats, error: chatsError } = await adminClient
     .from("private_chats")
-    .select("id,user_a_id,user_b_id,status,last_distance_meters,last_message_at,updated_at")
+    .select("id,user_a_id,user_b_id,status,last_distance_meters,last_message_at,updated_at,is_connected")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+    .eq("is_connected", true)
     .order("updated_at", { ascending: false });
 
   if (chatsError) return jsonResponse({ error: "chats_failed", details: chatsError.message }, 400);

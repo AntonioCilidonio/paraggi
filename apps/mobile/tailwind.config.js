@@ -12,6 +12,8 @@ module.exports = {
         muted: "#62717a",
         border: "#d9e2e3",
         primary: "#16808a",
+        "primary-strong": "#126d75",
+        "primary-soft": "#e4f4f3",
         accent: "#b75b31",
         danger: "#b43d32",
         success: "#21875f",

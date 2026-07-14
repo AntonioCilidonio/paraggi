@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.paraggi.mobile",
-      "buildNumber": "28",
+      "buildNumber": "29",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Paraggi usa la posizione per mostrare contenuti e chat solo con persone realmente vicine.",
         "NSPhotoLibraryUsageDescription": "Paraggi usa la galleria solo per allegare media ai post locali."
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "app.paraggi.mobile",
-      "versionCode": 28,
+      "versionCode": 29,
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "plugins": [

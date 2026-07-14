@@ -10,6 +10,16 @@ Deno.serve(await withHttp(async (req) => {
   const { user, userClient, adminClient } = await requireUser(req);
   const payload = await readJson<Payload>(req);
 
+  const { data: connectedChat } = await adminClient
+    .from("private_chats")
+    .select("id,user_a_id,user_b_id,is_connected")
+    .eq("id", payload.chatId)
+    .maybeSingle();
+  if (!connectedChat || (connectedChat.user_a_id !== user.id && connectedChat.user_b_id !== user.id)) {
+    return jsonResponse({ error: "chat_not_found" }, 404);
+  }
+  if (!connectedChat.is_connected) return jsonResponse({ error: "chat_disconnected" }, 410);
+
   const { data: status, error: statusError } = await userClient.rpc("refresh_chat_status", { chat_id_input: payload.chatId });
   if (statusError) return jsonResponse({ error: "chat_status_failed", details: statusError.message }, 400);
   if (status !== "active") return jsonResponse({ error: "chat_not_active", status }, 403);
@@ -23,8 +33,7 @@ Deno.serve(await withHttp(async (req) => {
   if (error) return jsonResponse({ error: "send_message_failed", details: error.message }, 400);
 
   await adminClient.from("private_chats").update({ last_message_at: new Date().toISOString() }).eq("id", payload.chatId);
-  const { data: chat } = await adminClient.from("private_chats").select("user_a_id,user_b_id").eq("id", payload.chatId).single();
-  const recipientId = chat ? (chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id) : null;
+  const recipientId = connectedChat.user_a_id === user.id ? connectedChat.user_b_id : connectedChat.user_a_id;
   if (recipientId) {
     const deepLink = `/chat/${payload.chatId}`;
     await adminClient.from("notifications").insert({

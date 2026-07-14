@@ -94,6 +94,7 @@ Deno.serve(await withHttp(async (req) => {
 
   const { data: nearbyUsers } = await adminClient.rpc("nearby_users_for_post", { post_id_input: data.id });
   const recipientIds = Array.from(new Set((nearbyUsers ?? []).map((recipient) => recipient.user_id)));
+  let pushedDevices = 0;
   if (recipientIds.length > 0) {
     const deepLink = `/post/${data.id}`;
     const { data: author } = await adminClient.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
@@ -105,13 +106,21 @@ Deno.serve(await withHttp(async (req) => {
       body,
       deep_link: deepLink
     })));
-    await sendPushToUsers(adminClient, recipientIds, {
+    const pushResult = await sendPushToUsers(adminClient, recipientIds, {
       title: "Nuovo post vicino",
       body,
       data: { type: "nearby_relevant_post", postId: data.id, deepLink }
     });
+    pushedDevices = pushResult.sent;
   }
 
-  await audit(adminClient, { actorId: user.id, eventType: "post", action: "create_post", targetTable: "posts", targetId: data.id });
-  return jsonResponse({ post: data, notifiedUsers: recipientIds.length }, 201);
+  await audit(adminClient, {
+    actorId: user.id,
+    eventType: "post",
+    action: "create_post",
+    targetTable: "posts",
+    targetId: data.id,
+    metadata: { notifiedUsers: recipientIds.length, pushedDevices }
+  });
+  return jsonResponse({ post: data, notifiedUsers: recipientIds.length, pushedDevices }, 201);
 }));

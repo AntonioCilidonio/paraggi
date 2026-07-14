@@ -11,24 +11,30 @@ import { useAppStore } from "@/stores/appStore";
 
 export function usePushRegistration() {
   const setNotificationPermission = useAppStore((state) => state.setNotificationPermission);
+  const setPushDeliveryState = useAppStore((state) => state.setPushDeliveryState);
 
   return useCallback(async (options?: { showLocalConfirmation?: boolean }) => {
     try {
       await configureNotifications();
       const permission = await Notifications.requestPermissionsAsync();
       setNotificationPermission(permission.status === "granted" ? "granted" : "denied");
-      if (permission.status !== "granted") return { ok: false as const, reason: "permission_denied" };
+      if (permission.status !== "granted") {
+        setPushDeliveryState("failed");
+        return { ok: false as const, reason: "permission_denied" };
+      }
 
       if (options?.showLocalConfirmation !== false) {
         await sendLocalNotification("Notifiche sul telefono attive", "Paraggi puo mostrarti avvisi locali su questo dispositivo.");
       }
 
       if (demoMode || !Device.isDevice) {
+        setPushDeliveryState("local_only");
         return { ok: true as const, demo: true };
       }
 
       const nativePushConfigured = Constants.expoConfig?.extra?.nativePushConfigured as Record<string, boolean> | undefined;
       if (nativePushConfigured?.[Platform.OS] !== true) {
+        setPushDeliveryState("local_only");
         return { ok: false as const, reason: "native_push_not_configured", localOnly: true as const };
       }
 
@@ -45,6 +51,7 @@ export function usePushRegistration() {
           isRootedOrJailbroken: false
         }
       });
+      setPushDeliveryState("registered");
       return { ok: true as const, tokenPreview: token.data.slice(0, 24) };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -56,7 +63,8 @@ export function usePushRegistration() {
       if (reason !== "native_push_not_configured") {
         captureClientError("push_registration_failed", error);
       }
+      setPushDeliveryState(reason === "native_push_not_configured" ? "local_only" : "failed");
       return { ok: false as const, reason, localOnly: true as const, message };
     }
-  }, [setNotificationPermission]);
+  }, [setNotificationPermission, setPushDeliveryState]);
 }

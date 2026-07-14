@@ -6,17 +6,18 @@ Deno.serve(await withHttp(async (req) => {
   const chatId = url.searchParams.get("chatId");
   if (!chatId) return jsonResponse({ error: "chat_id_required" }, 400);
 
-  const { data: status, error: statusError } = await userClient.rpc("refresh_chat_status", { chat_id_input: chatId });
-  if (statusError) return jsonResponse({ error: "chat_status_failed", details: statusError.message }, 400);
-
   const { data: chat, error: chatError } = await adminClient
     .from("private_chats")
-    .select("id,user_a_id,user_b_id,status,last_distance_meters,last_message_at,updated_at")
+    .select("id,user_a_id,user_b_id,status,last_distance_meters,last_message_at,updated_at,is_connected")
     .eq("id", chatId)
-    .single();
+    .maybeSingle();
   if (chatError || !chat || (chat.user_a_id !== user.id && chat.user_b_id !== user.id)) {
     return jsonResponse({ error: "chat_not_found" }, 404);
   }
+  if (!chat.is_connected) return jsonResponse({ error: "chat_disconnected" }, 410);
+
+  const { data: status, error: statusError } = await userClient.rpc("refresh_chat_status", { chat_id_input: chatId });
+  if (statusError) return jsonResponse({ error: "chat_status_failed", details: statusError.message }, 400);
 
   const { data: messages, error: messagesError } = await adminClient
     .from("private_messages")

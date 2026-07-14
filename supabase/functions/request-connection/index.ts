@@ -17,18 +17,17 @@ Deno.serve(await withHttp(async (req) => {
   const participantPair = [user.id, payload.recipientId].sort().join(":");
   const { data: existingChat } = await adminClient
     .from("private_chats")
-    .select("id,status,updated_at")
+    .select("id,status,updated_at,is_connected")
     .eq("participant_pair", participantPair)
     .maybeSingle();
-  if (existingChat) return jsonResponse({ chat: existingChat, alreadyConnected: true });
+  if (existingChat?.is_connected) return jsonResponse({ chat: existingChat, alreadyConnected: true });
 
   const findPendingRequest = () => adminClient
     .from("connection_requests")
-    .select("id, status, created_at")
-    .eq("post_id", payload.postId)
-    .eq("requester_id", user.id)
-    .eq("recipient_id", payload.recipientId)
+    .select("id,status,created_at,requester_id,recipient_id")
     .eq("status", "pending")
+    .or(`and(requester_id.eq.${user.id},recipient_id.eq.${payload.recipientId}),and(requester_id.eq.${payload.recipientId},recipient_id.eq.${user.id})`)
+    .limit(1)
     .maybeSingle();
 
   const existing = await findPendingRequest();

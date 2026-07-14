@@ -1,5 +1,3 @@
-import { Redirect } from "expo-router";
-
 export default function CreateTab() {
-  return <Redirect href="/post/compose" />;
+  return null;
 }

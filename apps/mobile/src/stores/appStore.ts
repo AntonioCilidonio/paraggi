@@ -29,6 +29,7 @@ export type DemoConnectionRequest = {
 };
 
 type PermissionState = "unknown" | "granted" | "denied";
+type PushDeliveryState = "unknown" | "registered" | "local_only" | "failed";
 
 type QueuedAction = {
   id: string;
@@ -41,6 +42,7 @@ type AppStore = {
   radiusMeters: RadiusMeters;
   locationPermission: PermissionState;
   notificationPermission: PermissionState;
+  pushDeliveryState: PushDeliveryState;
   lastLocationSyncAt: string | null;
   lastLocationAccuracyMeters: number | null;
   lastLocationTrustStatus: string | null;
@@ -56,6 +58,7 @@ type AppStore = {
   setRadius: (radiusMeters: RadiusMeters) => void;
   setLocationPermission: (state: PermissionState) => void;
   setNotificationPermission: (state: PermissionState) => void;
+  setPushDeliveryState: (state: PushDeliveryState) => void;
   setLocationStatus: (status: {
     syncedAt?: string | null;
     accuracyMeters?: number | null;
@@ -99,6 +102,7 @@ export const useAppStore = create<AppStore>()(persist((set) => ({
   radiusMeters: 500,
   locationPermission: "unknown",
   notificationPermission: "unknown",
+  pushDeliveryState: "unknown",
   lastLocationSyncAt: null,
   lastLocationAccuracyMeters: null,
   lastLocationTrustStatus: null,
@@ -123,6 +127,7 @@ export const useAppStore = create<AppStore>()(persist((set) => ({
   setRadius: (radiusMeters) => set({ radiusMeters }),
   setLocationPermission: (locationPermission) => set({ locationPermission }),
   setNotificationPermission: (notificationPermission) => set({ notificationPermission }),
+  setPushDeliveryState: (pushDeliveryState) => set({ pushDeliveryState }),
   setLocationStatus: (status) => set((state) => ({
     lastLocationSyncAt: status.syncedAt === undefined ? state.lastLocationSyncAt : status.syncedAt,
     lastLocationAccuracyMeters: status.accuracyMeters === undefined ? state.lastLocationAccuracyMeters : status.accuracyMeters,
@@ -199,5 +204,16 @@ export const useAppStore = create<AppStore>()(persist((set) => ({
 }), {
   name: "paraggi-preferences",
   storage: createJSONStorage(() => AsyncStorage),
-  partialize: (state) => ({ radiusMeters: state.radiusMeters })
+  partialize: (state) => ({
+    radiusMeters: state.radiusMeters,
+    locationPermission: state.locationPermission,
+    notificationPermission: state.notificationPermission,
+    pushDeliveryState: state.pushDeliveryState,
+    lastLocationSyncAt: state.lastLocationSyncAt,
+    lastLocationAccuracyMeters: state.lastLocationAccuracyMeters,
+    lastLocationTrustStatus: state.lastLocationTrustStatus,
+    lastLocationError: state.lastLocationError,
+    currentAreaName: state.currentAreaName,
+    currentCity: state.currentCity
+  })
 }));

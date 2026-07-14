@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { ChatFrozenBanner } from "@/components/ChatFrozenBanner";
 import { Screen } from "@/components/Screen";
@@ -76,6 +76,19 @@ export default function ChatDetailScreen() {
     onError: (error) => setSendError(getFriendlyError(error, "Messaggio non inviato. Controlla GPS, rete e vicinanza."))
   });
 
+  const disconnect = useMutation({
+    mutationFn: async () => {
+      if (!hasChatId) throw new Error("Chat non ancora caricata.");
+      if (demoMode) return { disconnected: true };
+      return callFunction("disconnect-chat", { body: { chatId } });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["chats"] });
+      router.replace("/(tabs)/chats");
+    },
+    onError: (error) => setSendError(getFriendlyError(error, "Connessione non rimossa. Riprova."))
+  });
+
   const status = thread.data?.chat.status ?? "frozen_permission";
   const canSend = status === "active";
   const otherName = thread.data?.chat.other_profile?.display_name ?? "Persona vicina";
@@ -90,6 +103,17 @@ export default function ChatDetailScreen() {
     );
   }
 
+  function confirmDisconnect() {
+    Alert.alert(
+      "Rimuovere la connessione?",
+      `La chat con ${otherName} non comparira piu. Potrete riconnettervi con una nuova richiesta da un post.`,
+      [
+        { text: "Annulla", style: "cancel" },
+        { text: "Rimuovi", style: "destructive", onPress: () => disconnect.mutate() }
+      ]
+    );
+  }
+
   return (
     <Screen>
       <View className="gap-4">
@@ -100,8 +124,11 @@ export default function ChatDetailScreen() {
           <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Ionicons name="person-outline" size={20} color="#16808a" /></View>
           <View className="flex-1">
             <Text className="text-lg font-bold text-ink">{otherName}</Text>
-            <Text className="text-xs text-muted">{canSend ? "Attiva · siete nel raggio" : "Sospesa · storico disponibile"}</Text>
+            <Text className="text-xs text-muted">{canSend ? "Connessi · potete scrivere" : "Connessi · messaggi sospesi dalla distanza"}</Text>
           </View>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Rimuovi connessione con ${otherName}`} disabled={disconnect.isPending} onPress={confirmDisconnect} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white disabled:opacity-50">
+            <Ionicons name="person-remove-outline" size={20} color="#b42318" />
+          </Pressable>
         </View>
         {!hasChatId ? (
           <View className="rounded-card border border-danger p-4">
@@ -131,7 +158,7 @@ export default function ChatDetailScreen() {
             <View className="items-center gap-2 py-10">
               <Ionicons name="chatbubbles-outline" size={28} color="#62717a" />
               <Text className="font-semibold text-ink">La conversazione inizia qui</Text>
-              <Text className="text-center text-sm leading-5 text-muted">Scrivi il primo messaggio finche siete nel raggio condiviso.</Text>
+              <Text className="text-center text-sm leading-5 text-muted">La connessione resta. Potete scrivere quando siete nel raggio condiviso.</Text>
             </View>
           ) : null}
           {thread.data?.messages.map((message) => (
