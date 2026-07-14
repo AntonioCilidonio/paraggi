@@ -1,4 +1,5 @@
 import { jsonResponse, requireUser, withHttp } from "../_shared/http.ts";
+import { getPostAttachments } from "../_shared/postMedia.ts";
 
 Deno.serve(await withHttp(async (req) => {
   const { userClient, adminClient } = await requireUser(req);
@@ -36,5 +37,10 @@ Deno.serve(await withHttp(async (req) => {
     display_name: comment.profiles?.display_name ?? "Utente vicino"
   }));
 
-  return jsonResponse({ post, comments: decoratedComments });
+  try {
+    const attachments = await getPostAttachments(adminClient, [postId]);
+    return jsonResponse({ post: { ...post, attachments: attachments.get(postId) ?? [] }, comments: decoratedComments });
+  } catch (mediaError) {
+    return jsonResponse({ error: "post_media_failed", details: mediaError instanceof Error ? mediaError.message : String(mediaError) }, 400);
+  }
 }));

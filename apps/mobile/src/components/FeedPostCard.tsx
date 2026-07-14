@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { Text, View } from "react-native";
+import { PostAttachments, type PostAttachment } from "@/components/PostAttachments";
 
 export type FeedPost = {
   id: string;
@@ -16,6 +17,7 @@ export type FeedPost = {
   comment_count: number;
   reputation_score: number;
   created_at: string;
+  attachments?: PostAttachment[];
 };
 
 const categoryLabels: Record<string, string> = {
@@ -43,7 +45,7 @@ function formatDistance(distance: number) {
   return `${distance} m`;
 }
 
-export function FeedPostCard({ post }: { post: FeedPost }) {
+export function FeedPostCard({ post, mediaMode = "preview" }: { post: FeedPost; mediaMode?: "preview" | "full" }) {
   const minutesLeft = Math.max(0, Math.round((new Date(post.expires_at).getTime() - Date.now()) / 60000));
   const initial = post.display_name.slice(0, 1).toUpperCase();
 
@@ -65,6 +67,7 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
         </View>
       </View>
       <Text className="text-base leading-6 text-ink">{post.body}</Text>
+      <PostAttachments attachments={post.attachments} compact={mediaMode === "preview"} />
       <View className="flex-row items-center gap-4 border-t border-border pt-3">
         <View className="flex-row items-center gap-1">
           <Ionicons name="chatbubble-outline" size={15} color="#62717a" />

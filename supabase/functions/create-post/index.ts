@@ -20,10 +20,34 @@ type CreatePostPayload = {
 Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
   const payload = await readJson<CreatePostPayload>(req);
+  const attachments = payload.attachments ?? [];
+  const ownedStoragePaths = attachments.flatMap((attachment) =>
+    attachment.storagePath?.startsWith(`${user.id}/`) ? [attachment.storagePath] : []
+  );
+  const cleanupOwnedUploads = async () => {
+    if (ownedStoragePaths.length > 0) await adminClient.storage.from("post-media").remove(ownedStoragePaths);
+  };
+
+  const invalidAttachment = attachments.some((attachment) => {
+    if (attachment.kind === "location") {
+      return typeof attachment.latitude !== "number" || typeof attachment.longitude !== "number"
+        || !Number.isFinite(attachment.latitude) || !Number.isFinite(attachment.longitude)
+        || Math.abs(attachment.latitude) > 90 || Math.abs(attachment.longitude) > 180;
+    }
+    return !attachment.storagePath?.startsWith(`${user.id}/`) || !attachment.mimeType;
+  });
+  if (attachments.length > 4 || invalidAttachment) {
+    await cleanupOwnedUploads();
+    return jsonResponse({ error: "invalid_attachments" }, 400);
+  }
 
   const { data: location } = await adminClient.rpc("latest_trusted_location", { for_user_id: user.id }).single();
-  if (!location) return jsonResponse({ error: "valid_location_required" }, 403);
+  if (!location) {
+    await cleanupOwnedUploads();
+    return jsonResponse({ error: "valid_location_required" }, 403);
+  }
   if (location.trust_status === "blocked" || location.trust_status === "suspicious") {
+    await cleanupOwnedUploads();
     return jsonResponse({ error: "location_trust_too_low" }, 403);
   }
 
@@ -37,9 +61,11 @@ Deno.serve(await withHttp(async (req) => {
     expires_at: expiresAt
   }).select("id, category, body, expires_at, created_at").single();
 
-  if (error) return jsonResponse({ error: "create_post_failed", details: error.message }, 400);
+  if (error) {
+    await cleanupOwnedUploads();
+    return jsonResponse({ error: "create_post_failed", details: error.message }, 400);
+  }
 
-  const attachments = payload.attachments ?? [];
   if (attachments.length > 0) {
     const rows = attachments.map((attachment) => ({
       post_id: data.id,
@@ -49,13 +75,17 @@ Deno.serve(await withHttp(async (req) => {
       mime_type: attachment.mimeType,
       duration_seconds: attachment.durationSeconds,
       label: attachment.label,
-      approximate_position: attachment.kind === "location" && attachment.latitude && attachment.longitude
+      approximate_position: attachment.kind === "location" && typeof attachment.latitude === "number" && typeof attachment.longitude === "number"
         ? `POINT(${attachment.longitude} ${attachment.latitude})`
         : undefined
     }));
 
     const { error: attachmentError } = await adminClient.from("post_attachments").insert(rows);
-    if (attachmentError) return jsonResponse({ error: "create_attachments_failed", details: attachmentError.message }, 400);
+    if (attachmentError) {
+      await adminClient.from("posts").delete().eq("id", data.id);
+      await cleanupOwnedUploads();
+      return jsonResponse({ error: "create_attachments_failed", details: attachmentError.message }, 400);
+    }
   }
 
   if (payload.radiusMeters) {

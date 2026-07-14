@@ -1,4 +1,5 @@
 import { jsonResponse, requireUser, withHttp } from "../_shared/http.ts";
+import { getPostAttachments } from "../_shared/postMedia.ts";
 
 Deno.serve(await withHttp(async (req) => {
   const { userClient, adminClient } = await requireUser(req);
@@ -14,5 +15,12 @@ Deno.serve(await withHttp(async (req) => {
   });
 
   if (error) return jsonResponse({ error: "nearby_feed_failed", details: error.message }, 400);
-  return jsonResponse({ posts: data ?? [] });
+
+  try {
+    const posts = data ?? [];
+    const attachments = await getPostAttachments(adminClient, posts.map((post) => post.id));
+    return jsonResponse({ posts: posts.map((post) => ({ ...post, attachments: attachments.get(post.id) ?? [] })) });
+  } catch (mediaError) {
+    return jsonResponse({ error: "nearby_media_failed", details: mediaError instanceof Error ? mediaError.message : String(mediaError) }, 400);
+  }
 }));

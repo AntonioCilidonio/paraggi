@@ -175,7 +175,7 @@ export default function PostDetailScreen() {
           </View>
         ) : null}
         {detail.isLoading ? <Text className="text-muted">Carico post e commenti...</Text> : null}
-        {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
+        {selectedPost ? <FeedPostCard post={selectedPost} mediaMode="full" /> : null}
         {!isOwnPost ? <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} /> : null}
         {demoMode ? <Button label="Apri chat demo" icon="chatbubbles-outline" onPress={() => router.push("/chat/demo-active-chat")} /> : null}
         {!demoMode && isOwnPost ? (

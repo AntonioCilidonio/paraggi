@@ -1,15 +1,17 @@
 import type { PostCategory, PostTtlMinutes } from "@paraggi/domain";
 import { Ionicons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
+import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
+import { PostAttachments } from "@/components/PostAttachments";
 import { Screen } from "@/components/Screen";
-import { demoMode } from "@/config/env";
+import { demoMode, env } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
@@ -25,6 +27,7 @@ type Form = {
 };
 
 type MediaAttachment = {
+  id: string;
   kind: "image" | "video" | "audio";
   uri: string;
   name: string;
@@ -56,6 +59,9 @@ export default function ComposePostScreen() {
   const addDemoPost = useAppStore((state) => state.addDemoPost);
   const radiusMeters = useAppStore((state) => state.radiusMeters);
   const syncLocation = useLocationSync();
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder, 200);
+  const stoppingRecordingRef = useRef(false);
   const [mediaAttachments, setMediaAttachments] = useState<MediaAttachment[]>([]);
   const [shareApproxLocation, setShareApproxLocation] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -87,6 +93,7 @@ export default function ComposePostScreen() {
       setMediaAttachments((items) => [
         ...items.filter((item) => item.kind !== "image"),
         {
+          id: `local-image-${Date.now()}`,
           kind: "image",
           uri: asset.uri,
           name: asset.fileName ?? `paraggi-image-${Date.now()}.jpg`,
@@ -118,14 +125,15 @@ export default function ComposePostScreen() {
       const asset = result.assets[0];
       assertMediaSize("video", asset.fileSize);
       setMediaAttachments((items) => [
-      ...items.filter((item) => item.kind !== "video"),
-      {
-        kind: "video",
-        uri: asset.uri,
-        name: asset.fileName ?? `paraggi-video-${Date.now()}.mp4`,
-        mimeType: asset.mimeType ?? "video/mp4",
-        durationSeconds: asset.duration ? Math.round(asset.duration / 1000) : undefined
-      }
+        ...items.filter((item) => item.kind !== "video"),
+        {
+          id: `local-video-${Date.now()}`,
+          kind: "video",
+          uri: asset.uri,
+          name: asset.fileName ?? `paraggi-video-${Date.now()}.mp4`,
+          mimeType: asset.mimeType ?? "video/mp4",
+          durationSeconds: asset.duration ? Math.round(asset.duration / 1000) : undefined
+        }
       ]);
     } catch (error) {
       captureClientError("pick_video_failed", error);
@@ -133,60 +141,119 @@ export default function ComposePostScreen() {
     }
   }
 
-  async function pickAudio() {
+  const stopVoiceRecording = useCallback(async () => {
+    if (stoppingRecordingRef.current || !recorder.isRecording) return;
+    stoppingRecordingRef.current = true;
+    try {
+      const durationSeconds = Math.max(1, Math.round(recorderState.durationMillis / 1000));
+      await recorder.stop();
+      if (!recorder.uri) throw new Error("recording_file_missing");
+      const recordingUri = recorder.uri;
+      setMediaAttachments((items) => [
+        ...items.filter((item) => item.kind !== "audio"),
+        {
+          id: `local-audio-${Date.now()}`,
+          kind: "audio",
+          uri: recordingUri,
+          name: `nota-vocale-${Date.now()}.m4a`,
+          mimeType: "audio/mp4",
+          durationSeconds
+        }
+      ]);
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      setStatusMessage("Nota vocale pronta.");
+    } catch (error) {
+      captureClientError("stop_voice_recording_failed", error);
+      setErrorMessage("Non sono riuscito a salvare la nota vocale. Riprova.");
+    } finally {
+      stoppingRecordingRef.current = false;
+    }
+  }, [recorder, recorderState.durationMillis]);
+
+  async function toggleVoiceRecording() {
+    if (recorder.isRecording) {
+      await stopVoiceRecording();
+      return;
+    }
+
     try {
       setErrorMessage(null);
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["audio/mpeg", "audio/mp4", "audio/aac", "audio/wav"],
-        copyToCacheDirectory: true,
-        multiple: false
-      });
-      if (result.canceled || !result.assets[0]) return;
-
-      const asset = result.assets[0];
-      assertMediaSize("audio", asset.size);
-      setMediaAttachments((items) => [
-      ...items.filter((item) => item.kind !== "audio"),
-      {
-        kind: "audio",
-        uri: asset.uri,
-        name: asset.name ?? `paraggi-audio-${Date.now()}`,
-        mimeType: asset.mimeType ?? "audio/mpeg"
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        setErrorMessage("Permesso microfono negato. Puoi abilitarlo dalle impostazioni del telefono.");
+        return;
       }
-      ]);
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setStatusMessage("Registrazione in corso. Tocca di nuovo per terminare.");
     } catch (error) {
-      captureClientError("pick_audio_failed", error);
-      setErrorMessage(getFriendlyError(error, "Audio non selezionato. Riprova con un file piu leggero."));
+      captureClientError("start_voice_recording_failed", error);
+      setErrorMessage("Registrazione non avviata. Controlla il permesso microfono.");
     }
+  }
+
+  useEffect(() => {
+    if (recorderState.isRecording && recorderState.durationMillis >= 60_000) void stopVoiceRecording();
+  }, [recorderState.durationMillis, recorderState.isRecording, stopVoiceRecording]);
+
+  async function toggleLocationAttachment() {
+    if (shareApproxLocation) {
+      setShareApproxLocation(false);
+      return;
+    }
+
+    setErrorMessage(null);
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== "granted") {
+      setErrorMessage("Permesso posizione negato. Abilitalo dalle impostazioni del telefono.");
+      return;
+    }
+    setShareApproxLocation(true);
+    setStatusMessage("Posizione approssimativa pronta. Non mostreremo le coordinate nel post.");
   }
 
   async function uploadMediaAttachments(items: MediaAttachment[]) {
     if (items.length === 0) return [];
 
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw { error: "unauthenticated" };
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) throw { error: "unauthenticated" };
 
     const uploaded: Array<Record<string, unknown>> = [];
-    for (const item of items) {
-      const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const storagePath = `${data.user.id}/${Date.now()}-${safeName}`;
-      const response = await fetch(item.uri);
-      if (!response.ok) throw { error: "media_upload_failed" };
-      const bytes = await response.arrayBuffer();
-      const { error } = await supabase.storage.from("post-media").upload(storagePath, bytes, {
-        contentType: item.mimeType,
-        upsert: false
-      });
-      if (error) throw error;
-      uploaded.push({
-        kind: item.kind,
-        storagePath,
-        mimeType: item.mimeType,
-        durationSeconds: item.durationSeconds,
-        label: item.name
-      });
+    const uploadedPaths: string[] = [];
+    try {
+      for (const item of items) {
+        const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+        const storagePath = `${data.session.user.id}/${Date.now()}-${safeName}`;
+        const encodedPath = storagePath.split("/").map(encodeURIComponent).join("/");
+        const response = await FileSystem.uploadAsync(`${env.supabaseUrl}/storage/v1/object/post-media/${encodedPath}`, item.uri, {
+          httpMethod: "POST",
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          headers: {
+            Authorization: `Bearer ${data.session.access_token}`,
+            apikey: env.supabaseAnonKey,
+            "Content-Type": item.mimeType,
+            "cache-control": "max-age=3600",
+            "x-upsert": "false"
+          }
+        });
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(`media_upload_failed:${response.status}:${response.body.slice(0, 160)}`);
+        }
+        uploadedPaths.push(storagePath);
+        uploaded.push({
+          kind: item.kind,
+          storagePath,
+          mimeType: item.mimeType,
+          durationSeconds: item.durationSeconds,
+          label: item.name
+        });
+      }
+      return uploaded;
+    } catch (error) {
+      if (uploadedPaths.length > 0) await supabase.storage.from("post-media").remove(uploadedPaths);
+      throw error;
     }
-    return uploaded;
   }
 
   async function submit(values: Form) {
@@ -216,8 +283,8 @@ export default function ComposePostScreen() {
           attachments.push({
             kind: "location",
             label: "Posizione condivisa dall'autore",
-            latitude: current.coords.latitude,
-            longitude: current.coords.longitude
+            latitude: Math.round(current.coords.latitude * 1000) / 1000,
+            longitude: Math.round(current.coords.longitude * 1000) / 1000
           });
         }
       }
@@ -288,8 +355,13 @@ export default function ComposePostScreen() {
           <View className="flex-row flex-wrap gap-2">
             <Button icon="image-outline" label={mediaAttachments.some((item) => item.kind === "image") ? "Immagine pronta" : "Immagine"} variant={mediaAttachments.some((item) => item.kind === "image") ? "primary" : "secondary"} onPress={() => void pickImage()} />
             <Button icon="videocam-outline" label={mediaAttachments.some((item) => item.kind === "video") ? "Video pronto" : "Video"} variant={mediaAttachments.some((item) => item.kind === "video") ? "primary" : "secondary"} onPress={() => void pickVideo()} />
-            <Button icon="mic-outline" label={mediaAttachments.some((item) => item.kind === "audio") ? "Audio pronto" : "Audio"} variant={mediaAttachments.some((item) => item.kind === "audio") ? "primary" : "secondary"} onPress={() => void pickAudio()} />
-            <Button icon="location-outline" label={shareApproxLocation ? "Posizione attiva" : "Posizione"} variant={shareApproxLocation ? "primary" : "secondary"} onPress={() => setShareApproxLocation((value) => !value)} />
+            <Button
+              icon={recorderState.isRecording ? "stop" : "mic-outline"}
+              label={recorderState.isRecording ? `Termina ${Math.floor(recorderState.durationMillis / 1000)}s` : mediaAttachments.some((item) => item.kind === "audio") ? "Registra di nuovo" : "Nota vocale"}
+              variant={recorderState.isRecording || mediaAttachments.some((item) => item.kind === "audio") ? "primary" : "secondary"}
+              onPress={() => void toggleVoiceRecording()}
+            />
+            <Button icon="location-outline" label={shareApproxLocation ? "Posizione attiva" : "Posizione"} variant={shareApproxLocation ? "primary" : "secondary"} onPress={() => void toggleLocationAttachment()} />
           </View>
           {(mediaAttachments.length > 0 || shareApproxLocation) ? (
             <Text className="text-sm leading-5 text-muted">
@@ -299,10 +371,36 @@ export default function ComposePostScreen() {
               ].filter(Boolean).join(", ")}
             </Text>
           ) : null}
+          {mediaAttachments.length > 0 ? (
+            <View className="gap-3">
+              <PostAttachments attachments={mediaAttachments.map((item) => ({
+                id: item.id,
+                kind: item.kind,
+                url: item.uri,
+                label: item.name,
+                mime_type: item.mimeType,
+                duration_seconds: item.durationSeconds
+              }))} />
+              <View className="flex-row flex-wrap gap-2">
+                {mediaAttachments.map((item) => (
+                  <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Rimuovi ${item.kind}`} onPress={() => setMediaAttachments((items) => items.filter((candidate) => candidate.id !== item.id))} className="min-h-11 flex-row items-center gap-2 rounded-card border border-border bg-white px-3">
+                    <Ionicons name="trash-outline" size={17} color="#b42318" />
+                    <Text className="text-sm font-semibold text-danger">Rimuovi {item.kind === "audio" ? "nota vocale" : item.kind}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
         {statusMessage ? <Text className="rounded-card bg-primary/10 p-3 text-sm font-semibold text-primary">{statusMessage}</Text> : null}
         {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
-        <Button label={formState.isSubmitting ? "Pubblico..." : "Pubblica nel raggio"} icon="send" loading={formState.isSubmitting} onPress={handleSubmit(submit)} disabled={formState.isSubmitting || !postBody.trim()} />
+        <Button
+          label={recorderState.isRecording ? "Termina prima la nota vocale" : formState.isSubmitting ? "Pubblico..." : "Pubblica nel raggio"}
+          icon="send"
+          loading={formState.isSubmitting}
+          onPress={handleSubmit(submit)}
+          disabled={formState.isSubmitting || recorderState.isRecording || !postBody.trim()}
+        />
       </View>
     </Screen>
   );
