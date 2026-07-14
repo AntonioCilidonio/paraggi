@@ -38,6 +38,10 @@ type TestDiagnostics = {
     trust_status: string;
     trust_score: number;
   } | null;
+  lastE2e?: {
+    created_at: string;
+    metadata?: { checks?: string[]; pushTokenReady?: boolean };
+  } | null;
   recentErrors: Array<{
     created_at: string;
     source: string;
@@ -162,8 +166,17 @@ export default function ProfileScreen() {
       }
 
       setScenarioStatus("Creo scenario backend...");
-      const result = await callFunction<{ post: { id: string }; chat: { id: string }; messages: unknown[] }>("run-test-scenario");
-      setScenarioStatus(`Scenario creato: post ${result.post.id.slice(0, 8)}, chat ${result.chat.id.slice(0, 8)}, messaggi ${result.messages.length}.`);
+      const result = await callFunction<{
+        passed: boolean;
+        checks: Array<{ name: string; status: "passed" }>;
+        post: { id: string };
+        chat: { id: string };
+        messages: unknown[];
+        notifications: { currentUser: number; testUser: number; remotePushReady: boolean };
+      }>("run-test-scenario", {
+        body: locationResult.coordinates
+      });
+      setScenarioStatus(`E2E superato: ${result.checks.length} controlli, chat ${result.chat.id.slice(0, 8)}, ${result.messages.length} messaggi, push ${result.notifications.remotePushReady ? "pronto" : "senza token"}.`);
       await sendLocalNotification("Self-test completato", "Post, commento, richiesta, chat e messaggi sono stati creati.");
       await loadDiagnostics();
     } catch (error) {
@@ -230,6 +243,7 @@ export default function ProfileScreen() {
               <Text className="text-sm text-ink">Chat/messaggi: {diagnostics.counts.chats}/{diagnostics.counts.sentMessages}</Text>
               <Text className="text-sm text-ink">Notifiche non lette: {diagnostics.counts.unreadNotifications}</Text>
               <Text className="text-sm text-muted">Ultimo GPS: {formatTime(diagnostics.latestLocation?.captured_at ?? null)} · {diagnostics.latestLocation?.trust_status ?? "n/d"}</Text>
+              <Text className="text-sm text-muted">Ultimo E2E: {formatTime(diagnostics.lastE2e?.created_at ?? null)} · {diagnostics.lastE2e?.metadata?.checks?.length ?? 0} controlli</Text>
               <Text className="text-sm text-muted">Errori recenti: {diagnostics.recentErrors.length}</Text>
             </View>
           ) : null}

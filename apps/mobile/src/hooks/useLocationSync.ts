@@ -40,6 +40,10 @@ export function useLocationSync() {
         });
         return {
           ok: true as const,
+          coordinates: {
+            latitude: current.coords.latitude,
+            longitude: current.coords.longitude
+          },
           result: {
             area: "Area demo",
             city: "Bologna",
@@ -77,7 +81,14 @@ export function useLocationSync() {
         trustStatus: result.trust?.status ?? result.location?.trust_status ?? "uncertain",
         error: null
       });
-      return { ok: true as const, result };
+      return {
+        ok: true as const,
+        coordinates: {
+          latitude: current.coords.latitude,
+          longitude: current.coords.longitude
+        },
+        result
+      };
     } catch (error) {
       const reason = error && typeof error === "object" && "error" in error ? String((error as { error?: string }).error) : "location_unavailable";
       if (reason === "permission_denied") setLocationPermission("denied");

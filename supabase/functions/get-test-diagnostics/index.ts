@@ -14,7 +14,8 @@ Deno.serve(await withHttp(async (req) => {
     chats,
     messages,
     notifications,
-    clientErrors
+    clientErrors,
+    lastE2e
   ] = await Promise.all([
     adminClient.from("profiles").select("id,display_name,status,reputation_score,search_radius_meters").eq("id", user.id).single(),
     adminClient.from("push_tokens").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("enabled", true),
@@ -31,8 +32,24 @@ Deno.serve(await withHttp(async (req) => {
       .select("created_at,severity,source,message,context")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(5),
+    adminClient
+      .from("audit_logs")
+      .select("created_at,metadata")
+      .eq("actor_id", user.id)
+      .eq("action", "run_test_scenario")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
   ]);
+
+  const latestLocationAt = latestLocation.data?.captured_at ? new Date(latestLocation.data.captured_at).getTime() : 0;
+  const locationAgeMs = latestLocationAt ? Date.now() - latestLocationAt : Number.POSITIVE_INFINITY;
+  const locationTrust = latestLocation.data?.trust_status;
+  const hasRecentLocation = locationAgeMs <= 15 * 60 * 1000
+    && locationAgeMs >= -60 * 1000
+    && locationTrust !== "blocked"
+    && locationTrust !== "suspicious";
 
   return jsonResponse({
     user: {
@@ -42,9 +59,9 @@ Deno.serve(await withHttp(async (req) => {
     },
     readiness: {
       hasProfile: Boolean(profile.data),
-      hasRecentLocation: Boolean(latestLocation.data),
+      hasRecentLocation,
       hasPushToken: (pushTokens.count ?? 0) > 0,
-      canTestFeed: Boolean(latestLocation.data),
+      canTestFeed: hasRecentLocation,
       canReceiveRemotePush: (pushTokens.count ?? 0) > 0,
       canUseRealtimeNotifications: true
     },
@@ -59,6 +76,7 @@ Deno.serve(await withHttp(async (req) => {
       unreadNotifications: notifications.count ?? 0
     },
     latestLocation: latestLocation.data,
+    lastE2e: lastE2e.data,
     recentErrors: clientErrors.data ?? []
   });
 }));
