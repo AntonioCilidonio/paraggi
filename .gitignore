@@ -14,5 +14,6 @@ apps/mobile/GoogleService-Info.plist
 android/
 ios/
 coverage/
+outputs/*.apk
 .DS_Store
 supabase/.temp/
