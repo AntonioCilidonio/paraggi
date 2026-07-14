@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
+import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { demoHistory } from "@/demo/data";
@@ -39,19 +42,11 @@ export default function HistoryScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Aree visitate</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Cronologia generalizzata per luogo, mai tracciati GPS.</Text>
-        </View>
-        <View className="rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">Area attuale</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Sincronizza il GPS per salvare una visita generalizzata. Le coordinate precise non vengono mostrate.</Text>
-          <View className="mt-3">
-            <Button label="Aggiorna area" variant="secondary" onPress={() => void updateArea()} />
-          </View>
-        </View>
-        {history.isLoading ? <Text className="text-muted">Carico cronologia aree...</Text> : null}
+      <View className="gap-5">
+        <AppHeader />
+        <PageHeader title="Le tue aree" subtitle="Luoghi visitati, senza conservare il percorso GPS." />
+        <Button label="Aggiorna area attuale" icon="navigate-outline" variant="secondary" onPress={() => void updateArea()} />
+        {history.isLoading ? <View className="h-32 rounded-card bg-surface" /> : null}
         {history.isError ? (
           <View className="rounded-card border border-danger bg-surface p-4">
             <Text className="font-semibold text-danger">Aree non caricate</Text>
@@ -69,15 +64,20 @@ export default function HistoryScreen() {
             key={item.id}
             accessibilityRole="button"
             onPress={() => setSelectedAreaId(selectedAreaId === item.id ? null : item.id)}
-            className={`rounded-card border p-4 ${selectedAreaId === item.id ? "border-primary bg-surface" : "border-border bg-surface"}`}
+            className={`rounded-card border p-4 ${selectedAreaId === item.id ? "border-primary bg-surface" : "border-border bg-white"}`}
           >
-            <View className="flex-row items-start justify-between gap-3">
+            <View className="flex-row items-start gap-3">
+              <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name="location-outline" size={20} color="#16808a" /></View>
               <View className="flex-1">
                 <Text className="font-semibold text-ink">{item.areas?.name ?? "Area"}</Text>
-                <Text className="mt-1 text-sm text-muted">{item.areas?.city ?? "Citta"} - ultima visita {new Date(item.last_seen_at).toLocaleDateString()}</Text>
-                <Text className="mt-2 text-sm text-muted">{item.post_count} post - {item.comment_count} commenti - {item.connection_count} connessioni</Text>
+                <Text className="mt-1 text-sm text-muted">{item.areas?.city ?? "Citta"} · ultima visita {new Date(item.last_seen_at).toLocaleDateString("it-IT")}</Text>
+                <View className="mt-3 flex-row flex-wrap gap-3">
+                  <Text className="text-xs font-semibold text-muted">{item.post_count} post</Text>
+                  <Text className="text-xs font-semibold text-muted">{item.comment_count} commenti</Text>
+                  <Text className="text-xs font-semibold text-muted">{item.connection_count} chat</Text>
+                </View>
               </View>
-              <Text className="text-lg text-muted">{selectedAreaId === item.id ? "-" : "+"}</Text>
+              <Ionicons name={selectedAreaId === item.id ? "chevron-up" : "chevron-down"} size={20} color="#62717a" />
             </View>
             {selectedAreaId === item.id ? (
               <View className="mt-4 gap-3 border-t border-border pt-4">

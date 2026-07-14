@@ -1,9 +1,10 @@
 import type { ErrorBoundaryProps } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { FeedPostCard } from "@/components/FeedPostCard";
 import { Screen } from "@/components/Screen";
@@ -156,10 +157,15 @@ export default function PostDetailScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Conversazione locale</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Prima commento pubblico, poi richiesta privata. Nessuna connessione permanente.</Text>
+      <View className="gap-5">
+        <View className="flex-row items-start justify-between gap-3 border-b border-border pb-4">
+          <View className="flex-1">
+            <Pressable accessibilityRole="button" accessibilityLabel="Torna al feed" onPress={() => router.back()} className="mb-3 h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
+              <Ionicons name="arrow-back" size={21} color="#17232b" />
+            </Pressable>
+            <Text className="text-2xl font-bold text-ink">Conversazione</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Commento pubblico, poi chat privata di vicinanza.</Text>
+          </View>
         </View>
         {detail.isError ? (
           <View className="rounded-card border border-danger bg-surface p-4">
@@ -169,7 +175,7 @@ export default function PostDetailScreen() {
         ) : null}
         {detail.isLoading ? <Text className="text-muted">Carico post e commenti...</Text> : null}
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
-        <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
+        {!isOwnPost ? <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} /> : null}
         {demoMode ? <Button label="Apri chat demo" icon="chatbubbles-outline" onPress={() => router.push("/chat/demo-active-chat")} /> : null}
         {!demoMode && isOwnPost ? (
           <View className="gap-2 rounded-card border border-border bg-surface p-4">
@@ -181,17 +187,30 @@ export default function PostDetailScreen() {
         ) : null}
         {connectionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{connectionError}</Text> : null}
         {comments.map((comment) => (
-          <View key={comment.id} className="rounded-card border border-border bg-surface p-3">
-            <Text className="mb-1 text-xs font-semibold text-muted">{comment.display_name ?? "Utente vicino"}</Text>
-            <Text className="text-ink">{comment.body}</Text>
-            <Text className="mt-1 text-xs text-muted">{new Date(comment.created_at).toLocaleString()}</Text>
+          <View key={comment.id} className="flex-row items-start gap-3">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-surface"><Text className="font-bold text-primary">{(comment.display_name ?? "U").slice(0, 1).toUpperCase()}</Text></View>
+            <View className="flex-1 rounded-card bg-surface p-3">
+              <Text className="mb-1 text-xs font-semibold text-muted">{comment.display_name ?? "Utente vicino"} · {new Date(comment.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}</Text>
+              <Text className="text-ink">{comment.body}</Text>
+            </View>
           </View>
         ))}
-        <Controller control={control} name="body" render={({ field }) => (
-          <TextInput editable={canComment} placeholder={canComment ? "Commenta pubblicamente" : "Carica il post prima di commentare"} className="min-h-12 rounded-card border border-border px-3 text-ink" value={field.value} onChangeText={field.onChange} />
-        )} />
+        <View className="flex-row items-end gap-2 border-t border-border pt-4">
+          <Controller control={control} name="body" render={({ field }) => (
+            <TextInput editable={canComment} multiline placeholder={canComment ? "Commenta pubblicamente" : "Carica il post prima di commentare"} className="min-h-12 flex-1 rounded-card border border-border bg-white px-3 py-3 text-ink" value={field.value} onChangeText={field.onChange} />
+          )} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Invia commento"
+            accessibilityState={{ disabled: !canComment || createComment.isPending }}
+            disabled={!canComment || createComment.isPending}
+            onPress={handleSubmit((values) => createComment.mutate(values))}
+            className="h-12 w-12 items-center justify-center rounded-card bg-primary disabled:opacity-50"
+          >
+            <Ionicons name="send" size={19} color="#ffffff" />
+          </Pressable>
+        </View>
         {commentError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{commentError}</Text> : null}
-        <Button label="Commenta" disabled={!canComment || createComment.isPending} onPress={handleSubmit((values) => createComment.mutate(values))} />
       </View>
     </Screen>
   );

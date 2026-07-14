@@ -1,11 +1,12 @@
 import type { PostCategory, PostTtlMinutes } from "@paraggi/domain";
+import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
@@ -242,17 +243,22 @@ export default function ComposePostScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-5">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Cosa succede qui?</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Pubblica per le persone nel tuo raggio. La posizione precisa resta nascosta.</Text>
+      <View className="gap-5">
+        <View className="flex-row items-start gap-3 border-b border-border pb-4">
+          <Pressable accessibilityRole="button" accessibilityLabel="Annulla nuovo post" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
+            <Ionicons name="close" size={22} color="#17232b" />
+          </Pressable>
+          <View className="flex-1">
+            <Text className="text-2xl font-bold text-ink">Cosa succede qui?</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Condividi con le persone nel tuo raggio.</Text>
+          </View>
         </View>
         <Controller control={control} name="body" render={({ field }) => (
           <TextInput
             multiline
             textAlignVertical="top"
             placeholder="Cosa vuoi chiedere o condividere qui?"
-            className="min-h-36 rounded-card border border-border p-3 text-base text-ink"
+            className="min-h-40 rounded-card border border-border bg-white p-4 text-base leading-6 text-ink"
             value={field.value}
             onChangeText={field.onChange}
           />
@@ -279,10 +285,10 @@ export default function ComposePostScreen() {
             <Text className="mt-1 text-sm leading-5 text-muted">Facoltativo. Immagini fino a 10 MB, video fino a 20 MB e audio fino a 12 MB.</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
-            <Button label={mediaAttachments.some((item) => item.kind === "image") ? "Immagine pronta" : "Aggiungi immagine"} variant={mediaAttachments.some((item) => item.kind === "image") ? "primary" : "secondary"} onPress={() => void pickImage()} />
-            <Button label={mediaAttachments.some((item) => item.kind === "video") ? "Video pronto" : "Aggiungi video"} variant={mediaAttachments.some((item) => item.kind === "video") ? "primary" : "secondary"} onPress={() => void pickVideo()} />
-            <Button label={mediaAttachments.some((item) => item.kind === "audio") ? "Audio pronto" : "Aggiungi audio"} variant={mediaAttachments.some((item) => item.kind === "audio") ? "primary" : "secondary"} onPress={() => void pickAudio()} />
-            <Button label={shareApproxLocation ? "GPS nel post attivo" : "Condividi GPS"} variant={shareApproxLocation ? "primary" : "secondary"} onPress={() => setShareApproxLocation((value) => !value)} />
+            <Button icon="image-outline" label={mediaAttachments.some((item) => item.kind === "image") ? "Immagine pronta" : "Immagine"} variant={mediaAttachments.some((item) => item.kind === "image") ? "primary" : "secondary"} onPress={() => void pickImage()} />
+            <Button icon="videocam-outline" label={mediaAttachments.some((item) => item.kind === "video") ? "Video pronto" : "Video"} variant={mediaAttachments.some((item) => item.kind === "video") ? "primary" : "secondary"} onPress={() => void pickVideo()} />
+            <Button icon="mic-outline" label={mediaAttachments.some((item) => item.kind === "audio") ? "Audio pronto" : "Audio"} variant={mediaAttachments.some((item) => item.kind === "audio") ? "primary" : "secondary"} onPress={() => void pickAudio()} />
+            <Button icon="location-outline" label={shareApproxLocation ? "Posizione attiva" : "Posizione"} variant={shareApproxLocation ? "primary" : "secondary"} onPress={() => setShareApproxLocation((value) => !value)} />
           </View>
           {(mediaAttachments.length > 0 || shareApproxLocation) ? (
             <Text className="text-sm leading-5 text-muted">

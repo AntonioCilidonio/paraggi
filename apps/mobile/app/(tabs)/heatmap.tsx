@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
+import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { StatusPill } from "@/components/StatusPill";
 import { demoMode } from "@/config/env";
@@ -108,28 +111,24 @@ export default function HeatmapScreen() {
     if (result.ok) await heatmap.refetch();
   }
 
+  const mapPositions = [
+    { top: 34, left: 26 },
+    { top: 178, right: 22 },
+    { bottom: 40, left: 62 },
+    { bottom: 24, right: 32 }
+  ] as const;
+
+  function bubbleSize(zone: HeatmapZone) {
+    if (zone.activity_level === "high") return 142;
+    if (zone.activity_level === "medium") return 108;
+    return 82;
+  }
+
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Zone attive</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Confronta le aree nel tuo raggio senza vedere persone o coordinate.</Text>
-        </View>
-
-        <View className="border-y border-border py-4">
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="flex-1">
-              <Text className="font-semibold text-ink">Come si legge</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">La barra cresce con post, commenti e richieste recenti. Indica attivita, non il numero di persone.</Text>
-            </View>
-            <StatusPill label={`${formatDistance(radiusMeters)} raggio`} tone="neutral" />
-          </View>
-          <View className="mt-3 flex-row flex-wrap gap-3">
-            <Text className="text-xs font-semibold text-success">● Molto attiva</Text>
-            <Text className="text-xs font-semibold text-primary">● Attiva</Text>
-            <Text className="text-xs font-semibold text-warning">● Tranquilla</Text>
-          </View>
-        </View>
+      <View className="gap-5">
+        <AppHeader />
+        <PageHeader title="Attivita vicina" subtitle="Zone aggregate, mai persone singole." action={<StatusPill label={`${formatDistance(radiusMeters)}`} tone="neutral" />} />
 
         <View className="gap-3">
           {heatmap.isLoading ? (
@@ -158,36 +157,40 @@ export default function HeatmapScreen() {
             </View>
           ) : null}
 
-          {zones.map((zone) => {
-            const meta = levelMeta[zone.activity_level];
-            const isSelected = selectedZone?.id === zone.id;
-            const strongestScore = Math.max(1, zones[0]?.activity_score ?? 1);
-            const width = `${Math.max(12, Math.round((zone.activity_score / strongestScore) * 100))}%` as `${number}%`;
-
-            return (
-              <Pressable
-                key={zone.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Seleziona ${zone.name}, ${meta.label}`}
-                onPress={() => setSelectedZoneId(zone.id)}
-                className={`rounded-card border p-4 ${isSelected ? "border-primary bg-surface" : "border-border bg-white"}`}
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="font-semibold text-ink">{zone.name}</Text>
-                    <Text className="mt-1 text-sm text-muted">{zone.post_count} post · {zone.comment_count} commenti · circa {formatDistance(zone.distance_meters)}</Text>
-                  </View>
-                  <StatusPill label={meta.label} tone={meta.tone} />
-                </View>
-                <View className="mt-3 h-2 overflow-hidden rounded-full bg-border">
-                  <View className={`h-2 rounded-full ${meta.dotClass}`} style={{ width }} />
-                </View>
-              </Pressable>
-            );
-          })}
+          {!heatmap.isLoading && !heatmap.data?.needsLocation && zones.length > 0 ? (
+            <View className="relative h-96 overflow-hidden rounded-card border border-border bg-surface">
+              <View className="absolute left-[-40px] top-24 h-0.5 w-[480px] rotate-12 bg-border" />
+              <View className="absolute left-[-45px] top-64 h-0.5 w-[480px] -rotate-12 bg-border" />
+              <View className="absolute left-40 top-[-40px] h-[480px] w-0.5 rotate-12 bg-border" />
+              {zones.slice(0, 4).map((zone, index) => {
+                const size = bubbleSize(zone);
+                const position = mapPositions[index] ?? mapPositions[0];
+                const selected = selectedZone?.id === zone.id;
+                const toneClass = zone.activity_level === "high" ? "border-success bg-success/20" : zone.activity_level === "medium" ? "border-primary bg-primary/20" : "border-warning bg-warning/20";
+                return (
+                  <Pressable
+                    key={zone.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${zone.name}, ${levelMeta[zone.activity_level].label}`}
+                    onPress={() => setSelectedZoneId(zone.id)}
+                    className={`absolute items-center justify-center rounded-full border-2 ${toneClass} ${selected ? "opacity-100" : "opacity-80"}`}
+                    style={{ width: size, height: size, ...position }}
+                  >
+                    <Text className="px-2 text-center text-sm font-bold text-ink" numberOfLines={2}>{zone.name}</Text>
+                    <Text className="mt-1 text-xs font-semibold text-muted">{zone.post_count} post</Text>
+                  </Pressable>
+                );
+              })}
+              <View className="absolute bottom-3 left-3 right-3 flex-row items-center justify-between rounded-card bg-white px-3 py-2">
+                <Text className="text-xs font-semibold text-warning">● Tranquilla</Text>
+                <Text className="text-xs font-semibold text-primary">● Attiva</Text>
+                <Text className="text-xs font-semibold text-success">● Molto attiva</Text>
+              </View>
+            </View>
+          ) : null}
 
           {selectedZone ? (
-            <View className="border-t border-border pt-4">
+            <View className="rounded-card border border-border bg-white p-4">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
                   <Text className="font-semibold text-ink">{selectedZone.name}</Text>
@@ -196,7 +199,10 @@ export default function HeatmapScreen() {
                 <StatusPill label={levelMeta[selectedZone.activity_level].label} tone={levelMeta[selectedZone.activity_level].tone} />
               </View>
               <Text className="mt-3 text-sm leading-5 text-muted">{explainLevel(selectedZone)}</Text>
-              <Text className="mt-2 text-xs font-semibold text-muted">Ultima attivita: {formatActivityTime(selectedZone.latest_activity_at)}</Text>
+              <View className="mt-3 flex-row items-center gap-2">
+                <Ionicons name="time-outline" size={15} color="#62717a" />
+                <Text className="text-xs font-semibold text-muted">Ultima attivita: {formatActivityTime(selectedZone.latest_activity_at)}</Text>
+              </View>
             </View>
           ) : null}
         </View>
@@ -216,8 +222,8 @@ export default function HeatmapScreen() {
         ) : null}
 
         <View className="flex-row gap-2">
-          <Button label={isRefreshingLocation ? "Aggiorno..." : "Aggiorna mappa"} onPress={() => void refreshHeatmap()} disabled={isRefreshingLocation} className="flex-1" />
-          <Button label="Post vicini" variant="secondary" onPress={() => router.push("/(tabs)/feed")} className="flex-1" />
+          <Button label={isRefreshingLocation ? "Aggiorno..." : "Aggiorna zona"} icon="locate-outline" onPress={() => void refreshHeatmap()} disabled={isRefreshingLocation} className="flex-1" />
+          <Button label="Post vicini" variant="secondary" icon="list-outline" onPress={() => router.push("/(tabs)/feed")} className="flex-1" />
         </View>
 
         {lastLocationSyncAt ? <Text className="text-xs text-muted">Ultimo aggiornamento GPS: {new Date(lastLocationSyncAt).toLocaleTimeString()}</Text> : null}

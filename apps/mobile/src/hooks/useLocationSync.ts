@@ -36,7 +36,9 @@ export function useLocationSync() {
           syncedAt: new Date().toISOString(),
           accuracyMeters,
           trustStatus: "demo",
-          error: null
+          error: null,
+          areaName,
+          city
         });
         return {
           ok: true as const,
@@ -79,7 +81,9 @@ export function useLocationSync() {
         syncedAt: new Date().toISOString(),
         accuracyMeters,
         trustStatus: result.trust?.status ?? result.location?.trust_status ?? "uncertain",
-        error: null
+        error: null,
+        areaName,
+        city
       });
       return {
         ok: true as const,

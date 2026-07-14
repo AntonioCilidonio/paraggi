@@ -43,6 +43,8 @@ type AppStore = {
   lastLocationAccuracyMeters: number | null;
   lastLocationTrustStatus: string | null;
   lastLocationError: string | null;
+  currentAreaName: string | null;
+  currentCity: string | null;
   offlineQueue: QueuedAction[];
   demoPosts: FeedPost[];
   demoCommentsByPost: Record<string, DemoComment[]>;
@@ -57,6 +59,8 @@ type AppStore = {
     accuracyMeters?: number | null;
     trustStatus?: string | null;
     error?: string | null;
+    areaName?: string | null;
+    city?: string | null;
   }) => void;
   enqueueOfflineAction: (action: QueuedAction) => void;
   clearOfflineAction: (id: string) => void;
@@ -97,6 +101,8 @@ export const useAppStore = create<AppStore>((set) => ({
   lastLocationAccuracyMeters: null,
   lastLocationTrustStatus: null,
   lastLocationError: null,
+  currentAreaName: null,
+  currentCity: null,
   offlineQueue: [],
   demoPosts: [],
   demoCommentsByPost: {},
@@ -119,7 +125,9 @@ export const useAppStore = create<AppStore>((set) => ({
     lastLocationSyncAt: status.syncedAt === undefined ? state.lastLocationSyncAt : status.syncedAt,
     lastLocationAccuracyMeters: status.accuracyMeters === undefined ? state.lastLocationAccuracyMeters : status.accuracyMeters,
     lastLocationTrustStatus: status.trustStatus === undefined ? state.lastLocationTrustStatus : status.trustStatus,
-    lastLocationError: status.error === undefined ? state.lastLocationError : status.error
+    lastLocationError: status.error === undefined ? state.lastLocationError : status.error,
+    currentAreaName: status.areaName === undefined ? state.currentAreaName : status.areaName,
+    currentCity: status.city === undefined ? state.currentCity : status.city
   })),
   enqueueOfflineAction: (action) => set((state) => ({ offlineQueue: [...state.offlineQueue, action] })),
   clearOfflineAction: (id) => set((state) => ({ offlineQueue: state.offlineQueue.filter((action) => action.id !== id) })),

@@ -1,9 +1,10 @@
 import type { ChatStatus } from "@paraggi/domain";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { ChatFrozenBanner } from "@/components/ChatFrozenBanner";
 import { Screen } from "@/components/Screen";
@@ -90,10 +91,16 @@ export default function ChatDetailScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Conversazione</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Puoi scrivere solo quando siete nel raggio condiviso.</Text>
+      <View className="gap-4">
+        <View className="flex-row items-center gap-3 border-b border-border pb-4">
+          <Pressable accessibilityRole="button" accessibilityLabel="Torna alle chat" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
+            <Ionicons name="arrow-back" size={21} color="#17232b" />
+          </Pressable>
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Ionicons name="person-outline" size={20} color="#16808a" /></View>
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-ink">Conversazione vicina</Text>
+            <Text className="text-xs text-muted">{canSend ? "Attiva · siete nel raggio" : "Sospesa · storico disponibile"}</Text>
+          </View>
         </View>
         {!hasChatId ? (
           <View className="rounded-card border border-danger p-4">
@@ -118,25 +125,23 @@ export default function ChatDetailScreen() {
             <Button label="Simula vicini" onPress={() => void setDistanceStatus("active")} />
           </View>
         ) : null}
-        <View className="gap-2 border-t border-border pt-4">
+        <View className="gap-3 py-2">
           {thread.data?.messages.map((message) => (
-            <View key={message.id} className={`rounded-card p-3 ${message.sender_id === thread.data?.currentUserId ? "ml-8 bg-primary" : "mr-8 border border-border bg-surface"}`}>
+            <View key={message.id} className={`rounded-card p-3 ${message.sender_id === thread.data?.currentUserId ? "ml-12 bg-primary" : "mr-12 bg-surface"}`}>
               <Text className={`text-base ${message.sender_id === thread.data?.currentUserId ? "text-white" : "text-ink"}`}>{message.body}</Text>
               <Text className={`mt-1 text-xs ${message.sender_id === thread.data?.currentUserId ? "text-white" : "text-muted"}`}>{new Date(message.created_at).toLocaleTimeString()}</Text>
             </View>
           ))}
         </View>
-        <View className="gap-2 border-t border-border pt-4">
+        <View className="flex-row items-end gap-2 border-t border-border pt-4">
           <Controller control={control} name="body" render={({ field }) => (
-            <TextInput
-              editable={canSend}
-              placeholder={canSend ? "Messaggio" : "Torna vicino per scrivere"}
-              className="min-h-12 rounded-card border border-border px-3 text-ink"
-              value={field.value}
-              onChangeText={field.onChange}
-            />
+            <TextInput editable={canSend} multiline placeholder={canSend ? "Messaggio" : "Torna vicino per scrivere"} className="min-h-12 flex-1 rounded-card border border-border bg-white px-3 py-3 text-ink" value={field.value} onChangeText={field.onChange} />
           )} />
-          <Button label="Invia" icon="send" loading={send.isPending} disabled={!canSend || !messageBody.trim() || send.isPending} onPress={handleSubmit((values) => send.mutate({ body: values.body.trim() }))} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Invia messaggio" disabled={!canSend || !messageBody.trim() || send.isPending} onPress={handleSubmit((values) => send.mutate({ body: values.body.trim() }))} className="h-12 w-12 items-center justify-center rounded-card bg-primary disabled:opacity-50">
+            <Ionicons name="send" size={19} color="#ffffff" />
+          </Pressable>
+        </View>
+        <View>
           {sendError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{sendError}</Text> : null}
         </View>
       </View>

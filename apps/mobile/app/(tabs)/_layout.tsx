@@ -66,11 +66,13 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
       headerShown: false,
+      tabBarHideOnKeyboard: true,
       tabBarActiveTintColor: "#16808a",
       tabBarInactiveTintColor: "#62717a",
       tabBarLabelStyle: { fontSize: 12, fontWeight: "700" },
       tabBarItemStyle: { justifyContent: "center" },
-      tabBarStyle: { height: 70, paddingTop: 8, paddingBottom: 10 }
+      tabBarStyle: { height: 72, paddingTop: 7, paddingBottom: 9, backgroundColor: "#ffffff", borderTopColor: "#d9e2e3" },
+      sceneStyle: { backgroundColor: "#ffffff" }
     }}>
       <Tabs.Screen name="feed" options={{ title: "Vicino", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? icons.feed[1] : icons.feed[0]} size={22} color={color} /> }} />
       <Tabs.Screen name="heatmap" options={{ title: "Mappa", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? icons.heatmap[1] : icons.heatmap[0]} size={22} color={color} /> }} />

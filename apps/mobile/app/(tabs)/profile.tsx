@@ -1,9 +1,12 @@
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, Switch, Text, Vibration, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
+import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
@@ -79,6 +82,16 @@ export default function ProfileScreen() {
   const [diagnosticsStatus, setDiagnosticsStatus] = useState("Non ancora controllata.");
   const [scenarioStatus, setScenarioStatus] = useState("Self-test non eseguito.");
   const [showTestTools, setShowTestTools] = useState(false);
+  const profile = useQuery({
+    queryKey: ["profile-summary"],
+    queryFn: async () => {
+      if (demoMode) return { display_name: "Antonio", reputation_score: 41 };
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return { display_name: "Utente Paraggi", reputation_score: 0 };
+      const { data } = await supabase.from("profiles").select("display_name,reputation_score").eq("id", auth.user.id).maybeSingle();
+      return data ?? { display_name: auth.user.user_metadata?.display_name ?? "Utente Paraggi", reputation_score: 0 };
+    }
+  });
 
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
@@ -207,15 +220,29 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-6">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Profilo e preferenze</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Controlla raggio, permessi e sicurezza da un solo posto.</Text>
+      <View className="gap-6">
+        <AppHeader />
+        <PageHeader title="Profilo" subtitle="Privacy, raggio e sicurezza." action={
+          <Pressable accessibilityRole="button" accessibilityLabel="Apri impostazioni profilo e privacy" onPress={() => router.push("/settings/privacy")} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
+            <Ionicons name="pencil-outline" size={20} color="#17232b" />
+          </Pressable>
+        } />
+
+        <View className="flex-row items-center gap-3">
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-surface">
+            <Text className="text-lg font-bold text-primary">{(profile.data?.display_name ?? "P").slice(0, 2).toUpperCase()}</Text>
+          </View>
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-ink">{profile.data?.display_name ?? "Profilo Paraggi"}</Text>
+            <View className="mt-1 flex-row items-center gap-1.5">
+              <Ionicons name="shield-checkmark-outline" size={15} color="#16808a" />
+              <Text className="text-xs font-semibold text-muted">Utente affidabile · reputazione {profile.data?.reputation_score ?? 0}</Text>
+            </View>
+          </View>
         </View>
 
         <View className="gap-3">
           <Text className="font-semibold text-ink">Raggio dei post</Text>
-          <Text className="text-sm leading-5 text-muted">Le chat mantengono il proprio limite di vicinanza. Questa scelta cambia il feed e la mappa.</Text>
           <View className="flex-row flex-wrap gap-2">
             {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
               <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => setRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
@@ -223,10 +250,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View className="gap-4 border-t border-border pt-5">
-          <Text className="font-semibold text-ink">Permessi</Text>
+        <View className="gap-4 rounded-card border border-border bg-white p-4">
           <View className="flex-row items-start gap-3">
-            <Ionicons name={locationPermission === "granted" ? "location" : "location-outline"} size={22} color={locationPermission === "granted" ? "#16808a" : "#62717a"} />
+            <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name={locationPermission === "granted" ? "navigate" : "navigate-outline"} size={21} color={locationPermission === "granted" ? "#16808a" : "#62717a"} /></View>
             <View className="flex-1">
               <Text className="font-semibold text-ink">Posizione {locationPermission === "granted" ? "attiva" : locationPermission === "denied" ? "negata" : "da attivare"}</Text>
               <Text className="mt-1 text-sm leading-5 text-muted">{lastLocationSyncAt ? `Aggiornata alle ${formatTime(lastLocationSyncAt)} · precisione ${lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "n/d"}` : gpsStatus}</Text>
@@ -237,7 +263,7 @@ export default function ProfileScreen() {
           <Button label="Aggiorna posizione" icon="navigate-outline" variant="secondary" onPress={() => void requestGps()} />
 
           <View className="flex-row items-start gap-3 border-t border-border pt-4">
-            <Ionicons name={notificationPermission === "granted" ? "notifications" : "notifications-outline"} size={22} color={notificationPermission === "granted" ? "#16808a" : "#62717a"} />
+            <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name={notificationPermission === "granted" ? "notifications" : "notifications-outline"} size={21} color={notificationPermission === "granted" ? "#16808a" : "#62717a"} /></View>
             <View className="flex-1">
               <Text className="font-semibold text-ink">Notifiche {notificationPermission === "granted" ? "consentite" : "da attivare"}</Text>
               <Text className="mt-1 text-sm leading-5 text-muted">{pushStatus}</Text>
@@ -247,7 +273,7 @@ export default function ProfileScreen() {
           <Button label="Prova un avviso sul telefono" icon="phone-portrait-outline" onPress={() => void sendLocalNotification("Paraggi test", "Le notifiche locali funzionano su questo dispositivo.")} />
         </View>
 
-        <View className="gap-4 border-t border-border pt-5">
+        <View className="gap-4 rounded-card border border-danger bg-white p-4">
           <View>
             <Text className="font-semibold text-danger">SOS di vicinanza</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">Avvisa le persone nel raggio. Confermerai sempre prima dell'invio.</Text>
@@ -263,8 +289,8 @@ export default function ProfileScreen() {
           {dangerStatus !== "Allarme non inviato" ? <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text> : null}
         </View>
 
-        <Pressable accessibilityRole="button" onPress={() => router.push("/settings/privacy")} className="flex-row items-center gap-3 border-t border-border pt-5">
-          <Ionicons name="shield-checkmark-outline" size={22} color="#16808a" />
+        <Pressable accessibilityRole="button" accessibilityLabel="Apri privacy e dati" onPress={() => router.push("/settings/privacy")} className="flex-row items-center gap-3 rounded-card border border-border bg-white p-4">
+          <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name="shield-checkmark-outline" size={22} color="#16808a" /></View>
           <View className="flex-1">
             <Text className="font-semibold text-ink">Privacy e dati</Text>
             <Text className="mt-1 text-sm text-muted">Consensi, esportazione ed eliminazione account.</Text>
@@ -273,7 +299,7 @@ export default function ProfileScreen() {
         </Pressable>
 
         <View className="border-t border-border pt-5">
-          <Pressable accessibilityRole="button" onPress={() => setShowTestTools((value) => !value)} className="flex-row items-center justify-between py-2">
+          <Pressable accessibilityRole="button" accessibilityLabel={showTestTools ? "Nascondi strumenti di test" : "Mostra strumenti di test"} onPress={() => setShowTestTools((value) => !value)} className="flex-row items-center justify-between py-2">
             <View className="flex-row items-center gap-3">
               <Ionicons name="flask-outline" size={22} color="#62717a" />
               <Text className="font-semibold text-ink">Strumenti di test</Text>

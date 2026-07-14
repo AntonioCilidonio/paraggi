@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
-import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
+import { HeaderIconButton, PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { demoPosts } from "@/demo/data";
@@ -33,21 +34,20 @@ export default function FeedScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-ink">Vicino a te</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Post visibili solo nel raggio condiviso. Coordinate sempre nascoste.</Text>
-          </View>
-          <Button label="Pubblica" icon="add" onPress={() => router.push("/post/compose")} />
-        </View>
-        <View className="flex-row items-center justify-between gap-3 border-y border-border py-3">
+      <View className="gap-5">
+        <AppHeader />
+        <PageHeader
+          title="Vicino a te"
+          subtitle="Conversazioni che esistono qui, adesso."
+          action={<HeaderIconButton icon="add" label="Pubblica un post" onPress={() => router.push("/post/compose")} />}
+        />
+        <View className="flex-row items-center justify-between gap-3 rounded-card bg-surface px-3 py-2.5">
           <View className="flex-1 flex-row items-center gap-2">
             <Ionicons name={lastLocationSyncAt ? "location" : "location-outline"} size={18} color={lastLocationSyncAt ? "#16808a" : "#62717a"} />
-            <Text className="text-sm text-muted">{lastLocationSyncAt ? `Raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
+            <Text className="text-sm font-medium text-ink">{lastLocationSyncAt ? `GPS attivo · raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
           </View>
-          <Pressable accessibilityRole="button" onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 justify-center px-2">
-            <Text className="font-semibold text-primary">Aggiorna</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione e feed" onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 justify-center px-2">
+            <Ionicons name="refresh" size={19} color="#16808a" />
           </Pressable>
         </View>
         {demoMode ? (
@@ -62,7 +62,11 @@ export default function FeedScreen() {
             <Text className="mt-1 text-sm leading-5 text-muted">Paraggi mostra post solo dopo una posizione valida. Premi Aggiorna posizione.</Text>
           </View>
         ) : null}
-        {feed.isLoading ? <Text className="text-muted">Carico i post vicini...</Text> : null}
+        {feed.isLoading ? (
+          <View className="gap-3">
+            {[0, 1].map((item) => <View key={item} className="h-40 rounded-card bg-surface" />)}
+          </View>
+        ) : null}
         {feed.isError ? (
           <View className="rounded-card border border-danger p-4">
             <Text className="font-semibold text-danger">Feed non caricato</Text>

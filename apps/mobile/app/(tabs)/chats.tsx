@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
+import { AppHeader } from "@/components/AppHeader";
+import { PageHeader } from "@/components/PageHeader";
+import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/Button";
 import { demoMode } from "@/config/env";
 import { demoChats } from "@/demo/data";
@@ -94,11 +98,9 @@ export default function ChatsScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-4">
-        <View>
-          <Text className="text-2xl font-bold text-ink">Chat private</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Lo storico resta, l'invio messaggi vive solo nella prossimita.</Text>
-        </View>
+      <View className="gap-5">
+        <AppHeader />
+        <PageHeader title="Chat di vicinanza" subtitle="Restano attive solo finche siete abbastanza vicini." action={<StatusPill label={`${chats.data?.chats.filter((chat) => chat.status === "active").length ?? 0} attive`} tone="success" />} />
         {chats.isError ? (
           <View className="rounded-card border border-danger bg-surface p-4">
             <Text className="font-semibold text-danger">Chat non caricate</Text>
@@ -110,7 +112,7 @@ export default function ChatsScreen() {
         ) : null}
         {actionError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{actionError}</Text> : null}
         <View className="gap-3">
-          <Text className="font-semibold text-ink">Richieste private</Text>
+          <View className="flex-row items-center gap-2"><Ionicons name="person-add-outline" size={19} color="#16808a" /><Text className="font-semibold text-ink">Richieste private</Text></View>
           {(chats.data?.requests ?? []).length === 0 ? (
             <View className="rounded-card border border-border bg-surface p-4">
               <Text className="font-semibold text-ink">Nessuna richiesta in attesa</Text>
@@ -118,11 +120,13 @@ export default function ChatsScreen() {
             </View>
           ) : null}
           {(chats.data?.requests ?? []).map((request) => (
-            <View key={request.id} className="gap-3 rounded-card border border-border bg-surface p-4">
-              <View>
-                <Text className="font-semibold text-ink">{requestName(request)}</Text>
-                <Text className="mt-1 text-sm leading-5 text-muted">{requestReason(request)}</Text>
-                <Text className="mt-1 text-xs text-muted">Stato {request.status}</Text>
+            <View key={request.id} className="gap-3 rounded-card border border-border bg-white p-4">
+              <View className="flex-row items-start gap-3">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-surface"><Text className="font-bold text-primary">{requestName(request).slice(0, 1).toUpperCase()}</Text></View>
+                <View className="flex-1">
+                  <Text className="font-semibold text-ink">{requestName(request)}</Text>
+                  <Text className="mt-1 text-sm leading-5 text-muted">{requestReason(request)}</Text>
+                </View>
               </View>
               {request.status === "pending" ? (
                 <View className="flex-row gap-2">
@@ -133,6 +137,7 @@ export default function ChatsScreen() {
             </View>
           ))}
         </View>
+        {chats.isLoading ? <View className="h-32 rounded-card bg-surface" /> : null}
         {chats.data?.chats.length === 0 ? (
           <View className="rounded-card border border-border bg-surface p-4">
             <Text className="font-semibold text-ink">Nessuna chat ancora</Text>
@@ -146,14 +151,18 @@ export default function ChatsScreen() {
               accessibilityRole="button"
               accessibilityLabel={chat.status === "active" ? "Apri chat attiva" : "Apri chat sospesa"}
               onPress={() => router.push(`/chat/${chat.id}`)}
-              className="rounded-card border border-border bg-surface p-4"
+              className="rounded-card border border-border bg-white p-4"
             >
-              <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Text className="font-bold text-primary">{(chat.other_profile?.display_name ?? "C").slice(0, 1).toUpperCase()}</Text></View>
                 <View className="flex-1">
-                  <Text className="font-semibold text-ink">{chat.other_profile?.display_name ?? (chat.status === "active" ? "Chat attiva" : "Chat sospesa")}</Text>
-                  <Text className="mt-1 text-sm text-muted">{chat.last_distance_meters ? `Ultima distanza ${chat.last_distance_meters} m` : "Distanza in verifica"}</Text>
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text className="flex-1 font-semibold text-ink">{chat.other_profile?.display_name ?? (chat.status === "active" ? "Chat attiva" : "Chat sospesa")}</Text>
+                    <StatusPill label={chat.status === "active" ? "Vicini" : "Lontani"} tone={chat.status === "active" ? "success" : "warning"} />
+                  </View>
+                  <Text className="mt-1 text-sm text-muted">{chat.last_distance_meters ? `${chat.status === "active" ? "Attiva" : "Sospesa"} · ${chat.last_distance_meters} m` : "Distanza in verifica"}</Text>
                 </View>
-                <Text className="text-lg text-muted">&gt;</Text>
+                <Ionicons name="chevron-forward" size={20} color="#62717a" />
               </View>
             </Pressable>
           ))}
