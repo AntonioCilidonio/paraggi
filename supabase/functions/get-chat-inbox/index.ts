@@ -3,11 +3,11 @@ import { jsonResponse, requireUser, withHttp } from "../_shared/http.ts";
 Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
 
-  const { data: requests, error: requestsError } = await adminClient
+  const { data: pendingRequests, error: requestsError } = await adminClient
     .from("connection_requests")
     .select("id,post_id,requester_id,recipient_id,status,message,created_at,profiles!connection_requests_requester_id_fkey(display_name,reputation_score)")
-    .eq("recipient_id", user.id)
     .eq("status", "pending")
+    .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
 
   if (requestsError) return jsonResponse({ error: "requests_failed", details: requestsError.message }, 400);
@@ -16,7 +16,6 @@ Deno.serve(await withHttp(async (req) => {
     .from("private_chats")
     .select("id,user_a_id,user_b_id,status,last_distance_meters,last_message_at,updated_at,is_connected")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-    .eq("is_connected", true)
     .order("updated_at", { ascending: false });
 
   if (chatsError) return jsonResponse({ error: "chats_failed", details: chatsError.message }, 400);
@@ -27,6 +26,10 @@ Deno.serve(await withHttp(async (req) => {
     : { data: [] };
 
   const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+  const pendingByOtherUser = new Map((pendingRequests ?? []).map((request) => {
+    const otherUserId = request.requester_id === user.id ? request.recipient_id : request.requester_id;
+    return [otherUserId, request];
+  }));
   const seenUsers = new Set<string>();
   const decoratedChats = (chats ?? []).flatMap((chat) => {
     const otherUserId = chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id;
@@ -35,9 +38,13 @@ Deno.serve(await withHttp(async (req) => {
     return [{
       ...chat,
       other_user_id: otherUserId,
-      other_profile: profileById.get(otherUserId) ?? null
+      other_profile: profileById.get(otherUserId) ?? null,
+      reconnect_request_status: pendingByOtherUser.has(otherUserId)
+        ? pendingByOtherUser.get(otherUserId)?.requester_id === user.id ? "outgoing" : "incoming"
+        : null
     }];
   });
 
-  return jsonResponse({ requests: requests ?? [], chats: decoratedChats });
+  const incomingRequests = (pendingRequests ?? []).filter((request) => request.recipient_id === user.id);
+  return jsonResponse({ requests: incomingRequests, chats: decoratedChats });
 }));

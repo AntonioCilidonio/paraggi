@@ -19,6 +19,8 @@ type ChatRow = {
   id: string;
   other_user_id?: string;
   status: string;
+  is_connected?: boolean;
+  reconnect_request_status?: "incoming" | "outgoing" | null;
   last_distance_meters: number | null;
   last_message_at: string | null;
   updated_at: string;
@@ -50,7 +52,7 @@ export default function ChatsScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const declineDemoRequest = useAppStore((state) => state.declineDemoRequest);
   const [actionError, setActionError] = useState<string | null>(null);
-  const chats = useQuery({
+  const chats = useQuery<{ requests: RequestRow[]; chats: ChatRow[] }>({
     queryKey: ["chats", demoStatusById],
     queryFn: async () => {
       if (demoMode) {
@@ -59,6 +61,8 @@ export default function ChatsScreen() {
           chats: demoChats.map((chat) => ({
             ...chat,
             status: demoStatusById[chat.id] ?? chat.status,
+            is_connected: true,
+            reconnect_request_status: null,
             other_user_id: chat.id === "demo-active-chat" ? "demo-marta" : "demo-luca",
             other_profile: { display_name: chat.id === "demo-active-chat" ? "Marta" : "Luca", reputation_score: 24 }
           }))
@@ -95,6 +99,26 @@ export default function ChatsScreen() {
       await chats.refetch();
     } catch (error) {
       setActionError(getFriendlyError(error, "Richiesta non rifiutata. Controlla login e rete."));
+    }
+  }
+
+  async function reconnect(chat: ChatRow) {
+    if (!chat.other_user_id) {
+      setActionError("Non riesco a identificare la persona da riconnettere.");
+      return;
+    }
+    setActionError(null);
+    try {
+      const result = await callFunction<{ alreadyPending?: boolean }>("request-connection", {
+        body: { chatId: chat.id, recipientId: chat.other_user_id, message: "Vorrei ripristinare la nostra chat privata." }
+      });
+      await sendLocalNotification(
+        result.alreadyPending ? "Richiesta gia inviata" : "Richiesta di riconnessione inviata",
+        result.alreadyPending ? "La persona deve ancora rispondere." : "La chat tornera attiva dopo l'accettazione."
+      );
+      await chats.refetch();
+    } catch (error) {
+      setActionError(getFriendlyError(error, "Riconnessione non richiesta. Controlla login e rete."));
     }
   }
 
@@ -151,25 +175,43 @@ export default function ChatsScreen() {
             const identity = chat.other_user_id ?? chat.other_profile?.display_name ?? chat.id;
             return allChats.findIndex((candidate) => (candidate.other_user_id ?? candidate.other_profile?.display_name ?? candidate.id) === identity) === index;
           }).map((chat) => (
-            <Pressable
-              key={chat.id}
-              accessibilityRole="button"
-              accessibilityLabel={chat.status === "active" ? "Apri chat attiva" : "Apri chat sospesa"}
-              onPress={() => router.push(`/chat/${chat.id}`)}
-              className="rounded-card border border-border bg-white p-4"
-            >
-              <View className="flex-row items-center gap-3">
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Text className="font-bold text-primary">{(chat.other_profile?.display_name ?? "C").slice(0, 1).toUpperCase()}</Text></View>
-                <View className="flex-1">
-                  <View className="flex-row items-center justify-between gap-2">
-                    <Text className="flex-1 font-semibold text-ink">{chat.other_profile?.display_name ?? (chat.status === "active" ? "Chat attiva" : "Chat sospesa")}</Text>
-                    <StatusPill label={chat.status === "active" ? "Vicini" : "Lontani"} tone={chat.status === "active" ? "success" : "warning"} />
+            <View key={chat.id} className="gap-3 rounded-card border border-border bg-white p-4">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={chat.is_connected === false ? "Apri storico della chat rimossa" : chat.status === "active" ? "Apri chat attiva" : "Apri chat sospesa"}
+                onPress={() => router.push(`/chat/${chat.id}`)}
+              >
+                <View className="flex-row items-center gap-3">
+                  <View className="h-11 w-11 items-center justify-center rounded-full bg-surface"><Text className="font-bold text-primary">{(chat.other_profile?.display_name ?? "C").slice(0, 1).toUpperCase()}</Text></View>
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="flex-1 font-semibold text-ink">{chat.other_profile?.display_name ?? (chat.status === "active" ? "Chat attiva" : "Chat sospesa")}</Text>
+                      <StatusPill
+                        label={chat.is_connected === false ? "Rimossa" : chat.status === "active" ? "Vicini" : "Lontani"}
+                        tone={chat.is_connected === false ? "neutral" : chat.status === "active" ? "success" : "warning"}
+                      />
+                    </View>
+                    <Text className="mt-1 text-sm text-muted">
+                      {chat.is_connected === false
+                        ? "Lo storico resta disponibile"
+                        : chat.last_distance_meters
+                          ? `${chat.status === "active" ? "Attiva" : "Sospesa"} · ${chat.last_distance_meters} m`
+                          : "Distanza in verifica"}
+                    </Text>
                   </View>
-                  <Text className="mt-1 text-sm text-muted">{chat.last_distance_meters ? `${chat.status === "active" ? "Attiva" : "Sospesa"} · ${chat.last_distance_meters} m` : "Distanza in verifica"}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#62717a" />
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#62717a" />
-              </View>
-            </Pressable>
+              </Pressable>
+              {chat.is_connected === false ? (
+                <Button
+                  label={chat.reconnect_request_status === "outgoing" ? "Richiesta inviata" : chat.reconnect_request_status === "incoming" ? "Richiesta da accettare" : "Riconnetti"}
+                  icon={chat.reconnect_request_status ? "time-outline" : "person-add-outline"}
+                  variant="secondary"
+                  disabled={Boolean(chat.reconnect_request_status)}
+                  onPress={() => void reconnect(chat)}
+                />
+              ) : null}
+            </View>
           ))}
         </View>
       </View>
