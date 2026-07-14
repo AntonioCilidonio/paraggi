@@ -14,7 +14,21 @@ Deno.serve(await withHttp(async (req) => {
   if (chatError || !chat || (chat.user_a_id !== user.id && chat.user_b_id !== user.id)) {
     return jsonResponse({ error: "chat_not_found" }, 404);
   }
-  if (!chat.is_connected) return jsonResponse({ error: "chat_disconnected" }, 410);
+  const otherUserId = chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id;
+  const { data: otherProfile } = await adminClient
+    .from("profiles")
+    .select("id,display_name,avatar_path,reputation_score")
+    .eq("id", otherUserId)
+    .maybeSingle();
+
+  if (!chat.is_connected) {
+    return jsonResponse({
+      chat: { ...chat, other_profile: otherProfile },
+      messages: [],
+      currentUserId: user.id,
+      disconnected: true
+    });
+  }
 
   const { data: status, error: statusError } = await userClient.rpc("refresh_chat_status", { chat_id_input: chatId });
   if (statusError) return jsonResponse({ error: "chat_status_failed", details: statusError.message }, 400);
@@ -26,13 +40,6 @@ Deno.serve(await withHttp(async (req) => {
     .order("created_at", { ascending: true });
   if (messagesError) return jsonResponse({ error: "messages_failed", details: messagesError.message }, 400);
 
-  const otherUserId = chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id;
-  const { data: otherProfile } = await adminClient
-    .from("profiles")
-    .select("id,display_name,avatar_path,reputation_score")
-    .eq("id", otherUserId)
-    .maybeSingle();
-
   await adminClient
     .from("private_messages")
     .update({ delivered_at: new Date().toISOString(), read_at: new Date().toISOString() })
@@ -40,5 +47,5 @@ Deno.serve(await withHttp(async (req) => {
     .neq("sender_id", user.id)
     .is("read_at", null);
 
-  return jsonResponse({ chat: { ...chat, status, other_profile: otherProfile }, messages: messages ?? [], currentUserId: user.id });
+  return jsonResponse({ chat: { ...chat, status, other_profile: otherProfile }, messages: messages ?? [], currentUserId: user.id, disconnected: false });
 }));

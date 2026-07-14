@@ -23,6 +23,21 @@ type Message = {
   created_at: string;
 };
 
+type ThreadResponse = {
+  chat: {
+    id: string;
+    user_a_id?: string;
+    user_b_id?: string;
+    status: ChatStatus;
+    is_connected?: boolean;
+    last_distance_meters: number | null;
+    other_profile?: { display_name: string; reputation_score: number } | null;
+  };
+  messages: Message[];
+  currentUserId: string;
+  disconnected?: boolean;
+};
+
 const emptyDemoMessages: Message[] = [];
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -41,21 +56,22 @@ export default function ChatDetailScreen() {
   useRealtimeChannel(hasChatId ? { type: "chat-messages", chatId } : null);
   useRealtimeChannel(hasChatId ? { type: "chat-status", chatId } : null);
 
-  const thread = useQuery({
+  const thread = useQuery<ThreadResponse>({
     queryKey: ["chat-thread", chatId, demoStatus, demoExtraMessages.length],
     enabled: hasChatId,
-    refetchInterval: demoMode ? false : 15000,
+    refetchInterval: demoMode ? false : (query) => query.state.data?.disconnected ? false : 15000,
     queryFn: async () => {
       if (!hasChatId) throw new Error("Chat non ancora caricata.");
       if (demoMode) {
         const base = demoChats.find((item) => item.id === chatId) ?? demoChats[0];
         return {
-          chat: { ...base, status: demoStatus ?? base.status, other_profile: { display_name: chatId === "demo-active-chat" ? "Marta" : "Luca", reputation_score: 24 } },
+          chat: { ...base, status: demoStatus ?? base.status, is_connected: true, other_profile: { display_name: chatId === "demo-active-chat" ? "Marta" : "Luca", reputation_score: 24 } },
           messages: [...demoMessages, ...demoExtraMessages],
-          currentUserId: "me"
+          currentUserId: "me",
+          disconnected: false
         };
       }
-      return callFunction<{ chat: { id: string; user_a_id: string; user_b_id: string; status: ChatStatus; last_distance_meters: number | null; other_profile?: { display_name: string; reputation_score: number } | null }; messages: Message[]; currentUserId: string }>("get-chat-messages", {
+      return callFunction<ThreadResponse>("get-chat-messages", {
         method: "GET",
         query: { chatId }
       });
@@ -90,7 +106,8 @@ export default function ChatDetailScreen() {
   });
 
   const status = thread.data?.chat.status ?? "frozen_permission";
-  const canSend = status === "active";
+  const isConnected = thread.data?.disconnected !== true && thread.data?.chat.is_connected !== false;
+  const canSend = isConnected && status === "active";
   const otherName = thread.data?.chat.other_profile?.display_name ?? "Persona vicina";
 
   async function setDistanceStatus(nextStatus: ChatStatus) {
@@ -126,9 +143,11 @@ export default function ChatDetailScreen() {
             <Text className="text-lg font-bold text-ink">{otherName}</Text>
             <Text className="text-xs text-muted">{canSend ? "Connessi · potete scrivere" : "Connessi · messaggi sospesi dalla distanza"}</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Rimuovi connessione con ${otherName}`} disabled={disconnect.isPending} onPress={confirmDisconnect} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white disabled:opacity-50">
-            <Ionicons name="person-remove-outline" size={20} color="#b42318" />
-          </Pressable>
+          {isConnected ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Rimuovi connessione con ${otherName}`} disabled={disconnect.isPending} onPress={confirmDisconnect} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white disabled:opacity-50">
+              <Ionicons name="person-remove-outline" size={20} color="#b42318" />
+            </Pressable>
+          ) : null}
         </View>
         {!hasChatId ? (
           <View className="rounded-card border border-danger p-4">
@@ -136,7 +155,18 @@ export default function ChatDetailScreen() {
             <Text className="mt-1 text-sm leading-5 text-muted">Torna all'elenco Chat e riapri la conversazione.</Text>
           </View>
         ) : null}
-        <ChatFrozenBanner status={status} />
+        {!isConnected ? (
+          <View className="gap-3 rounded-card border border-border bg-surface p-4">
+            <View className="flex-row items-start gap-3">
+              <Ionicons name="person-remove-outline" size={21} color="#62717a" />
+              <View className="flex-1">
+                <Text className="font-semibold text-ink">Connessione rimossa</Text>
+                <Text className="mt-1 text-sm leading-5 text-muted">Questa chat non e piu attiva. Potrete riconnettervi con una nuova richiesta da un post.</Text>
+              </View>
+            </View>
+            <Button label="Torna alle connessioni" variant="secondary" onPress={() => router.replace("/(tabs)/chats")} />
+          </View>
+        ) : <ChatFrozenBanner status={status} />}
         {thread.isLoading ? <Text className="text-sm text-muted">Carico chat e messaggi...</Text> : null}
         {thread.isError ? (
           <View className="gap-3 rounded-card border border-danger bg-surface p-4">
@@ -168,14 +198,14 @@ export default function ChatDetailScreen() {
             </View>
           ))}
         </View>
-        <View className="flex-row items-end gap-2 border-t border-border pt-4">
+        {isConnected ? <View className="flex-row items-end gap-2 border-t border-border pt-4">
           <Controller control={control} name="body" render={({ field }) => (
             <TextInput editable={canSend} multiline placeholder={canSend ? "Messaggio" : "Torna vicino per scrivere"} className="min-h-12 flex-1 rounded-card border border-border bg-white px-3 py-3 text-ink" value={field.value} onChangeText={field.onChange} />
           )} />
           <Pressable accessibilityRole="button" accessibilityLabel="Invia messaggio" disabled={!canSend || !messageBody.trim() || send.isPending} onPress={handleSubmit((values) => send.mutate({ body: values.body.trim() }))} className="h-12 w-12 items-center justify-center rounded-card bg-primary disabled:opacity-50">
             <Ionicons name="send" size={19} color="#ffffff" />
           </Pressable>
-        </View>
+        </View> : null}
         <View>
           {sendError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{sendError}</Text> : null}
         </View>

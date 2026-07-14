@@ -104,7 +104,6 @@ export default function PostDetailScreen() {
     },
     onSuccess: async () => {
       reset();
-      await sendLocalNotification("Nuovo commento", "Il tuo commento locale e stato aggiunto al post.");
       await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
       await queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
     },
