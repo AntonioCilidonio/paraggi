@@ -7,13 +7,16 @@ module.exports = {
       colors: {
         bg: "#ffffff",
         surface: "#f3f8f8",
+        "surface-raised": "#ffffff",
         ink: "#17232b",
         muted: "#62717a",
         border: "#d9e2e3",
         primary: "#16808a",
         accent: "#b75b31",
         danger: "#b43d32",
-        success: "#21875f"
+        success: "#21875f",
+        warning: "#a46708",
+        info: "#2d6ea3"
       },
       borderRadius: {
         card: "8px"

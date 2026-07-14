@@ -1,7 +1,8 @@
 import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, Text, Vibration, View } from "react-native";
+import { Alert, Pressable, Switch, Text, Vibration, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
@@ -77,6 +78,7 @@ export default function ProfileScreen() {
   const [diagnostics, setDiagnostics] = useState<TestDiagnostics | null>(null);
   const [diagnosticsStatus, setDiagnosticsStatus] = useState("Non ancora controllata.");
   const [scenarioStatus, setScenarioStatus] = useState("Self-test non eseguito.");
+  const [showTestTools, setShowTestTools] = useState(false);
 
   async function requestGps() {
     setGpsStatus("Sincronizzo GPS...");
@@ -128,10 +130,16 @@ export default function ProfileScreen() {
     setPushStatus("Registro il dispositivo...");
     const result = await registerPush();
     if (result?.ok) {
-      setPushStatus(result.demo ? "Notifiche demo attive." : `Notifiche push attive. Token: ${result.tokenPreview}...`);
+      setPushStatus(result.demo ? "Notifiche locali attive." : "Notifiche push attive su questo dispositivo.");
       return;
     }
-    setPushStatus(result?.reason === "permission_denied" ? "Permesso notifiche negato dal telefono." : "Token push non registrato. Controlla rete, login e permessi.");
+    if (result?.reason === "permission_denied") {
+      setPushStatus("Permesso negato. Puoi abilitarlo dalle impostazioni Android.");
+    } else if (result?.reason === "native_push_not_configured") {
+      setPushStatus("Avvisi locali attivi. Il push remoto richiede la configurazione FCM nella build Android.");
+    } else {
+      setPushStatus("Avvisi locali attivi, ma il push remoto non e stato registrato. Riprova con una rete stabile.");
+    }
   }
 
   async function loadDiagnostics() {
@@ -199,86 +207,106 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <View className="mt-4 gap-5">
+      <View className="mt-4 gap-6">
         <View>
-          <Text className="text-2xl font-bold text-ink">Profilo</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Identita leggera, privacy forte, nessun grafo sociale permanente.</Text>
+          <Text className="text-2xl font-bold text-ink">Profilo e preferenze</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">Controlla raggio, permessi e sicurezza da un solo posto.</Text>
         </View>
-        <View className="gap-2">
-          <Text className="font-semibold text-ink">Raggio ricerca</Text>
+
+        <View className="gap-3">
+          <Text className="font-semibold text-ink">Raggio dei post</Text>
+          <Text className="text-sm leading-5 text-muted">Le chat mantengono il proprio limite di vicinanza. Questa scelta cambia il feed e la mappa.</Text>
           <View className="flex-row flex-wrap gap-2">
             {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
               <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => setRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
             ))}
           </View>
         </View>
-        <View className="gap-3 rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">GPS e permessi</Text>
-          <View className="gap-1 rounded-card bg-bg p-3">
-            <Text className="text-sm font-semibold text-ink">Stato GPS: {locationPermission === "granted" ? "attivo" : locationPermission === "denied" ? "negato" : "non ancora richiesto"}</Text>
-            <Text className="text-sm leading-5 text-muted">Ultimo sync: {formatTime(lastLocationSyncAt)}</Text>
-            <Text className="text-sm leading-5 text-muted">Precisione: {lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "non disponibile"}</Text>
-            <Text className="text-sm leading-5 text-muted">Affidabilita: {lastLocationTrustStatus ?? "non calcolata"}</Text>
-            {lastLocationError ? <Text className="text-sm font-semibold text-danger">Errore: {lastLocationError}</Text> : null}
+
+        <View className="gap-4 border-t border-border pt-5">
+          <Text className="font-semibold text-ink">Permessi</Text>
+          <View className="flex-row items-start gap-3">
+            <Ionicons name={locationPermission === "granted" ? "location" : "location-outline"} size={22} color={locationPermission === "granted" ? "#16808a" : "#62717a"} />
+            <View className="flex-1">
+              <Text className="font-semibold text-ink">Posizione {locationPermission === "granted" ? "attiva" : locationPermission === "denied" ? "negata" : "da attivare"}</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">{lastLocationSyncAt ? `Aggiornata alle ${formatTime(lastLocationSyncAt)} · precisione ${lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "n/d"}` : gpsStatus}</Text>
+              {lastLocationTrustStatus ? <Text className="mt-1 text-xs text-muted">Affidabilita posizione: {lastLocationTrustStatus}</Text> : null}
+              {lastLocationError ? <Text className="mt-1 text-sm font-semibold text-danger">{getFriendlyError(lastLocationError)}</Text> : null}
+            </View>
           </View>
-          <Text className="text-sm leading-5 text-muted">{gpsStatus}</Text>
-          <Button label="Sincronizza GPS ora" variant="secondary" onPress={() => void requestGps()} />
-          <Text className="text-sm leading-5 text-muted">Notifiche: {notificationPermission}</Text>
-          <Text className="text-sm leading-5 text-muted">{pushStatus}</Text>
-          <Button label="Attiva notifiche" variant="secondary" onPress={() => void activatePushNotifications()} />
-          <Button label="Invia notifica test" onPress={() => void sendLocalNotification("Paraggi test", "Questa e una notifica locale dell'APK di prova.")} />
-          <Button label="Reset scenario demo" variant="secondary" onPress={() => resetDemoScenario()} />
+          <Button label="Aggiorna posizione" icon="navigate-outline" variant="secondary" onPress={() => void requestGps()} />
+
+          <View className="flex-row items-start gap-3 border-t border-border pt-4">
+            <Ionicons name={notificationPermission === "granted" ? "notifications" : "notifications-outline"} size={22} color={notificationPermission === "granted" ? "#16808a" : "#62717a"} />
+            <View className="flex-1">
+              <Text className="font-semibold text-ink">Notifiche {notificationPermission === "granted" ? "consentite" : "da attivare"}</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">{pushStatus}</Text>
+            </View>
+          </View>
+          <Button label="Attiva notifiche" icon="notifications-outline" variant="secondary" onPress={() => void activatePushNotifications()} />
+          <Button label="Prova un avviso sul telefono" icon="phone-portrait-outline" onPress={() => void sendLocalNotification("Paraggi test", "Le notifiche locali funzionano su questo dispositivo.")} />
         </View>
-        <View className="gap-3 rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">Diagnostica test</Text>
-          <Text className="text-sm leading-5 text-muted">{diagnosticsStatus}</Text>
-          {diagnostics ? (
-            <View className="gap-1 rounded-card bg-bg p-3">
-              <Text className="text-sm text-ink">Profilo: {yesNo(diagnostics.readiness.hasProfile)}</Text>
-              <Text className="text-sm text-ink">GPS backend: {yesNo(diagnostics.readiness.hasRecentLocation)}</Text>
-              <Text className="text-sm text-ink">Token push: {diagnostics.counts.enabledPushTokens}</Text>
-              <Text className="text-sm text-ink">Realtime notifiche: {yesNo(diagnostics.readiness.canUseRealtimeNotifications)}</Text>
-              <Text className="text-sm text-ink">Post/commenti: {diagnostics.counts.ownPosts}/{diagnostics.counts.ownComments}</Text>
-              <Text className="text-sm text-ink">Richieste in arrivo: {diagnostics.counts.pendingIncomingRequests}</Text>
-              <Text className="text-sm text-ink">Chat/messaggi: {diagnostics.counts.chats}/{diagnostics.counts.sentMessages}</Text>
-              <Text className="text-sm text-ink">Notifiche non lette: {diagnostics.counts.unreadNotifications}</Text>
-              <Text className="text-sm text-muted">Ultimo GPS: {formatTime(diagnostics.latestLocation?.captured_at ?? null)} · {diagnostics.latestLocation?.trust_status ?? "n/d"}</Text>
-              <Text className="text-sm text-muted">Ultimo E2E: {formatTime(diagnostics.lastE2e?.created_at ?? null)} · {diagnostics.lastE2e?.metadata?.checks?.length ?? 0} controlli</Text>
-              <Text className="text-sm text-muted">Errori recenti: {diagnostics.recentErrors.length}</Text>
+
+        <View className="gap-4 border-t border-border pt-5">
+          <View>
+            <Text className="font-semibold text-danger">SOS di vicinanza</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Avvisa le persone nel raggio. Confermerai sempre prima dell'invio.</Text>
+          </View>
+          <View className="flex-row items-center justify-between gap-4">
+            <View className="flex-1">
+              <Text className="font-semibold text-ink">Condividi coordinate nell'SOS</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">Disattiva per inviare solo l'area approssimativa.</Text>
+            </View>
+            <Switch value={shareDangerCoordinates} onValueChange={setShareDangerCoordinates} trackColor={{ false: "#d9e2e3", true: "#8bc7c8" }} thumbColor={shareDangerCoordinates ? "#16808a" : "#62717a"} />
+          </View>
+          <Button label="Invia SOS vicino" icon="warning-outline" variant="danger" onPress={confirmDangerAlert} />
+          {dangerStatus !== "Allarme non inviato" ? <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text> : null}
+        </View>
+
+        <Pressable accessibilityRole="button" onPress={() => router.push("/settings/privacy")} className="flex-row items-center gap-3 border-t border-border pt-5">
+          <Ionicons name="shield-checkmark-outline" size={22} color="#16808a" />
+          <View className="flex-1">
+            <Text className="font-semibold text-ink">Privacy e dati</Text>
+            <Text className="mt-1 text-sm text-muted">Consensi, esportazione ed eliminazione account.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#62717a" />
+        </Pressable>
+
+        <View className="border-t border-border pt-5">
+          <Pressable accessibilityRole="button" onPress={() => setShowTestTools((value) => !value)} className="flex-row items-center justify-between py-2">
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="flask-outline" size={22} color="#62717a" />
+              <Text className="font-semibold text-ink">Strumenti di test</Text>
+            </View>
+            <Ionicons name={showTestTools ? "chevron-up" : "chevron-down"} size={20} color="#62717a" />
+          </Pressable>
+          {showTestTools ? (
+            <View className="mt-3 gap-3">
+              <Text className="text-sm leading-5 text-muted">{diagnosticsStatus}</Text>
+              {diagnostics ? (
+                <View className="gap-1 border-y border-border py-3">
+                  <Text className="text-sm text-ink">Profilo/GPS: {yesNo(diagnostics.readiness.hasProfile)}/{yesNo(diagnostics.readiness.hasRecentLocation)}</Text>
+                  <Text className="text-sm text-ink">Token push: {diagnostics.counts.enabledPushTokens}</Text>
+                  <Text className="text-sm text-ink">Post/commenti: {diagnostics.counts.ownPosts}/{diagnostics.counts.ownComments}</Text>
+                  <Text className="text-sm text-ink">Chat/messaggi: {diagnostics.counts.chats}/{diagnostics.counts.sentMessages}</Text>
+                  <Text className="text-sm text-muted">Errori recenti: {diagnostics.recentErrors.length}</Text>
+                </View>
+              ) : null}
+              <Button label="Controlla diagnostica" icon="pulse-outline" variant="secondary" onPress={() => void loadDiagnostics()} />
+              <Text className="text-sm leading-5 text-muted">{scenarioStatus}</Text>
+              <Button label="Esegui test completo" icon="checkmark-done-outline" onPress={() => void runTestScenario()} />
+              {demoMode ? <Button label="Ripristina dati demo" variant="secondary" onPress={() => resetDemoScenario()} /> : null}
             </View>
           ) : null}
-          <Button label="Controlla diagnostica" variant="secondary" onPress={() => void loadDiagnostics()} />
-          <Text className="text-sm leading-5 text-muted">{scenarioStatus}</Text>
-          <Button label="Esegui self-test backend" onPress={() => void runTestScenario()} />
         </View>
-        <View className="gap-3 rounded-card border border-danger bg-surface p-4">
-          <View>
-            <Text className="font-semibold text-danger">Pericolo</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Invia un allarme agli utenti vicini. Le coordinate precise partono solo se il consenso qui sotto e attivo.</Text>
-          </View>
-          <Button
-            label={shareDangerCoordinates ? "Coordinate SOS attive" : "Coordinate SOS disattive"}
-            variant={shareDangerCoordinates ? "danger" : "secondary"}
-            onPress={() => setShareDangerCoordinates((value) => !value)}
-          />
-          <Button label="Invia SOS vicino" variant="danger" onPress={confirmDangerAlert} />
-          <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text>
-        </View>
-        <Pressable accessibilityRole="button" onPress={() => router.push("/settings/privacy")} className="rounded-card border border-border bg-surface p-4">
-          <Text className="font-semibold text-ink">Privacy e dati</Text>
-          <Text className="mt-1 text-sm text-muted">Export, eliminazione account e consensi.</Text>
-        </Pressable>
-        <Button
-          label="Esci"
-          variant="secondary"
-          onPress={() => {
-            if (demoMode) {
-              resetDemoScenario();
-              return;
-            }
-            void supabase.auth.signOut().then(() => router.replace("/(auth)/login"));
-          }}
-        />
+
+        <Button label="Esci" icon="log-out-outline" variant="secondary" onPress={() => {
+          if (demoMode) {
+            resetDemoScenario();
+            return;
+          }
+          void supabase.auth.signOut().then(() => router.replace("/(auth)/login"));
+        }} />
       </View>
     </Screen>
   );

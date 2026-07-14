@@ -23,11 +23,12 @@ type Message = {
 };
 
 const emptyDemoMessages: Message[] = [];
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default function ChatDetailScreen() {
   const params = useLocalSearchParams<{ chatId?: string | string[] }>();
   const chatId = Array.isArray(params.chatId) ? params.chatId[0] : params.chatId;
-  const hasChatId = typeof chatId === "string" && chatId.length > 0;
+  const hasChatId = typeof chatId === "string" && (demoMode ? chatId.length > 0 : uuidPattern.test(chatId));
   const queryClient = useQueryClient();
   const demoStatus = useAppStore((state) => state.demoChatStatusById[chatId ?? ""]);
   const demoExtraMessages = useAppStore((state) => state.demoMessagesByChat[chatId ?? ""] ?? emptyDemoMessages);
@@ -42,6 +43,7 @@ export default function ChatDetailScreen() {
   const thread = useQuery({
     queryKey: ["chat-thread", chatId, demoStatus, demoExtraMessages.length],
     enabled: hasChatId,
+    refetchInterval: demoMode ? false : 15000,
     queryFn: async () => {
       if (!hasChatId) throw new Error("Chat non ancora caricata.");
       if (demoMode) {
@@ -68,7 +70,6 @@ export default function ChatDetailScreen() {
     },
     onSuccess: async () => {
       reset();
-      await sendLocalNotification("Messaggio inviato", "Il messaggio e stato salvato nello storico della chat.");
       await queryClient.invalidateQueries({ queryKey: ["chat-thread", chatId] });
     },
     onError: (error) => setSendError(getFriendlyError(error, "Messaggio non inviato. Controlla GPS, rete e vicinanza."))
@@ -91,9 +92,15 @@ export default function ChatDetailScreen() {
     <Screen>
       <View className="mt-4 gap-4">
         <View>
-          <Text className="text-2xl font-bold text-ink">Chat privata</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">La conversazione vive solo mentre la prossimita e valida.</Text>
+          <Text className="text-2xl font-bold text-ink">Conversazione</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">Puoi scrivere solo quando siete nel raggio condiviso.</Text>
         </View>
+        {!hasChatId ? (
+          <View className="rounded-card border border-danger p-4">
+            <Text className="font-semibold text-danger">Chat non valida</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Torna all'elenco Chat e riapri la conversazione.</Text>
+          </View>
+        ) : null}
         <ChatFrozenBanner status={status} />
         {thread.isLoading ? <Text className="text-sm text-muted">Carico chat e messaggi...</Text> : null}
         {thread.isError ? (
@@ -111,7 +118,7 @@ export default function ChatDetailScreen() {
             <Button label="Simula vicini" onPress={() => void setDistanceStatus("active")} />
           </View>
         ) : null}
-        <View className="gap-3">
+        <View className="gap-2 border-t border-border pt-4">
           {thread.data?.messages.map((message) => (
             <View key={message.id} className={`rounded-card p-3 ${message.sender_id === thread.data?.currentUserId ? "ml-8 bg-primary" : "mr-8 border border-border bg-surface"}`}>
               <Text className={`text-base ${message.sender_id === thread.data?.currentUserId ? "text-white" : "text-ink"}`}>{message.body}</Text>
@@ -119,7 +126,7 @@ export default function ChatDetailScreen() {
             </View>
           ))}
         </View>
-        <View className="gap-2">
+        <View className="gap-2 border-t border-border pt-4">
           <Controller control={control} name="body" render={({ field }) => (
             <TextInput
               editable={canSend}
@@ -129,7 +136,7 @@ export default function ChatDetailScreen() {
               onChangeText={field.onChange}
             />
           )} />
-          <Button label="Invia" disabled={!canSend || !messageBody.trim() || send.isPending} onPress={handleSubmit((values) => send.mutate({ body: values.body.trim() }))} />
+          <Button label="Invia" icon="send" loading={send.isPending} disabled={!canSend || !messageBody.trim() || send.isPending} onPress={handleSubmit((values) => send.mutate({ body: values.body.trim() }))} />
           {sendError ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{sendError}</Text> : null}
         </View>
       </View>

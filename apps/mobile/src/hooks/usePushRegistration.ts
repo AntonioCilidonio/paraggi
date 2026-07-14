@@ -19,8 +19,9 @@ export function usePushRegistration() {
       setNotificationPermission(permission.status === "granted" ? "granted" : "denied");
       if (permission.status !== "granted") return { ok: false as const, reason: "permission_denied" };
 
+      await sendLocalNotification("Notifiche sul telefono attive", "Paraggi puo mostrarti avvisi locali su questo dispositivo.");
+
       if (demoMode || !Device.isDevice) {
-        await sendLocalNotification("Paraggi notifiche attive", "Riceverai avvisi demo per commenti, richieste e chat riattivate.");
         return { ok: true as const, demo: true };
       }
 
@@ -37,12 +38,16 @@ export function usePushRegistration() {
           isRootedOrJailbroken: false
         }
       });
-      await sendLocalNotification("Paraggi notifiche attive", "Token push registrato. Gli SOS vicini possono arrivare su questo dispositivo.");
       return { ok: true as const, tokenPreview: token.data.slice(0, 24) };
     } catch (error) {
       captureClientError("push_registration_failed", error);
-      setNotificationPermission("denied");
-      return { ok: false as const, reason: "registration_failed" };
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = /firebase|fcm|default firebaseapp|google-services/i.test(message)
+        ? "native_push_not_configured"
+        : /projectid|project id/i.test(message)
+          ? "project_id_missing"
+          : "registration_failed";
+      return { ok: false as const, reason, localOnly: true as const, message };
     }
   }, [setNotificationPermission]);
 }

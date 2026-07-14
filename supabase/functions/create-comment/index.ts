@@ -1,4 +1,5 @@
 import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { sendPushToUsers } from "../_shared/push.ts";
 
 type CreateCommentPayload = {
   postId: string;
@@ -32,8 +33,12 @@ Deno.serve(await withHttp(async (req) => {
     body: "Qualcuno vicino ha commentato il tuo post.",
     deep_link: `/post/${payload.postId}`
   });
+  await sendPushToUsers(adminClient, [post.author_id], {
+    title: "Nuovo commento",
+    body: "Qualcuno vicino ha commentato il tuo post.",
+    data: { type: "comment_received", postId: payload.postId }
+  });
 
   await audit(adminClient, { actorId: user.id, eventType: "comment", action: "create_comment", targetTable: "comments", targetId: data.id });
   return jsonResponse({ comment: data }, 201);
 }));
-

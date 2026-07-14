@@ -9,6 +9,8 @@ apps/*/dist/
 .env
 .env.*
 !.env.example
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist
 android/
 ios/
 coverage/

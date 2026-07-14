@@ -41,6 +41,16 @@ const categoryLabels: Record<PostCategory, string> = {
   emergency: "Emergenza"
 };
 
+const mediaLimits = {
+  image: 10 * 1024 * 1024,
+  video: 20 * 1024 * 1024,
+  audio: 12 * 1024 * 1024
+} as const;
+
+function assertMediaSize(kind: keyof typeof mediaLimits, size?: number | null) {
+  if (size && size > mediaLimits[kind]) throw { error: "media_too_large" };
+}
+
 export default function ComposePostScreen() {
   const addDemoPost = useAppStore((state) => state.addDemoPost);
   const syncLocation = useLocationSync();
@@ -53,50 +63,59 @@ export default function ComposePostScreen() {
   });
   const selectedTtl = watch("ttlMinutes");
   const selectedCategory = watch("category");
+  const postBody = watch("body");
 
   async function pickImage() {
-    setErrorMessage(null);
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setErrorMessage("Permesso galleria negato. Abilitalo dalle impostazioni del telefono.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.82
-    });
-    if (result.canceled || !result.assets[0]) return;
-
-    const asset = result.assets[0];
-    setMediaAttachments((items) => [
-      ...items.filter((item) => item.kind !== "image"),
-      {
-        kind: "image",
-        uri: asset.uri,
-        name: asset.fileName ?? `paraggi-image-${Date.now()}.jpg`,
-        mimeType: asset.mimeType ?? "image/jpeg"
+    try {
+      setErrorMessage(null);
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setErrorMessage("Permesso galleria negato. Abilitalo dalle impostazioni del telefono.");
+        return;
       }
-    ]);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.72
+      });
+      if (result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      assertMediaSize("image", asset.fileSize);
+      setMediaAttachments((items) => [
+        ...items.filter((item) => item.kind !== "image"),
+        {
+          kind: "image",
+          uri: asset.uri,
+          name: asset.fileName ?? `paraggi-image-${Date.now()}.jpg`,
+          mimeType: asset.mimeType ?? "image/jpeg"
+        }
+      ]);
+    } catch (error) {
+      captureClientError("pick_image_failed", error);
+      setErrorMessage(getFriendlyError(error, "Immagine non selezionata. Riprova con un file piu leggero."));
+    }
   }
 
   async function pickVideo() {
-    setErrorMessage(null);
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setErrorMessage("Permesso galleria negato. Abilitalo dalle impostazioni del telefono.");
-      return;
-    }
+    try {
+      setErrorMessage(null);
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setErrorMessage("Permesso galleria negato. Abilitalo dalle impostazioni del telefono.");
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      videoMaxDuration: 30,
-      quality: 0.7
-    });
-    if (result.canceled || !result.assets[0]) return;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        videoMaxDuration: 30,
+        quality: 0.5
+      });
+      if (result.canceled || !result.assets[0]) return;
 
-    const asset = result.assets[0];
-    setMediaAttachments((items) => [
+      const asset = result.assets[0];
+      assertMediaSize("video", asset.fileSize);
+      setMediaAttachments((items) => [
       ...items.filter((item) => item.kind !== "video"),
       {
         kind: "video",
@@ -105,20 +124,26 @@ export default function ComposePostScreen() {
         mimeType: asset.mimeType ?? "video/mp4",
         durationSeconds: asset.duration ? Math.round(asset.duration / 1000) : undefined
       }
-    ]);
+      ]);
+    } catch (error) {
+      captureClientError("pick_video_failed", error);
+      setErrorMessage(getFriendlyError(error, "Video non selezionato. Usa un video breve e leggero."));
+    }
   }
 
   async function pickAudio() {
-    setErrorMessage(null);
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ["audio/mpeg", "audio/mp4", "audio/aac", "audio/wav"],
-      copyToCacheDirectory: true,
-      multiple: false
-    });
-    if (result.canceled || !result.assets[0]) return;
+    try {
+      setErrorMessage(null);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["audio/mpeg", "audio/mp4", "audio/aac", "audio/wav"],
+        copyToCacheDirectory: true,
+        multiple: false
+      });
+      if (result.canceled || !result.assets[0]) return;
 
-    const asset = result.assets[0];
-    setMediaAttachments((items) => [
+      const asset = result.assets[0];
+      assertMediaSize("audio", asset.size);
+      setMediaAttachments((items) => [
       ...items.filter((item) => item.kind !== "audio"),
       {
         kind: "audio",
@@ -126,7 +151,11 @@ export default function ComposePostScreen() {
         name: asset.name ?? `paraggi-audio-${Date.now()}`,
         mimeType: asset.mimeType ?? "audio/mpeg"
       }
-    ]);
+      ]);
+    } catch (error) {
+      captureClientError("pick_audio_failed", error);
+      setErrorMessage(getFriendlyError(error, "Audio non selezionato. Riprova con un file piu leggero."));
+    }
   }
 
   async function uploadMediaAttachments(items: MediaAttachment[]) {
@@ -140,8 +169,9 @@ export default function ComposePostScreen() {
       const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, "-");
       const storagePath = `${data.user.id}/${Date.now()}-${safeName}`;
       const response = await fetch(item.uri);
-      const blob = await response.blob();
-      const { error } = await supabase.storage.from("post-media").upload(storagePath, blob, {
+      if (!response.ok) throw { error: "media_upload_failed" };
+      const bytes = await response.arrayBuffer();
+      const { error } = await supabase.storage.from("post-media").upload(storagePath, bytes, {
         contentType: item.mimeType,
         upsert: false
       });
@@ -214,8 +244,8 @@ export default function ComposePostScreen() {
     <Screen>
       <View className="mt-4 gap-5">
         <View>
-          <Text className="text-2xl font-bold text-ink">Nuovo post locale</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Sara visibile solo a persone vicine e scadra automaticamente.</Text>
+          <Text className="text-2xl font-bold text-ink">Cosa succede qui?</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">Pubblica per le persone nel tuo raggio. La posizione precisa resta nascosta.</Text>
         </View>
         <Controller control={control} name="body" render={({ field }) => (
           <TextInput
@@ -243,10 +273,10 @@ export default function ComposePostScreen() {
             ))}
           </View>
         </View>
-        <View className="gap-3 rounded-card border border-border bg-surface p-4">
+        <View className="gap-3 border-t border-border pt-4">
           <View>
             <Text className="font-semibold text-ink">Allegati e posizione</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Il GPS serve sempre per pubblicare. Puoi allegare una immagine, un video breve, un audio o una posizione volontaria.</Text>
+            <Text className="mt-1 text-sm leading-5 text-muted">Facoltativo. Immagini fino a 10 MB, video fino a 20 MB e audio fino a 12 MB.</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
             <Button label={mediaAttachments.some((item) => item.kind === "image") ? "Immagine pronta" : "Aggiungi immagine"} variant={mediaAttachments.some((item) => item.kind === "image") ? "primary" : "secondary"} onPress={() => void pickImage()} />
@@ -265,7 +295,7 @@ export default function ComposePostScreen() {
         </View>
         {statusMessage ? <Text className="rounded-card bg-primary/10 p-3 text-sm font-semibold text-primary">{statusMessage}</Text> : null}
         {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
-        <Button label="Pubblica" onPress={handleSubmit(submit)} disabled={formState.isSubmitting} />
+        <Button label={formState.isSubmitting ? "Pubblico..." : "Pubblica nel raggio"} icon="send" loading={formState.isSubmitting} onPress={handleSubmit(submit)} disabled={formState.isSubmitting || !postBody.trim()} />
       </View>
     </Screen>
   );

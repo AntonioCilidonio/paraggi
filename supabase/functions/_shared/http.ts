@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
+export type AdminClient = ReturnType<typeof createClient>;
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -98,4 +100,3 @@ export async function withHttp(handler: (req: Request) => Promise<Response>) {
     }
   };
 }
-

@@ -17,9 +17,16 @@ async function readFunctionError(error: unknown) {
     try {
       const response = (context as Response).clone();
       const text = await response.text();
+      let payload: unknown = null;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = null;
+      }
       return {
         status: response.status,
-        body: text.slice(0, 2000)
+        body: text.slice(0, 2000),
+        payload
       };
     } catch {
       return null;
@@ -58,7 +65,13 @@ export async function callFunction<T>(name: string, options: ApiOptions = {}): P
   if (error) {
     const errorContext = await readFunctionError(error);
     captureClientError("edge_function_error", error, { functionName: name, method: options.method ?? "POST", errorContext });
-    throw error;
+    if (errorContext?.payload && typeof errorContext.payload === "object") {
+      throw errorContext.payload;
+    }
+    throw {
+      error: errorContext?.status === 401 ? "unauthorized" : "edge_function_unavailable",
+      details: errorContext?.body
+    };
   }
   if (data && typeof data === "object" && "error" in data) {
     captureClientError("edge_function_response_error", data, { functionName: name, method: options.method ?? "POST" });

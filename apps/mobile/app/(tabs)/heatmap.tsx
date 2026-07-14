@@ -57,15 +57,6 @@ const levelMeta: Record<HeatmapLevel, { label: string; tone: "success" | "neutra
   }
 };
 
-const heatPositions: Array<{ left: `${number}%`; top: `${number}%`; size: number }> = [
-  { left: "8%", top: "18%", size: 112 },
-  { left: "58%", top: "30%", size: 94 },
-  { left: "25%", top: "56%", size: 78 },
-  { left: "66%", top: "8%", size: 70 },
-  { left: "46%", top: "58%", size: 64 },
-  { left: "12%", top: "42%", size: 58 }
-];
-
 function formatDistance(meters: number) {
   if (meters >= 1000) return `${(meters / 1000).toFixed(meters >= 1500 ? 1 : 0)} km`;
   return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
@@ -121,50 +112,34 @@ export default function HeatmapScreen() {
     <Screen>
       <View className="mt-4 gap-4">
         <View>
-          <Text className="text-2xl font-bold text-ink">Mappa attivita</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted">Calore aggregato dei post vicini. Nessun marker persona, nessuna coordinata visibile.</Text>
+          <Text className="text-2xl font-bold text-ink">Zone attive</Text>
+          <Text className="mt-1 text-sm leading-5 text-muted">Confronta le aree nel tuo raggio senza vedere persone o coordinate.</Text>
         </View>
 
-        <View className="rounded-card border border-border bg-surface p-4">
+        <View className="border-y border-border py-4">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
-              <Text className="font-semibold text-ink">Cosa significa il calore</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">Piu colore = piu post, commenti e richieste nate in una zona negli ultimi minuti. La posizione resta generalizzata per area.</Text>
+              <Text className="font-semibold text-ink">Come si legge</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">La barra cresce con post, commenti e richieste recenti. Indica attivita, non il numero di persone.</Text>
             </View>
             <StatusPill label={`${formatDistance(radiusMeters)} raggio`} tone="neutral" />
           </View>
-          <View className="mt-4 flex-row gap-2">
-            <View className="flex-1 rounded-card border border-border bg-bg p-3">
-              <View className="h-2 rounded-full bg-success" />
-              <Text className="mt-2 text-xs font-semibold text-ink">Molto attiva</Text>
-            </View>
-            <View className="flex-1 rounded-card border border-border bg-bg p-3">
-              <View className="h-2 rounded-full bg-primary" />
-              <Text className="mt-2 text-xs font-semibold text-ink">Attiva</Text>
-            </View>
-            <View className="flex-1 rounded-card border border-border bg-bg p-3">
-              <View className="h-2 rounded-full bg-warning" />
-              <Text className="mt-2 text-xs font-semibold text-ink">Tranquilla</Text>
-            </View>
+          <View className="mt-3 flex-row flex-wrap gap-3">
+            <Text className="text-xs font-semibold text-success">● Molto attiva</Text>
+            <Text className="text-xs font-semibold text-primary">● Attiva</Text>
+            <Text className="text-xs font-semibold text-warning">● Tranquilla</Text>
           </View>
         </View>
 
-        <View className="h-96 overflow-hidden rounded-card border border-border bg-surface">
-          <View className="absolute left-0 right-0 top-0 h-full bg-primary/5" />
-          <View className="absolute left-6 right-6 top-16 h-px bg-border" />
-          <View className="absolute left-6 right-6 top-36 h-px bg-border" />
-          <View className="absolute left-6 right-6 top-56 h-px bg-border" />
-          <View className="absolute bottom-0 left-0 right-0 h-20 bg-bg/70" />
-
+        <View className="gap-3">
           {heatmap.isLoading ? (
-            <View className="absolute inset-0 items-center justify-center px-8">
-              <Text className="text-center font-semibold text-ink">Carico zone attive...</Text>
-              <Text className="mt-2 text-center text-sm leading-5 text-muted">Uso solo dati aggregati per area.</Text>
+            <View className="border-y border-border py-8">
+              <Text className="text-center font-semibold text-ink">Carico le zone...</Text>
             </View>
           ) : null}
 
           {!heatmap.isLoading && heatmap.data?.needsLocation ? (
-            <View className="absolute inset-0 items-center justify-center px-8">
+            <View className="rounded-card border border-border p-5">
               <Text className="text-center text-lg font-bold text-ink">Serve il GPS</Text>
               <Text className="mt-2 text-center text-sm leading-5 text-muted">Aggiorna la posizione per calcolare le zone attive nel tuo raggio. Le coordinate restano nascoste.</Text>
               <View className="mt-4 w-full">
@@ -174,7 +149,7 @@ export default function HeatmapScreen() {
           ) : null}
 
           {!heatmap.isLoading && !heatmap.data?.needsLocation && zones.length === 0 ? (
-            <View className="absolute inset-0 items-center justify-center px-8">
+            <View className="rounded-card border border-border p-5">
               <Text className="text-center text-lg font-bold text-ink">Nessuna zona calda</Text>
               <Text className="mt-2 text-center text-sm leading-5 text-muted">Nel raggio scelto non ci sono conversazioni attive. Puoi aumentare il raggio o pubblicare il primo post.</Text>
               <View className="mt-4 w-full">
@@ -183,11 +158,11 @@ export default function HeatmapScreen() {
             </View>
           ) : null}
 
-          {zones.slice(0, 6).map((zone, index) => {
-            const position = heatPositions[index];
+          {zones.map((zone) => {
             const meta = levelMeta[zone.activity_level];
             const isSelected = selectedZone?.id === zone.id;
-            const size = Math.min(position.size + Math.max(0, zone.activity_score - 8), 136);
+            const strongestScore = Math.max(1, zones[0]?.activity_score ?? 1);
+            const width = `${Math.max(12, Math.round((zone.activity_score / strongestScore) * 100))}%` as `${number}%`;
 
             return (
               <Pressable
@@ -195,17 +170,24 @@ export default function HeatmapScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Seleziona ${zone.name}, ${meta.label}`}
                 onPress={() => setSelectedZoneId(zone.id)}
-                className={`absolute items-center justify-center rounded-full border ${meta.ringClass} ${isSelected ? "border-2 opacity-100" : "border opacity-80"}`}
-                style={{ left: position.left, top: position.top, width: size, height: size }}
+                className={`rounded-card border p-4 ${isSelected ? "border-primary bg-surface" : "border-border bg-white"}`}
               >
-                <View className={`h-5 w-5 rounded-full ${meta.dotClass}`} />
-                <Text className={`mt-1 px-2 text-center text-xs font-bold ${meta.textClass}`} numberOfLines={1}>{zone.name}</Text>
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="font-semibold text-ink">{zone.name}</Text>
+                    <Text className="mt-1 text-sm text-muted">{zone.post_count} post · {zone.comment_count} commenti · circa {formatDistance(zone.distance_meters)}</Text>
+                  </View>
+                  <StatusPill label={meta.label} tone={meta.tone} />
+                </View>
+                <View className="mt-3 h-2 overflow-hidden rounded-full bg-border">
+                  <View className={`h-2 rounded-full ${meta.dotClass}`} style={{ width }} />
+                </View>
               </Pressable>
             );
           })}
 
           {selectedZone ? (
-            <View className="absolute bottom-4 left-4 right-4 rounded-card border border-border bg-bg p-4">
+            <View className="border-t border-border pt-4">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
                   <Text className="font-semibold text-ink">{selectedZone.name}</Text>
@@ -214,11 +196,7 @@ export default function HeatmapScreen() {
                 <StatusPill label={levelMeta[selectedZone.activity_level].label} tone={levelMeta[selectedZone.activity_level].tone} />
               </View>
               <Text className="mt-3 text-sm leading-5 text-muted">{explainLevel(selectedZone)}</Text>
-              <View className="mt-3 flex-row gap-2">
-                <Text className="rounded-full bg-surface px-3 py-2 text-xs font-semibold text-ink">{selectedZone.post_count} post</Text>
-                <Text className="rounded-full bg-surface px-3 py-2 text-xs font-semibold text-ink">{selectedZone.comment_count} commenti</Text>
-                <Text className="rounded-full bg-surface px-3 py-2 text-xs font-semibold text-ink">{formatActivityTime(selectedZone.latest_activity_at)}</Text>
-              </View>
+              <Text className="mt-2 text-xs font-semibold text-muted">Ultima attivita: {formatActivityTime(selectedZone.latest_activity_at)}</Text>
             </View>
           ) : null}
         </View>
@@ -242,29 +220,7 @@ export default function HeatmapScreen() {
           <Button label="Post vicini" variant="secondary" onPress={() => router.push("/(tabs)/feed")} className="flex-1" />
         </View>
 
-        <View className="gap-3">
-          <Text className="font-semibold text-ink">Zone nel tuo raggio</Text>
-          {zones.map((zone) => {
-            const meta = levelMeta[zone.activity_level];
-            return (
-              <Pressable
-                key={zone.id}
-                accessibilityRole="button"
-                onPress={() => setSelectedZoneId(zone.id)}
-                className={`rounded-card border p-4 ${selectedZoneId === zone.id ? "border-primary bg-surface" : "border-border bg-surface"}`}
-              >
-                <View className="flex-row items-center justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="font-semibold text-ink">{zone.name}</Text>
-                    <Text className="mt-1 text-sm text-muted">{zone.post_count} post - {zone.comment_count} commenti - circa {formatDistance(zone.distance_meters)}</Text>
-                  </View>
-                  <StatusPill label={meta.label} tone={meta.tone} />
-                </View>
-              </Pressable>
-            );
-          })}
-          {lastLocationSyncAt ? <Text className="text-xs text-muted">Ultimo aggiornamento GPS: {new Date(lastLocationSyncAt).toLocaleTimeString()}</Text> : null}
-        </View>
+        {lastLocationSyncAt ? <Text className="text-xs text-muted">Ultimo aggiornamento GPS: {new Date(lastLocationSyncAt).toLocaleTimeString()}</Text> : null}
       </View>
     </Screen>
   );

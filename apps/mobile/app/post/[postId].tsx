@@ -158,10 +158,8 @@ export default function PostDetailScreen() {
         ) : null}
         {detail.isLoading ? <Text className="text-muted">Carico post e commenti...</Text> : null}
         {selectedPost ? <FeedPostCard post={selectedPost} /> : null}
-        <View className="flex-row gap-2">
-          <Button label="Richiedi privato" variant="secondary" className="flex-1" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
-          <Button label="Apri chat demo" className="flex-1" onPress={() => router.push("/chat/demo-active-chat")} />
-        </View>
+        <Button label="Richiedi chat privata" icon="chatbubble-outline" variant="secondary" disabled={!selectedPost} onPress={() => void requestPrivateConnection()} />
+        {demoMode ? <Button label="Apri chat demo" icon="chatbubbles-outline" onPress={() => router.push("/chat/demo-active-chat")} /> : null}
         {!demoMode ? (
           <View className="gap-2 rounded-card border border-border bg-surface p-4">
             <Text className="font-semibold text-ink">Test interazione</Text>

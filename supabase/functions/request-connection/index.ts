@@ -1,4 +1,5 @@
 import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { sendPushToUsers } from "../_shared/push.ts";
 
 type Payload = {
   postId: string;
@@ -30,8 +31,12 @@ Deno.serve(await withHttp(async (req) => {
     body: "Una persona vicina vuole aprire una chat contestuale.",
     deep_link: "/requests"
   });
+  await sendPushToUsers(adminClient, [payload.recipientId], {
+    title: "Richiesta privata",
+    body: "Una persona vicina vuole aprire una chat contestuale.",
+    data: { type: "private_request", requestId: data.id }
+  });
 
   await audit(adminClient, { actorId: user.id, eventType: "connection", action: "request_connection", targetTable: "connection_requests", targetId: data.id });
   return jsonResponse({ request: data }, 201);
 }));
-

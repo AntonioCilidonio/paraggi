@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
@@ -38,33 +39,38 @@ export default function FeedScreen() {
             <Text className="text-2xl font-bold text-ink">Vicino a te</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">Post visibili solo nel raggio condiviso. Coordinate sempre nascoste.</Text>
           </View>
-          <Link href="/post/compose" className="rounded-card bg-primary px-4 py-3 font-semibold text-white">Post</Link>
+          <Button label="Pubblica" icon="add" onPress={() => router.push("/post/compose")} />
         </View>
-        <View className="flex-row gap-2">
-          <Button label={demoMode ? "Demo posizione" : "Aggiorna posizione"} variant="secondary" onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} />
-          <Button label={`Raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}`} variant="secondary" />
+        <View className="flex-row items-center justify-between gap-3 border-y border-border py-3">
+          <View className="flex-1 flex-row items-center gap-2">
+            <Ionicons name={lastLocationSyncAt ? "location" : "location-outline"} size={18} color={lastLocationSyncAt ? "#16808a" : "#62717a"} />
+            <Text className="text-sm text-muted">{lastLocationSyncAt ? `Raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 justify-center px-2">
+            <Text className="font-semibold text-primary">Aggiorna</Text>
+          </Pressable>
         </View>
         {demoMode ? (
-          <View className="rounded-card border border-border bg-surface p-4">
+          <View className="border-y border-border py-4">
             <Text className="font-semibold text-ink">Modalita demo APK</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">Supabase non e ancora collegato: puoi navigare l'esperienza con dati locali realistici.</Text>
           </View>
         ) : null}
         {!demoMode && !lastLocationSyncAt ? (
-          <View className="rounded-card border border-border bg-surface p-4">
+          <View className="border-y border-border py-4">
             <Text className="font-semibold text-ink">Attiva il GPS per vedere la piazza</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">Paraggi mostra post solo dopo una posizione valida. Premi Aggiorna posizione.</Text>
           </View>
         ) : null}
         {feed.isLoading ? <Text className="text-muted">Carico i post vicini...</Text> : null}
         {feed.isError ? (
-          <View className="rounded-card border border-danger bg-surface p-4">
+          <View className="rounded-card border border-danger p-4">
             <Text className="font-semibold text-danger">Feed non caricato</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">{getFriendlyError(feed.error, "Aggiorna il GPS e riprova.")}</Text>
           </View>
         ) : null}
         {feed.data?.posts.length === 0 ? (
-          <View className="rounded-card border border-border bg-surface p-4">
+          <View className="border-y border-border py-4">
             <Text className="font-semibold text-ink">La piazza qui e tranquilla</Text>
             <Text className="mt-1 text-sm leading-5 text-muted">Pubblica una domanda o aggiorna la posizione per scoprire cosa succede intorno.</Text>
           </View>

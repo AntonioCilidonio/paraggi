@@ -7,8 +7,8 @@ Questo repository contiene il monorepo dell'MVP mobile-first di Paraggi.
 ## Stato avanzamento
 
 - STEP 1: Analisi funzionale completata.
-- STEP 2: Architettura in corso/completata in `docs/02-architettura.md`.
-- STEP 3: Database da confermare.
+- STEP 2: Architettura completata in `docs/02-architettura.md`.
+- STEP 3-10: MVP integrato con app Expo, Supabase, Realtime e build locali.
 
 ## Struttura
 
@@ -31,12 +31,27 @@ outputs/         Deliverable approvati per revisione
 
 ## Build Android APK
 
-L'APK di test sara generato negli step Frontend/Deployment tramite Expo/EAS con profilo Android `preview`.
-
-Comando previsto:
+La build Android di test viene eseguita localmente con Mise. Il task installa o aggiorna l'Android SDK necessario, genera il progetto nativo, crea una release standalone e verifica bundle e firma.
 
 ```bash
-npm run mobile:build:apk
+mise run debug
 ```
 
-Il comando sara attivabile appena lo scheletro Expo sara creato nello STEP 5.
+APK generato:
+
+```bash
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Non serve Metro e non viene avviata alcuna GitHub Action. I workflow presenti nel repository sono esclusivamente manuali (`workflow_dispatch`).
+
+## Push Android
+
+Le notifiche locali e gli eventi Realtime funzionano senza Firebase. Per ricevere push remoti in background su una build Android locale serve il file client Firebase:
+
+1. creare o collegare un progetto Firebase con package `app.paraggi.mobile`;
+2. scaricare `google-services.json`;
+3. inserirlo in `apps/mobile/google-services.json`;
+4. rigenerare l'APK con `mise run debug`.
+
+Il file e escluso da Git. `apps/mobile/app.config.js` lo collega automaticamente quando presente. Le Edge Functions inviano commenti, richieste, accettazioni, messaggi e SOS tramite Expo Push e disattivano i token non piu validi.

@@ -1,4 +1,5 @@
 import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { sendPushToUsers } from "../_shared/push.ts";
 
 type Payload = {
   latitude: number;
@@ -8,27 +9,6 @@ type Payload = {
   message?: string;
   sharePreciseCoordinates?: boolean;
 };
-
-async function sendExpoPush(tokens: string[], title: string, body: string, data: Record<string, unknown>) {
-  if (tokens.length === 0) return;
-
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
-    body: JSON.stringify(tokens.map((to) => ({
-      to,
-      title,
-      body,
-      sound: "default",
-      channelId: "paraggi-alerts",
-      priority: "high",
-      data
-    })))
-  });
-}
 
 Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
@@ -64,8 +44,9 @@ Deno.serve(await withHttp(async (req) => {
     ? `${message}. Coordinate: ${payload.latitude.toFixed(6)}, ${payload.longitude.toFixed(6)}`
     : `${message}. Apri Paraggi per vedere l'area approssimativa.`;
 
-  const rows = (recipients ?? []).map((recipient) => ({
-    user_id: recipient.user_id,
+  const recipientIds = Array.from(new Set((recipients ?? []).map((recipient) => recipient.user_id)));
+  const rows = recipientIds.map((recipientId) => ({
+    user_id: recipientId,
     type: "danger_alert",
     title: "Allarme pericolo vicino",
     body,
@@ -74,12 +55,16 @@ Deno.serve(await withHttp(async (req) => {
 
   if (rows.length > 0) await adminClient.from("notifications").insert(rows);
 
-  const tokens = (recipients ?? []).map((recipient) => recipient.expo_push_token).filter(Boolean);
-  await sendExpoPush(tokens, "Allarme pericolo vicino", body, {
-    type: "danger_alert",
-    alertId: alert.id,
-    latitude: sharePreciseCoordinates ? payload.latitude : undefined,
-    longitude: sharePreciseCoordinates ? payload.longitude : undefined
+  await sendPushToUsers(adminClient, recipientIds, {
+    title: "Allarme pericolo vicino",
+    body,
+    channelId: "paraggi-alerts",
+    data: {
+      type: "danger_alert",
+      alertId: alert.id,
+      latitude: sharePreciseCoordinates ? payload.latitude : undefined,
+      longitude: sharePreciseCoordinates ? payload.longitude : undefined
+    }
   });
 
   await audit(adminClient, {

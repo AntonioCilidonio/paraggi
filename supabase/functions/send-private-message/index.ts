@@ -1,4 +1,5 @@
 import { audit, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { sendPushToUsers } from "../_shared/push.ts";
 
 type Payload = {
   chatId: string;
@@ -31,6 +32,11 @@ Deno.serve(await withHttp(async (req) => {
       title: "Nuovo messaggio",
       body: "Hai ricevuto un messaggio in una chat privata.",
       deep_link: `/chat/${payload.chatId}`
+    });
+    await sendPushToUsers(adminClient, [recipientId], {
+      title: "Nuovo messaggio",
+      body: "Hai ricevuto un messaggio in una chat privata.",
+      data: { type: "private_message", chatId: payload.chatId }
     });
 
     const { data: recipientProfile } = await adminClient.from("profiles").select("display_name").eq("id", recipientId).single();
