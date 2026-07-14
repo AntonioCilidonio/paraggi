@@ -43,7 +43,7 @@ APK generato:
 apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
 
-Non serve Metro e non viene avviata alcuna GitHub Action. I workflow presenti nel repository sono esclusivamente manuali (`workflow_dispatch`).
+Non serve Metro. Il repository non contiene workflow GitHub Actions: build e controlli vengono eseguiti esclusivamente in locale.
 
 ## Push Android
 
