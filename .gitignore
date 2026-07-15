@@ -11,6 +11,7 @@ apps/*/dist/
 !.env.example
 apps/mobile/google-services.json
 apps/mobile/.expo-export-*/
+apps/mobile/.expo-chat-export/
 apps/mobile/GoogleService-Info.plist
 android/
 ios/
