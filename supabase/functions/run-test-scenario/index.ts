@@ -1,4 +1,5 @@
 import { audit, HttpError, jsonResponse, readJson, requireUser, withHttp } from "../_shared/http.ts";
+import { getOrCreateTestPersona, resetTestPersonaPassword } from "../_shared/test-persona.ts";
 
 type Payload = {
   latitude: number;
@@ -9,10 +10,6 @@ type Check = {
   name: string;
   status: "passed";
 };
-
-function testEmail() {
-  return `paraggi-scenario-${crypto.randomUUID()}@paraggi.local`;
-}
 
 function currentToken(req: Request) {
   return (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -93,19 +90,11 @@ Deno.serve(await withHttp(async (req) => {
     }
   }
 
-  const email = testEmail();
-  const password = `${crypto.randomUUID()}Aa1!`;
-  const { data: createdUser, error: createUserError } = await adminClient.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { display_name: "Marta Test" }
-  });
-  if (createUserError || !createdUser.user) {
-    return jsonResponse({ error: "test_user_create_failed", details: createUserError?.message }, 400);
-  }
+  const persona = await getOrCreateTestPersona(adminClient, user.id);
+  const email = persona.email;
+  const password = await resetTestPersonaPassword(adminClient, persona.id);
   checks.push({ name: "create_test_user", status: "passed" });
-  const testUserId = createdUser.user.id;
+  const testUserId = persona.id;
 
   await adminClient.from("profiles").update({
     display_name: "Marta Test",
@@ -124,6 +113,24 @@ Deno.serve(await withHttp(async (req) => {
   }
   checks.push({ name: "login_test_user", status: "passed" });
   const testToken = authData.access_token;
+
+  const participantPair = [testUserId, user.id].sort().join(":");
+  await adminClient
+    .from("private_chats")
+    .update({
+      is_connected: false,
+      status: "frozen_permission",
+      disconnected_at: new Date().toISOString(),
+      disconnected_by_id: user.id,
+      last_status_reason: "self_test_reset"
+    })
+    .eq("participant_pair", participantPair)
+    .eq("is_connected", true);
+  await adminClient
+    .from("connection_requests")
+    .update({ status: "rejected", responded_at: new Date().toISOString() })
+    .eq("status", "pending")
+    .or(`and(requester_id.eq.${testUserId},recipient_id.eq.${user.id}),and(requester_id.eq.${user.id},recipient_id.eq.${testUserId})`);
 
   await runStep("sync_test_user_location", () => invoke("update-location", testToken, {
     body: {
