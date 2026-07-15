@@ -99,7 +99,7 @@ Deno.serve(await withHttp(async (req) => {
   await adminClient.from("profiles").update({
     display_name: "Marta Test",
     bio: "Profilo automatico per validare il flusso end-to-end.",
-    reputation_score: 27
+    reputation_score: 100
   }).eq("id", testUserId);
 
   const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {

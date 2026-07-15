@@ -45,7 +45,7 @@ export function usePushRegistration() {
           expoPushToken: token.data,
           platform: Platform.OS,
           installationId: `${Platform.OS}-${Device.osInternalBuildId ?? Device.modelId ?? "unknown"}`,
-          appVersion: "0.1.0",
+          appVersion: Constants.expoConfig?.version ?? "1.0.0",
           osVersion: Device.osVersion,
           isEmulator: !Device.isDevice,
           isRootedOrJailbroken: false

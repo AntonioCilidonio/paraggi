@@ -17,5 +17,7 @@ android/
 ios/
 coverage/
 outputs/*.apk
+outputs/releases/**/*.apk
+outputs/supabase-errors-*.json
 .DS_Store
 supabase/.temp/

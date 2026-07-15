@@ -25,6 +25,7 @@ type CommentRow = {
   display_name?: string;
   body: string;
   created_at: string;
+  rating?: -1 | 1 | null;
 };
 
 const emptyDemoComments: CommentRow[] = [];
@@ -92,7 +93,13 @@ export default function PostDetailScreen() {
           [...localDemoPosts, ...demoPosts].find(
             (item) => item.id === postId,
           ) ?? null;
-        return { post, comments: [...demoComments, ...localComments] };
+        return {
+          post,
+          comments: [
+            ...demoComments.map((comment) => ({ ...comment, rating: null as -1 | 1 | null })),
+            ...localComments,
+          ],
+        };
       }
       return callFunction<{ post: FeedPost; comments: CommentRow[] }>(
         "get-post-detail",
@@ -142,6 +149,23 @@ export default function PostDetailScreen() {
           "Commento non inviato. Aggiorna GPS e riprova.",
         ),
       );
+    },
+  });
+
+  const rateComment = useMutation({
+    mutationFn: async ({ commentId, rating }: { commentId: string; rating: -1 | 1 }) => {
+      setCommentError(null);
+      if (demoMode) return { rating, reputationDelta: rating };
+      return callFunction<{ rating: -1 | 1; reputationDelta: number }>("rate-comment", {
+        body: { commentId, rating },
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      setCommentError(getFriendlyError(error, "Valutazione non salvata. Riprova."));
     },
   });
 
@@ -280,6 +304,33 @@ export default function PostDetailScreen() {
                 })}
               </Text>
               <Text className="text-ink">{comment.body}</Text>
+              {isOwnPost && comment.author_id !== currentUser.data?.id ? (
+                <View className="mt-3 flex-row items-center gap-2 border-t border-border pt-2">
+                  <Text className="mr-auto text-xs font-medium text-muted">Commento utile?</Text>
+                  {([-1, 1] as const).map((rating) => {
+                    const selected = comment.rating === rating;
+                    const isUp = rating === 1;
+                    return (
+                      <Pressable
+                        key={rating}
+                        accessibilityRole="button"
+                        accessibilityLabel={isUp ? "Valuta positivamente il commento" : "Valuta negativamente il commento"}
+                        accessibilityState={{ selected, disabled: rateComment.isPending }}
+                        disabled={rateComment.isPending}
+                        onPress={() => rateComment.mutate({ commentId: comment.id, rating })}
+                        className={`h-11 w-11 items-center justify-center rounded-card border ${selected ? "border-primary bg-primary" : "border-border bg-white"}`}
+                      >
+                        <Ionicons name={isUp ? "thumbs-up" : "thumbs-down"} size={18} color={selected ? "#ffffff" : "#62717a"} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : comment.rating ? (
+                <View className="mt-2 flex-row items-center gap-1.5">
+                  <Ionicons name={comment.rating === 1 ? "thumbs-up" : "thumbs-down"} size={14} color="#62717a" />
+                  <Text className="text-xs text-muted">Valutato dall'autore del post</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         ))}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AppHeader } from "@/components/AppHeader";
@@ -23,6 +23,7 @@ type ChatRow = {
   last_distance_meters: number | null;
   last_message_at: string | null;
   updated_at: string;
+  unread_count?: number;
   other_profile?: { display_name: string; reputation_score: number } | null;
 };
 
@@ -55,12 +56,13 @@ export default function ChatsScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const declineDemoRequest = useAppStore((state) => state.declineDemoRequest);
   const [actionError, setActionError] = useState<string | null>(null);
-  const chats = useQuery<{ requests: RequestRow[]; chats: ChatRow[] }>({
+  const chats = useQuery<{ requests: RequestRow[]; chats: ChatRow[]; totalUnread: number }>({
     queryKey: ["chats", demoStatusById],
     queryFn: async () => {
       if (demoMode) {
         return {
           requests,
+          totalUnread: 0,
           chats: demoChats.map((chat) => ({
             ...chat,
             status: demoStatusById[chat.id] ?? chat.status,
@@ -75,12 +77,16 @@ export default function ChatsScreen() {
           })),
         };
       }
-      return callFunction<{ requests: RequestRow[]; chats: ChatRow[] }>(
+      return callFunction<{ requests: RequestRow[]; chats: ChatRow[]; totalUnread: number }>(
         "get-chat-inbox",
         { method: "GET" },
       );
     },
   });
+
+  useFocusEffect(useCallback(() => {
+    void chats.refetch();
+  }, [chats.refetch]));
 
   async function accept(requestId: string) {
     setActionError(null);
@@ -286,11 +292,9 @@ export default function ChatsScreen() {
               >
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={
-                    chat.is_connected === false
-                      ? "Apri storico della chat rimossa"
-                      : "Apri chat"
-                  }
+                  accessibilityLabel={chat.unread_count
+                    ? `Apri chat, ${chat.unread_count} messaggi non letti`
+                    : chat.is_connected === false ? "Apri storico della chat rimossa" : "Apri chat"}
                   onPress={() => router.push(`/chat/${chat.id}`)}
                 >
                   <View className="flex-row items-center gap-3">
@@ -313,11 +317,12 @@ export default function ChatsScreen() {
                             : "Inizia la conversazione"}
                       </Text>
                     </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color="#62717a"
-                    />
+                    {chat.unread_count ? (
+                      <View className="min-h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5">
+                        <Text className="text-xs font-bold text-white">{chat.unread_count > 99 ? "99+" : chat.unread_count}</Text>
+                      </View>
+                    ) : null}
+                    <Ionicons name="chevron-forward" size={20} color="#62717a" />
                   </View>
                 </Pressable>
                 {chat.is_connected === false ? (

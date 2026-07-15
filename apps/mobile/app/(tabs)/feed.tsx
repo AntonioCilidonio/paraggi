@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { FeedPostCard, type FeedPost } from "@/components/FeedPostCard";
@@ -13,6 +13,7 @@ import { callFunction } from "@/services/api";
 import { getFriendlyError } from "@/services/errors";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationSync } from "@/hooks/useLocationSync";
+import { openPostComposer } from "@/services/postComposerNavigation";
 
 export default function FeedScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
@@ -28,6 +29,10 @@ export default function FeedScreen() {
     },
     enabled: demoMode || Boolean(lastLocationSyncAt)
   });
+
+  useFocusEffect(useCallback(() => {
+    if (demoMode || lastLocationSyncAt) void feed.refetch();
+  }, [feed.refetch, lastLocationSyncAt]));
 
   async function refreshPositionAndFeed() {
     if (isRefreshingLocation) return;
@@ -47,7 +52,7 @@ export default function FeedScreen() {
         <PageHeader
           title="Vicino a te"
           subtitle="Conversazioni che esistono qui, adesso."
-          action={<HeaderIconButton icon="add" label="Pubblica un post" onPress={() => router.push("/post/compose")} />}
+          action={<HeaderIconButton icon="add" label="Pubblica un post" onPress={openPostComposer} />}
         />
         <View className="flex-row items-center justify-between gap-3 rounded-card bg-surface px-3 py-2.5">
           <View className="flex-1 flex-row items-center gap-2">

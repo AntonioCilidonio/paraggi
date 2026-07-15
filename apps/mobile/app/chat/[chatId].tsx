@@ -135,6 +135,12 @@ export default function ChatDetailScreen() {
     },
   });
 
+  useEffect(() => {
+    if (demoMode || !thread.dataUpdatedAt) return;
+    void queryClient.invalidateQueries({ queryKey: ["chats"] });
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  }, [queryClient, thread.dataUpdatedAt]);
+
   async function uploadAttachment(item: LocalAttachment) {
     const { data } = await supabase.auth.getSession();
     if (!data.session?.user || !chatId) throw { error: "unauthenticated" };

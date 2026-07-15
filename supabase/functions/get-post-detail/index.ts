@@ -33,7 +33,7 @@ Deno.serve(await withHttp(async (req) => {
 
   const { data: comments, error: commentsError } = await adminClient
     .from("comments")
-    .select("id,author_id,body,created_at,profiles!comments_author_id_fkey(display_name)")
+    .select("id,author_id,body,created_at,profiles!comments_author_id_fkey(display_name),comment_ratings(rating)")
     .eq("post_id", postId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
@@ -45,7 +45,8 @@ Deno.serve(await withHttp(async (req) => {
     author_id: comment.author_id,
     body: comment.body,
     created_at: comment.created_at,
-    display_name: comment.profiles?.display_name ?? "Utente vicino"
+    display_name: comment.profiles?.display_name ?? "Utente vicino",
+    rating: comment.comment_ratings?.[0]?.rating ?? null
   }));
 
   try {

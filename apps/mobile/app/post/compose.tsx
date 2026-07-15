@@ -1,5 +1,6 @@
 import type { PostCategory, PostTtlMinutes } from "@paraggi/domain";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
@@ -47,6 +48,7 @@ function assertMediaSize(kind: keyof typeof mediaLimits, size?: number | null) {
 }
 
 export default function ComposePostScreen() {
+  const queryClient = useQueryClient();
   const addDemoPost = useAppStore((state) => state.addDemoPost);
   const radiusMeters = useAppStore((state) => state.radiusMeters);
   const syncLocation = useLocationSync();
@@ -287,7 +289,11 @@ export default function ComposePostScreen() {
 
       setStatusMessage("Invio a Supabase...");
       await callFunction("create-post", { body: { ...values, attachments, radiusMeters } });
-      router.replace("/(tabs)/feed");
+      setStatusMessage("Post pubblicato. Aggiorno la piazza...");
+      setMediaAttachments([]);
+      await queryClient.invalidateQueries({ queryKey: ["nearby-feed"], refetchType: "none" });
+      if (router.canGoBack()) router.back();
+      else router.replace("/(tabs)/feed");
     } catch (error) {
       captureClientError("compose_post_failed", error, {
         mediaCount: mediaAttachments.length,

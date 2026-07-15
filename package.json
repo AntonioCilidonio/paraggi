@@ -1,6 +1,6 @@
 {
   "name": "paraggi",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Paraggi - la piazza digitale delle persone vicine",
   "workspaces": [
@@ -18,7 +18,8 @@
     "mobile:build:ios:simulator": "npm --workspace apps/mobile run build:ios:simulator",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
-    "supabase:db:reset": "supabase db reset"
+    "supabase:db:reset": "supabase db reset",
+    "supabase:logs": "bash scripts/fetch-supabase-logs.sh"
   },
   "engines": {
     "node": ">=20.0.0",

@@ -10,6 +10,7 @@ export type DemoComment = {
   display_name: string;
   body: string;
   created_at: string;
+  rating?: -1 | 1 | null;
 };
 
 export type DemoMessage = {
@@ -93,7 +94,7 @@ function makeDemoPost(values: { category: PostCategory; body: string; ttlMinutes
     distance_meters: 35,
     expires_at: new Date(Date.now() + values.ttlMinutes * 60 * 1000).toISOString(),
     comment_count: 0,
-    reputation_score: 12,
+    reputation_score: 100,
     created_at: nowIso()
   };
 }

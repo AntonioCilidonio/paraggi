@@ -20,6 +20,11 @@ Deno.serve(await withHttp(async (req) => {
 
   if (chatsError) return jsonResponse({ error: "chats_failed", details: chatsError.message }, 400);
 
+  const { data: unreadRows, error: unreadError } = await adminClient
+    .rpc("get_chat_unread_counts", { for_user_id: user.id });
+  if (unreadError) return jsonResponse({ error: "chats_failed", details: unreadError.message }, 400);
+  const unreadByChat = new Map((unreadRows ?? []).map((row) => [row.chat_id, row.unread_count]));
+
   const otherUserIds = Array.from(new Set((chats ?? []).map((chat) => chat.user_a_id === user.id ? chat.user_b_id : chat.user_a_id)));
   const { data: profiles } = otherUserIds.length
     ? await adminClient.from("profiles").select("id,display_name,reputation_score").in("id", otherUserIds)
@@ -37,6 +42,7 @@ Deno.serve(await withHttp(async (req) => {
     seenUsers.add(otherUserId);
     return [{
       ...chat,
+      unread_count: unreadByChat.get(chat.id) ?? 0,
       other_user_id: otherUserId,
       other_profile: profileById.get(otherUserId) ?? null,
       reconnect_request_status: pendingByOtherUser.has(otherUserId)
@@ -46,5 +52,6 @@ Deno.serve(await withHttp(async (req) => {
   });
 
   const incomingRequests = (pendingRequests ?? []).filter((request) => request.recipient_id === user.id);
-  return jsonResponse({ requests: incomingRequests, chats: decoratedChats });
+  const totalUnread = decoratedChats.reduce((total, chat) => total + chat.unread_count, 0);
+  return jsonResponse({ requests: incomingRequests, chats: decoratedChats, totalUnread });
 }));

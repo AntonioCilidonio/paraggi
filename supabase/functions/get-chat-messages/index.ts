@@ -61,6 +61,14 @@ Deno.serve(
       .neq("sender_id", user.id)
       .is("read_at", null);
 
+    await adminClient
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("type", "private_message")
+      .eq("deep_link", `/chat/${chatId}`)
+      .is("read_at", null);
+
     const decoratedMessages = await Promise.all(
       (messages ?? []).map(async (message) => {
         if (!message.attachment_storage_path)

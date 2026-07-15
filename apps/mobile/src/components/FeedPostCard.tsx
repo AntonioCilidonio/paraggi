@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import {
   PostAttachments,
   type PostAttachment,
 } from "@/components/PostAttachments";
 import { PostCategoryPill } from "@/components/PostCategoryPill";
+import { getAvatarUrl } from "@/services/avatar";
 
 export type FeedPost = {
   id: string;
@@ -41,14 +42,19 @@ export function FeedPostCard({
     Math.round((new Date(post.expires_at).getTime() - Date.now()) / 60000),
   );
   const initial = post.display_name.slice(0, 1).toUpperCase();
+  const avatarUrl = getAvatarUrl(post.avatar_path);
 
   return (
     <View className="gap-3 rounded-card border border-border bg-white p-4">
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 flex-row gap-3">
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-surface">
-            <Text className="font-bold text-primary">{initial}</Text>
-          </View>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} className="h-10 w-10 rounded-full bg-surface" accessibilityLabel={`Foto profilo di ${post.display_name}`} />
+          ) : (
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-surface">
+              <Text className="font-bold text-primary">{initial}</Text>
+            </View>
+          )}
           <View className="flex-1">
             <Text className="font-semibold text-ink">{post.display_name}</Text>
             <Text className="mt-1 text-xs text-muted" numberOfLines={1}>

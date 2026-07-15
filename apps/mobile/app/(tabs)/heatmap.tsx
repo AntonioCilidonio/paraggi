@@ -12,6 +12,7 @@ import { demoMode } from "@/config/env";
 import { demoHeatmapZones } from "@/demo/data";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { callFunction } from "@/services/api";
+import { openPostComposer } from "@/services/postComposerNavigation";
 import { getFriendlyError } from "@/services/errors";
 import { useAppStore } from "@/stores/appStore";
 
@@ -152,7 +153,7 @@ export default function HeatmapScreen() {
               <Text className="text-center text-lg font-bold text-ink">Nessuna zona calda</Text>
               <Text className="mt-2 text-center text-sm leading-5 text-muted">Nel raggio scelto non ci sono conversazioni attive. Puoi aumentare il raggio o pubblicare il primo post.</Text>
               <View className="mt-4 w-full">
-                <Button label="Pubblica un post" onPress={() => router.push("/post/compose")} />
+                <Button label="Pubblica un post" onPress={openPostComposer} />
               </View>
             </View>
           ) : null}

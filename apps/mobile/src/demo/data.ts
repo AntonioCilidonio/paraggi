@@ -21,7 +21,7 @@ export const demoPosts: FeedPost[] = [
     distance_meters: 120,
     expires_at: new Date(Date.now() + 42 * 60 * 1000).toISOString(),
     comment_count: 8,
-    reputation_score: 18,
+    reputation_score: 100,
     created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString()
   },
   {
@@ -36,7 +36,7 @@ export const demoPosts: FeedPost[] = [
     distance_meters: 430,
     expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     comment_count: 3,
-    reputation_score: 41,
+    reputation_score: 100,
     created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString()
   },
   {
@@ -51,7 +51,7 @@ export const demoPosts: FeedPost[] = [
     distance_meters: 760,
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     comment_count: 12,
-    reputation_score: 64,
+    reputation_score: 100,
     created_at: new Date(Date.now() - 8 * 60 * 1000).toISOString()
   }
 ];

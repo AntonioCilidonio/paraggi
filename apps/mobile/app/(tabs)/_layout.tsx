@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { Redirect, router, Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { demoMode } from "@/config/env";
@@ -9,6 +10,8 @@ import { usePushRegistration } from "@/hooks/usePushRegistration";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { supabase } from "@/services/supabase";
+import { openPostComposer } from "@/services/postComposerNavigation";
+import { callFunction } from "@/services/api";
 import { useAppStore } from "@/stores/appStore";
 
 const icons = {
@@ -19,6 +22,7 @@ const icons = {
 };
 
 export default function TabsLayout() {
+  const queryClient = useQueryClient();
   const [isCheckingSession, setIsCheckingSession] = useState(!demoMode);
   const [hasSession, setHasSession] = useState(demoMode);
   const [userId, setUserId] = useState<string | null>(null);
@@ -28,6 +32,16 @@ export default function TabsLayout() {
   const setLocationPermission = useAppStore((state) => state.setLocationPermission);
   const setNotificationPermission = useAppStore((state) => state.setNotificationPermission);
   useRealtimeChannel(userId ? { type: "notifications", userId } : null);
+  const chatBadge = useQuery({
+    queryKey: ["chats", "badge", userId],
+    enabled: demoMode || Boolean(userId),
+    refetchInterval: demoMode ? false : 30000,
+    queryFn: async () => {
+      if (demoMode) return { totalUnread: 0 };
+      return callFunction<{ totalUnread: number }>("get-chat-inbox", { method: "GET" });
+    }
+  });
+  const chatUnreadCount = chatBadge.data?.totalUnread ?? 0;
 
   useEffect(() => {
     if (demoMode) return;
@@ -63,10 +77,11 @@ export default function TabsLayout() {
       ]);
       setLocationPermission(locationPermission.status === "granted" ? "granted" : locationPermission.status === "denied" ? "denied" : "unknown");
       setNotificationPermission(notificationPermission.status === "granted" ? "granted" : notificationPermission.status === "denied" ? "denied" : "unknown");
-      await syncLocation();
+      const locationSync = await syncLocation();
+      if (locationSync.ok) await queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
       await registerPush({ showLocalConfirmation: false });
     })();
-  }, [registerPush, setLocationPermission, setNotificationPermission, syncLocation, userId]);
+  }, [queryClient, registerPush, setLocationPermission, setNotificationPermission, syncLocation, userId]);
 
   if (isCheckingSession) {
     return (
@@ -98,10 +113,15 @@ export default function TabsLayout() {
       }} listeners={{
         tabPress: (event) => {
           event.preventDefault();
-          router.push("/post/compose");
+          openPostComposer();
         }
       }} />
-      <Tabs.Screen name="chats" options={{ title: "Chat", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? icons.chats[1] : icons.chats[0]} size={22} color={color} /> }} />
+      <Tabs.Screen name="chats" options={{
+        title: "Chat",
+        tabBarBadge: chatUnreadCount > 0 ? (chatUnreadCount > 99 ? "99+" : chatUnreadCount) : undefined,
+        tabBarBadgeStyle: { backgroundColor: "#b42318", color: "#ffffff", fontSize: 10, fontWeight: "700" },
+        tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? icons.chats[1] : icons.chats[0]} size={22} color={color} />
+      }} />
       <Tabs.Screen name="history" options={{ title: "Aree", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? icons.history[1] : icons.history[0]} size={22} color={color} /> }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
