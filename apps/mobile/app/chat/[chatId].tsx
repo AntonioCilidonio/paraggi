@@ -22,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
 import { PostAttachments } from "@/components/PostAttachments";
 import { Screen } from "@/components/Screen";
 import { demoMode, env } from "@/config/env";
@@ -30,6 +31,7 @@ import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
 import { getFriendlyError } from "@/services/errors";
+import { dismissPresentedChatNotifications } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
 
@@ -136,10 +138,11 @@ export default function ChatDetailScreen() {
   });
 
   useEffect(() => {
-    if (demoMode || !thread.dataUpdatedAt) return;
+    if (demoMode || !thread.dataUpdatedAt || !chatId) return;
+    void dismissPresentedChatNotifications(chatId);
     void queryClient.invalidateQueries({ queryKey: ["chats"] });
     void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-  }, [queryClient, thread.dataUpdatedAt]);
+  }, [chatId, queryClient, thread.dataUpdatedAt]);
 
   async function uploadAttachment(item: LocalAttachment) {
     const { data } = await supabase.auth.getSession();
@@ -383,28 +386,29 @@ export default function ChatDetailScreen() {
   }
 
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} showBottomBar>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="flex-row items-center gap-3 border-b border-border pb-3">
+        <AppHeader />
+        <View className="mt-4 flex-row items-center gap-3 border-b border-border pb-3">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Torna alle chat"
             onPress={() => router.back()}
             className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
           >
-            <Ionicons name="arrow-back" size={21} color="#17232b" />
+            <Ionicons name="arrow-back" size={21} color="#1a2027" />
           </Pressable>
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary-soft">
             <Text className="font-bold text-primary">
               {otherName.slice(0, 1).toUpperCase()}
             </Text>
           </View>
           <View className="flex-1">
             <Text className="text-lg font-bold text-ink">{otherName}</Text>
-            <Text className="text-xs text-muted">Chat privata</Text>
+            <Text className="text-xs text-muted">Chat privata attiva</Text>
           </View>
           {isConnected ? (
             <Pressable
@@ -417,7 +421,7 @@ export default function ChatDetailScreen() {
               <Ionicons
                 name="person-remove-outline"
                 size={20}
-                color="#b42318"
+                color="#b84037"
               />
             </Pressable>
           ) : null}
@@ -503,21 +507,21 @@ export default function ChatDetailScreen() {
               : [];
             return (
               <View
-                className={`max-w-[86%] gap-2 rounded-card p-2.5 ${isMine ? "self-end bg-primary" : "self-start border border-border bg-white"}`}
+                className={`max-w-[78%] gap-2 rounded-card p-2.5 ${isMine ? "self-end bg-primary-soft" : "self-start bg-white"}`}
               >
                 {media.length > 0 ? (
                   <PostAttachments attachments={media} />
                 ) : null}
                 {message.body ? (
                   <Text
-                    className={`text-base leading-5 ${isMine ? "text-white" : "text-ink"}`}
+                    className="text-base leading-5 text-ink"
                   >
                     {message.body}
                   </Text>
                 ) : null}
                 <View className="flex-row items-center justify-end gap-1">
                   <Text
-                    className={`text-xs ${isMine ? "text-white/80" : "text-muted"}`}
+                    className="text-xs text-muted"
                   >
                     {new Date(message.created_at).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -528,7 +532,7 @@ export default function ChatDetailScreen() {
                     <Ionicons
                       name={message.read_at ? "checkmark-done" : "checkmark"}
                       size={14}
-                      color="#ffffff"
+                      color="#526a72"
                     />
                   ) : null}
                 </View>
@@ -551,7 +555,7 @@ export default function ChatDetailScreen() {
                     onPress={() => setAttachment(null)}
                     className="h-10 w-10 items-center justify-center rounded-card bg-surface"
                   >
-                    <Ionicons name="close" size={20} color="#17232b" />
+                    <Ionicons name="close" size={20} color="#1a2027" />
                   </Pressable>
                 </View>
                 <PostAttachments
@@ -577,7 +581,7 @@ export default function ChatDetailScreen() {
                   onPress={() => void takePhoto()}
                   className="min-h-14 min-w-20 items-center justify-center gap-1"
                 >
-                  <Ionicons name="camera-outline" size={23} color="#16808a" />
+                  <Ionicons name="camera-outline" size={23} color="#3b82c4" />
                   <Text className="text-xs font-semibold text-ink">
                     Fotocamera
                   </Text>
@@ -588,7 +592,7 @@ export default function ChatDetailScreen() {
                   onPress={() => void pickFromLibrary()}
                   className="min-h-14 min-w-20 items-center justify-center gap-1"
                 >
-                  <Ionicons name="images-outline" size={23} color="#16808a" />
+                  <Ionicons name="images-outline" size={23} color="#3b82c4" />
                   <Text className="text-xs font-semibold text-ink">
                     Galleria
                   </Text>
@@ -608,7 +612,7 @@ export default function ChatDetailScreen() {
                       recorderState.isRecording ? "stop-circle" : "mic-outline"
                     }
                     size={23}
-                    color={recorderState.isRecording ? "#b42318" : "#16808a"}
+                    color={recorderState.isRecording ? "#b84037" : "#3b82c4"}
                   />
                   <Text className="text-xs font-semibold text-ink">
                     {recorderState.isRecording
@@ -629,7 +633,7 @@ export default function ChatDetailScreen() {
                 <Ionicons
                   name={attachmentMenuOpen ? "close" : "add"}
                   size={24}
-                  color="#16808a"
+                  color="#3b82c4"
                 />
               </Pressable>
               <TextInput
@@ -649,7 +653,7 @@ export default function ChatDetailScreen() {
                   recorderState.isRecording
                 }
                 onPress={() => send.mutate()}
-                className="h-12 w-12 items-center justify-center rounded-card bg-primary disabled:opacity-50"
+                className="h-12 w-12 items-center justify-center rounded-card bg-accent disabled:opacity-50"
               >
                 <Ionicons name="send" size={19} color="#ffffff" />
               </Pressable>

@@ -3,9 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Href, router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { resolveNotificationRoute } from "@/services/notificationRouting";
+import { clearPresentedNotifications } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 
 type NotificationRow = {
@@ -62,22 +64,24 @@ export default function NotificationsScreen() {
     if (!auth.user) return;
     await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", auth.user.id).is("read_at", null);
     await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    await clearPresentedNotifications();
+    await queryClient.invalidateQueries({ queryKey: ["chats"] });
   }
 
   return (
-    <Screen>
+    <Screen showBottomBar>
       <View className="gap-5">
-        <View className="flex-row items-center justify-between gap-3 border-b border-border pb-4">
+        <AppHeader />
+        <View className="flex-row items-center justify-between gap-3 pb-1">
           <Pressable accessibilityRole="button" accessibilityLabel="Torna indietro" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
-            <Ionicons name="arrow-back" size={21} color="#17232b" />
+            <Ionicons name="arrow-back" size={21} color="#1a2027" />
           </Pressable>
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-ink">Notifiche</Text>
-            <Text className="mt-1 text-sm text-muted">Attivita e richieste nel tuo raggio.</Text>
+            <Text className="text-xl font-bold text-ink">Notifiche</Text>
           </View>
           {notifications.data?.some((item) => !item.read_at) ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Segna tutte come lette" onPress={() => void markAllRead()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
-              <Ionicons name="checkmark-done" size={21} color="#16808a" />
+              <Ionicons name="checkmark-done" size={21} color="#3b82c4" />
             </Pressable>
           ) : null}
         </View>
@@ -97,17 +101,17 @@ export default function NotificationsScreen() {
             <Text className="max-w-72 text-center text-sm leading-5 text-muted">Commenti, richieste private, nuovi post e SOS compariranno qui.</Text>
           </View>
         ) : null}
-        <View className="gap-1">
+        <View className="gap-2">
           {notifications.data?.map((notification) => (
             <Pressable
               key={notification.id}
               accessibilityRole="button"
               accessibilityLabel={`${notification.title}. ${notification.body}`}
               onPress={() => void openNotification(notification)}
-              className={`flex-row items-start gap-3 border-b border-border px-1 py-4 ${notification.read_at ? "bg-bg" : "bg-surface"}`}
+              className={`flex-row items-start gap-3 rounded-card p-4 ${notification.type === "danger_alert" ? "bg-category-emergency" : notification.type === "comment_received" ? "bg-category-question" : notification.type === "private_request" || notification.type === "request_accepted" ? "bg-category-help" : notification.type === "nearby_relevant_post" ? "bg-category-information" : "bg-white"}`}
             >
-              <View className="h-10 w-10 items-center justify-center rounded-card bg-white">
-                <Ionicons name={iconByType[notification.type] ?? "notifications-outline"} size={21} color={notification.type === "danger_alert" ? "#b42318" : "#16808a"} />
+              <View className="h-10 w-10 items-center justify-center rounded-card bg-white/70">
+                <Ionicons name={iconByType[notification.type] ?? "notifications-outline"} size={21} color={notification.type === "danger_alert" ? "#b84037" : "#3b82c4"} />
               </View>
               <View className="flex-1">
                 <View className="flex-row items-center gap-2">

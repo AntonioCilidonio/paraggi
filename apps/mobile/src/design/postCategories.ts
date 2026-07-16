@@ -9,6 +9,7 @@ export type PostCategoryTheme = {
   borderClass: string;
   textClass: string;
   iconColor: string;
+  surfaceClass: string;
 };
 
 export const postCategoryOrder: PostCategory[] = [
@@ -25,58 +26,65 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
   question: {
     label: "Domanda",
     icon: "help-circle-outline",
-    backgroundClass: "bg-primary-soft",
-    borderClass: "border-primary",
-    textClass: "text-primary-strong",
-    iconColor: "#126d75"
+    backgroundClass: "bg-category-question",
+    borderClass: "border-category-question",
+    textClass: "text-category-question-ink",
+    iconColor: "#285b87",
+    surfaceClass: "bg-category-question-surface"
   },
   information: {
     label: "Informazione",
     icon: "information-circle-outline",
-    backgroundClass: "bg-blue-50",
-    borderClass: "border-blue-300",
-    textClass: "text-blue-800",
-    iconColor: "#1e5f99"
+    backgroundClass: "bg-category-information",
+    borderClass: "border-category-information",
+    textClass: "text-category-information-ink",
+    iconColor: "#564187",
+    surfaceClass: "bg-category-information-surface"
   },
   lost_item: {
     label: "Oggetto smarrito",
     icon: "key-outline",
-    backgroundClass: "bg-amber-50",
-    borderClass: "border-amber-300",
-    textClass: "text-amber-900",
-    iconColor: "#8a5a09"
+    backgroundClass: "bg-category-lost",
+    borderClass: "border-category-lost",
+    textClass: "text-category-lost-ink",
+    iconColor: "#7a4b00",
+    surfaceClass: "bg-category-lost-surface"
   },
   help: {
     label: "Aiuto",
     icon: "hand-left-outline",
-    backgroundClass: "bg-emerald-50",
-    borderClass: "border-emerald-300",
-    textClass: "text-emerald-800",
-    iconColor: "#21734f"
+    backgroundClass: "bg-category-help",
+    borderClass: "border-category-help",
+    textClass: "text-category-help-ink",
+    iconColor: "#275b48",
+    surfaceClass: "bg-category-help-surface"
   },
   event: {
     label: "Evento",
     icon: "calendar-outline",
-    backgroundClass: "bg-violet-50",
-    borderClass: "border-violet-300",
-    textClass: "text-violet-800",
-    iconColor: "#6542a3"
+    backgroundClass: "bg-category-event",
+    borderClass: "border-category-event",
+    textClass: "text-category-event-ink",
+    iconColor: "#7d4316",
+    surfaceClass: "bg-category-event-surface"
   },
   social: {
     label: "Socializzazione",
     icon: "people-outline",
-    backgroundClass: "bg-rose-50",
-    borderClass: "border-rose-300",
-    textClass: "text-rose-800",
-    iconColor: "#a33d5d"
+    backgroundClass: "bg-category-social",
+    borderClass: "border-category-social",
+    textClass: "text-category-social-ink",
+    iconColor: "#7d405f",
+    surfaceClass: "bg-category-social-surface"
   },
   emergency: {
     label: "Emergenza",
     icon: "warning-outline",
-    backgroundClass: "bg-red-50",
-    borderClass: "border-red-300",
-    textClass: "text-red-800",
-    iconColor: "#b42318"
+    backgroundClass: "bg-category-emergency",
+    borderClass: "border-category-emergency",
+    textClass: "text-category-emergency-ink",
+    iconColor: "#9b3027",
+    surfaceClass: "bg-category-emergency-surface"
   }
 };
 

@@ -18,6 +18,8 @@ import { openPostComposer } from "@/services/postComposerNavigation";
 export default function FeedScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
   const localDemoPosts = useAppStore((state) => state.demoPosts);
+  const currentAreaName = useAppStore((state) => state.currentAreaName);
+  const currentCity = useAppStore((state) => state.currentCity);
   const lastLocationSyncAt = useAppStore((state) => state.lastLocationSyncAt);
   const syncLocation = useLocationSync();
   const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
@@ -47,22 +49,24 @@ export default function FeedScreen() {
 
   return (
     <Screen>
-      <View className="gap-5">
+      <View>
         <AppHeader />
-        <PageHeader
-          title="Vicino a te"
-          subtitle="Conversazioni che esistono qui, adesso."
-          action={<HeaderIconButton icon="add" label="Pubblica un post" onPress={openPostComposer} />}
-        />
-        <View className="flex-row items-center justify-between gap-3 rounded-card bg-surface px-3 py-2.5">
-          <View className="flex-1 flex-row items-center gap-2">
-            <Ionicons name={lastLocationSyncAt ? "location" : "location-outline"} size={18} color={lastLocationSyncAt ? "#16808a" : "#62717a"} />
-            <Text className="text-sm font-medium text-ink">{lastLocationSyncAt ? `GPS attivo · raggio ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
+        <View className="-mx-4 flex-row items-end gap-3 bg-primary-strong px-4 pb-4 pt-1">
+          <View className="flex-1">
+            <Text className="text-xs text-white/70">Sei nei dintorni di</Text>
+            <Text className="mt-0.5 text-xl font-bold text-white">{currentAreaName ?? currentCity ?? "Area da aggiornare"}</Text>
+            <Text className="mt-0.5 text-xs text-white/70">{lastLocationSyncAt ? `GPS attivo · entro ${radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}` : "Posizione da aggiornare"}</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione e feed" accessibilityState={{ busy: isRefreshingLocation, disabled: isRefreshingLocation }} disabled={isRefreshingLocation} onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="min-h-11 min-w-11 items-center justify-center px-2">
-            {isRefreshingLocation ? <ActivityIndicator size="small" color="#16808a" /> : <Ionicons name="refresh" size={19} color="#16808a" />}
+          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione e feed" accessibilityState={{ busy: isRefreshingLocation, disabled: isRefreshingLocation }} disabled={isRefreshingLocation} onPress={() => void (demoMode ? feed.refetch() : refreshPositionAndFeed())} className="h-11 w-11 items-center justify-center rounded-card bg-white/15">
+            {isRefreshingLocation ? <ActivityIndicator size="small" color="#ffffff" /> : <Ionicons name="refresh" size={19} color="#ffffff" />}
           </Pressable>
         </View>
+        <View className="gap-5 pt-5">
+          <PageHeader
+            title="Vicino a te"
+            subtitle="Conversazioni attive ora"
+            action={<HeaderIconButton icon="add" label="Pubblica un post" onPress={openPostComposer} />}
+          />
         {isRefreshingLocation ? <Text accessibilityLiveRegion="polite" className="-mt-3 text-xs font-medium text-primary">Aggiorno posizione e contenuti vicini...</Text> : null}
         {!demoMode && !lastLocationSyncAt ? (
           <View className="border-y border-border py-4">
@@ -98,6 +102,7 @@ export default function FeedScreen() {
               <FeedPostCard post={post} />
             </Pressable>
           ))}
+        </View>
         </View>
       </View>
     </Screen>

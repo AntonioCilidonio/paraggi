@@ -15,6 +15,26 @@ function areaIdentity(item: AreaHistory) {
   return `${name}|${city}|${item.areas?.country_code ?? "IT"}`;
 }
 
+export function normalizeAreaHistory(value: unknown): AreaHistory[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is AreaHistory => {
+    if (!item || typeof item !== "object") return false;
+    const candidate = item as Partial<AreaHistory>;
+    return typeof candidate.id === "string" &&
+      typeof candidate.area_id === "string" &&
+      typeof candidate.first_seen_at === "string" &&
+      typeof candidate.last_seen_at === "string";
+  }).map((item) => ({
+    ...item,
+    post_count: Number.isFinite(Number(item.post_count)) ? Number(item.post_count) : 0,
+    comment_count: Number.isFinite(Number(item.comment_count)) ? Number(item.comment_count) : 0,
+    connection_count: Number.isFinite(Number(item.connection_count)) ? Number(item.connection_count) : 0,
+    areas: item.areas && typeof item.areas === "object" && !Array.isArray(item.areas)
+      ? item.areas
+      : null,
+  }));
+}
+
 export function deduplicateAreas(items: AreaHistory[]) {
   const unique = new Map<string, AreaHistory>();
   for (const item of items) {

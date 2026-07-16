@@ -46,14 +46,17 @@ export default function LoginScreen() {
 
   return (
     <Screen>
-      <View className="mt-12 gap-6">
-        <View>
-          <Text className="text-3xl font-bold text-ink">Paraggi</Text>
-          <Text className="mt-2 text-base leading-6 text-muted">
+      <View className="gap-6">
+        <View className="-mx-4 -mt-3 gap-3 bg-primary-strong px-4 pb-8 pt-12">
+          <View className="h-12 w-12 items-center justify-center rounded-card bg-white/15">
+            <Text className="text-xl font-bold text-white">P</Text>
+          </View>
+          <Text className="text-3xl font-bold text-white">Paraggi</Text>
+          <Text className="text-base leading-6 text-white/70">
             La piazza digitale delle persone vicine.
           </Text>
         </View>
-        <View className="gap-3">
+        <View className="gap-3 rounded-card bg-white p-4">
           <Controller
             control={control}
             name="email"
@@ -62,7 +65,7 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 placeholder="Email"
-                className="min-h-12 rounded-card border border-border px-3 text-ink"
+                className="min-h-12 rounded-card border border-border bg-bg px-3 text-ink"
                 value={field.value}
                 onChangeText={field.onChange}
               />
@@ -75,7 +78,7 @@ export default function LoginScreen() {
               <TextInput
                 secureTextEntry
                 placeholder="Password"
-                className="min-h-12 rounded-card border border-border px-3 text-ink"
+                className="min-h-12 rounded-card border border-border bg-bg px-3 text-ink"
                 value={field.value}
                 onChangeText={field.onChange}
               />
@@ -88,6 +91,7 @@ export default function LoginScreen() {
           ) : null}
           <Button
             label="Accedi"
+            variant="accent"
             onPress={handleSubmit(submit)}
             disabled={formState.isSubmitting}
           />

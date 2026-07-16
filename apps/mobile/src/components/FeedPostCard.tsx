@@ -6,6 +6,7 @@ import {
 } from "@/components/PostAttachments";
 import { PostCategoryPill } from "@/components/PostCategoryPill";
 import { getAvatarUrl } from "@/services/avatar";
+import { getPostCategoryTheme } from "@/design/postCategories";
 
 export type FeedPost = {
   id: string;
@@ -43,20 +44,21 @@ export function FeedPostCard({
   );
   const initial = post.display_name.slice(0, 1).toUpperCase();
   const avatarUrl = getAvatarUrl(post.avatar_path);
+  const categoryTheme = getPostCategoryTheme(post.category);
 
   return (
-    <View className="gap-3 rounded-card border border-border bg-white p-4">
+    <View className={`gap-2.5 rounded-card p-3 ${categoryTheme.surfaceClass}`}>
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 flex-row gap-3">
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} className="h-10 w-10 rounded-full bg-surface" accessibilityLabel={`Foto profilo di ${post.display_name}`} />
           ) : (
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-surface">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-white/70">
               <Text className="font-bold text-primary">{initial}</Text>
             </View>
           )}
           <View className="flex-1">
-            <Text className="font-semibold text-ink">{post.display_name}</Text>
+              <Text className="font-medium text-ink">{post.display_name}</Text>
             <Text className="mt-1 text-xs text-muted" numberOfLines={1}>
               {post.area_name ?? "Area vicina"}
               {post.city ? `, ${post.city}` : ""} ·{" "}
@@ -71,24 +73,24 @@ export function FeedPostCard({
         attachments={post.attachments}
         compact={mediaMode === "preview"}
       />
-      <View className="flex-row items-center gap-4 border-t border-border pt-3">
+      <View className="flex-row items-center gap-4 border-t border-ink/10 pt-2.5">
         <View className="flex-row items-center gap-1">
           <Ionicons name="chatbubble-outline" size={15} color="#62717a" />
-          <Text className="text-xs font-semibold text-muted">
+          <Text className="text-xs font-medium text-muted">
             {post.comment_count}
           </Text>
         </View>
         <View className="flex-row items-center gap-1">
           <Ionicons name="time-outline" size={16} color="#62717a" />
-          <Text className="text-xs font-semibold text-muted">
+          <Text className="text-xs font-medium text-muted">
             {minutesLeft < 60
               ? `${minutesLeft} min`
               : `${Math.ceil(minutesLeft / 60)} h`}
           </Text>
         </View>
         <View className="ml-auto flex-row items-center gap-1">
-          <Ionicons name="shield-checkmark-outline" size={15} color="#16808a" />
-          <Text className="text-xs font-semibold text-primary">
+          <Ionicons name="shield-checkmark-outline" size={15} color="#3b82c4" />
+          <Text className="text-xs font-medium text-primary">
             Affidabilita {post.reputation_score}
           </Text>
         </View>

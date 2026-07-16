@@ -6,9 +6,9 @@ export function PostCategoryPill({ category }: { category: string }) {
   const theme = getPostCategoryTheme(category);
 
   return (
-    <View className={`flex-row items-center gap-1 rounded-full border px-2.5 py-1.5 ${theme.backgroundClass} ${theme.borderClass}`}>
+    <View className={`flex-row items-center gap-1 rounded-card px-2.5 py-1.5 ${theme.backgroundClass}`}>
       <Ionicons name={theme.icon} size={14} color={theme.iconColor} />
-      <Text className={`text-xs font-semibold ${theme.textClass}`}>{theme.label}</Text>
+      <Text className={`text-xs font-medium ${theme.textClass}`}>{theme.label}</Text>
     </View>
   );
 }

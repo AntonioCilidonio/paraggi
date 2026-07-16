@@ -18,25 +18,45 @@ Deno.serve(
     const { user, adminClient } = await requireUser(req);
     const payload = await readJson<Payload>(req);
 
-    const { data: requestRow } = await adminClient
+    const { data: requestRow, error: requestError } = await adminClient
       .from("connection_requests")
       .select("*")
       .eq("id", payload.requestId)
-      .single();
-    if (
-      !requestRow ||
-      requestRow.recipient_id !== user.id ||
-      requestRow.status !== "pending"
-    ) {
+      .maybeSingle();
+    if (requestError) {
+      return jsonResponse(
+        { error: "request_lookup_failed", details: requestError.message },
+        400,
+      );
+    }
+    if (!requestRow || requestRow.recipient_id !== user.id) {
       return jsonResponse({ error: "request_not_respondable" }, 403);
+    }
+
+    const participantPair = [requestRow.requester_id, requestRow.recipient_id]
+      .sort()
+      .join(":");
+
+    // Mobile retries and double taps are normal on a slow connection. Returning
+    // the current state keeps this command idempotent and avoids a false 403.
+    if (requestRow.status !== "pending") {
+      const { data: existingChat } = requestRow.status === "accepted"
+        ? await adminClient
+          .from("private_chats")
+          .select("*")
+          .eq("participant_pair", participantPair)
+          .maybeSingle()
+        : { data: null };
+      return jsonResponse({
+        status: requestRow.status,
+        chat: existingChat ?? null,
+        alreadyResponded: true,
+      });
     }
 
     const status = payload.accept ? "accepted" : "rejected";
     let chat = null;
     if (payload.accept) {
-      const participantPair = [requestRow.requester_id, requestRow.recipient_id]
-        .sort()
-        .join(":");
       const { data: existingChat } = await adminClient
         .from("private_chats")
         .select("*")

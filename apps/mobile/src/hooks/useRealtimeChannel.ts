@@ -75,6 +75,10 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
           void queryClient.invalidateQueries({ queryKey: ["chats"] });
         }
       });
+      channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["profile-summary"] });
+        void queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
+      });
     }
 
     void channel.subscribe();

@@ -45,6 +45,7 @@ const messages: Record<string, string> = {
   reconnect_source_missing:
     "Non riesco a recuperare la conversazione originale.",
   request_not_respondable: "Questa richiesta non e piu accettabile.",
+  request_lookup_failed: "Non riesco a verificare questa richiesta. Riprova.",
   request_update_failed: "La richiesta non e stata aggiornata. Riprova.",
   create_chat_failed: "Chat non creata. Riprova.",
   chat_not_active: "Chat sospesa: tornate vicini per inviare messaggi.",

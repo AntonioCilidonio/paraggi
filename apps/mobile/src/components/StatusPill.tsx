@@ -7,7 +7,7 @@ type Props = {
 
 export function StatusPill({ label, tone = "neutral" }: Props) {
   const toneClass = tone === "success"
-    ? "bg-success"
+    ? "bg-primary"
     : tone === "danger"
       ? "bg-danger"
       : tone === "warning"
@@ -15,9 +15,8 @@ export function StatusPill({ label, tone = "neutral" }: Props) {
         : "bg-surface border border-border";
 
   return (
-    <View className={`self-start rounded-full px-3 py-1 ${toneClass}`}>
+    <View className={`self-start rounded-card px-3 py-1 ${toneClass}`}>
       <Text className={tone === "neutral" ? "text-xs font-medium text-muted" : "text-xs font-semibold text-white"}>{label}</Text>
     </View>
   );
 }
-

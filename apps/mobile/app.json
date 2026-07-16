@@ -6,7 +6,12 @@
     "version": "1.0.0",
     "icon": "./assets/paraggi-icon.png",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
+    "androidStatusBar": {
+      "backgroundColor": "#3B82C4",
+      "barStyle": "light-content",
+      "translucent": true
+    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
@@ -22,7 +27,7 @@
       "versionCode": 100,
       "adaptiveIcon": {
         "foregroundImage": "./assets/paraggi-icon.png",
-        "backgroundColor": "#16808A"
+        "backgroundColor": "#3B82C4"
       },
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
     },

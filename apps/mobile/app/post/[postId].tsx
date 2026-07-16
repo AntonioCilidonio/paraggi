@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
 import { FeedPostCard } from "@/components/FeedPostCard";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
@@ -26,6 +27,16 @@ type CommentRow = {
   body: string;
   created_at: string;
   rating?: -1 | 1 | null;
+};
+
+type PostDetailData = {
+  post: FeedPost | null;
+  comments: CommentRow[];
+};
+
+type ExistingChat = {
+  id: string;
+  is_connected: boolean;
 };
 
 const emptyDemoComments: CommentRow[] = [];
@@ -83,8 +94,9 @@ export default function PostDetailScreen() {
     defaultValues: { body: "" },
   });
   useRealtimeChannel(postId ? { type: "post-comments", postId } : null);
+  const detailQueryKey = ["post-detail", postId, radiusMeters] as const;
   const detail = useQuery({
-    queryKey: ["post-detail", postId, radiusMeters],
+    queryKey: detailQueryKey,
     enabled: hasPostId,
     queryFn: async () => {
       if (!hasPostId) throw new Error("Post non ancora caricato.");
@@ -118,6 +130,31 @@ export default function PostDetailScreen() {
   });
   const selectedPost = detail.data?.post;
   const comments = detail.data?.comments ?? [];
+  const existingChat = useQuery({
+    queryKey: ["post-author-chat", currentUser.data?.id, selectedPost?.author_id],
+    enabled: Boolean(
+      !demoMode &&
+      currentUser.data?.id &&
+      selectedPost?.author_id &&
+      currentUser.data.id !== selectedPost.author_id,
+    ),
+    queryFn: async (): Promise<ExistingChat | null> => {
+      if (!currentUser.data?.id || !selectedPost?.author_id) return null;
+      const participantPair = [currentUser.data.id, selectedPost.author_id]
+        .sort()
+        .join(":");
+      const { data, error } = await supabase
+        .from("private_chats")
+        .select("id,is_connected")
+        .eq("participant_pair", participantPair)
+        .maybeSingle();
+      if (error) throw error;
+      return data as ExistingChat | null;
+    },
+  });
+  const activeChatId = existingChat.data?.is_connected
+    ? existingChat.data.id
+    : null;
   const isOwnPost =
     demoMode ||
     Boolean(
@@ -155,16 +192,49 @@ export default function PostDetailScreen() {
   const rateComment = useMutation({
     mutationFn: async ({ commentId, rating }: { commentId: string; rating: -1 | 1 }) => {
       setCommentError(null);
-      if (demoMode) return { rating, reputationDelta: rating };
-      return callFunction<{ rating: -1 | 1; reputationDelta: number }>("rate-comment", {
+      if (demoMode) return { rating, reputation: 100, reputationDelta: rating };
+      return callFunction<{ rating: -1 | 1; reputationScore: number; reputationDelta: number }>("rate-comment", {
         body: { commentId, rating },
       });
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
-      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    onMutate: async ({ commentId, rating }) => {
+      await queryClient.cancelQueries({ queryKey: detailQueryKey });
+      const previous = queryClient.getQueryData<PostDetailData>(detailQueryKey);
+      queryClient.setQueryData<PostDetailData>(detailQueryKey, (current) =>
+        current
+          ? {
+              ...current,
+              comments: current.comments.map((comment) =>
+                comment.id === commentId ? { ...comment, rating } : comment,
+              ),
+            }
+          : current,
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onSuccess: async (result, variables) => {
+      queryClient.setQueryData<PostDetailData>(detailQueryKey, (current) =>
+        current
+          ? {
+              ...current,
+              comments: current.comments.map((comment) =>
+                comment.id === variables.commentId
+                  ? { ...comment, rating: result.rating }
+                  : comment,
+              ),
+            }
+          : current,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["post-detail", postId] }),
+        queryClient.invalidateQueries({ queryKey: ["profile-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["nearby-feed"] }),
+      ]);
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailQueryKey, context.previous);
+      }
       setCommentError(getFriendlyError(error, "Valutazione non salvata. Riprova."));
     },
   });
@@ -200,6 +270,10 @@ export default function PostDetailScreen() {
         },
       });
       if (result.alreadyConnected && result.chat?.id) {
+        queryClient.setQueryData(
+          ["post-author-chat", currentUser.data?.id, selectedPost.author_id],
+          { id: result.chat.id, is_connected: true },
+        );
         router.push(`/chat/${result.chat.id}`);
         return;
       }
@@ -219,23 +293,19 @@ export default function PostDetailScreen() {
   );
 
   return (
-    <Screen>
+    <Screen showBottomBar>
       <View className="gap-5">
-        <View className="flex-row items-start justify-between gap-3 border-b border-border pb-4">
-          <View className="flex-1">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Torna al feed"
-              onPress={() => router.back()}
-              className="mb-3 h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
-            >
-              <Ionicons name="arrow-back" size={21} color="#17232b" />
-            </Pressable>
-            <Text className="text-2xl font-bold text-ink">Conversazione</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">
-              Commento pubblico, poi chat privata di vicinanza.
-            </Text>
-          </View>
+        <AppHeader />
+        <View className="flex-row items-center gap-3 pb-1">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Torna al feed"
+            onPress={() => router.back()}
+            className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white"
+          >
+            <Ionicons name="arrow-back" size={21} color="#1a2027" />
+          </Pressable>
+          <Text className="text-xl font-bold text-ink">Conversazione</Text>
         </View>
         {detail.isError ? (
           <View className="gap-3 rounded-card border border-border bg-surface p-4">
@@ -276,11 +346,15 @@ export default function PostDetailScreen() {
         ) : null}
         {!isOwnPost ? (
           <Button
-            label="Richiedi chat privata"
-            icon="chatbubble-outline"
+            label={activeChatId ? "Vai alla chat privata" : "Richiedi chat privata"}
+            icon={activeChatId ? "chatbubbles" : "chatbubble-outline"}
             variant="secondary"
-            disabled={!selectedPost}
-            onPress={() => void requestPrivateConnection()}
+            disabled={!selectedPost || existingChat.isLoading}
+            onPress={() =>
+              activeChatId
+                ? router.push(`/chat/${activeChatId}`)
+                : void requestPrivateConnection()
+            }
           />
         ) : null}
         {connectionError ? (
@@ -290,12 +364,12 @@ export default function PostDetailScreen() {
         ) : null}
         {comments.map((comment) => (
           <View key={comment.id} className="flex-row items-start gap-3">
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-surface">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-white">
               <Text className="font-bold text-primary">
                 {(comment.display_name ?? "U").slice(0, 1).toUpperCase()}
               </Text>
             </View>
-            <View className="flex-1 rounded-card bg-surface p-3">
+            <View className="flex-1 rounded-card bg-primary-soft p-3">
               <Text className="mb-1 text-xs font-semibold text-muted">
                 {comment.display_name ?? "Utente vicino"} ·{" "}
                 {new Date(comment.created_at).toLocaleTimeString("it-IT", {
@@ -305,7 +379,7 @@ export default function PostDetailScreen() {
               </Text>
               <Text className="text-ink">{comment.body}</Text>
               {isOwnPost && comment.author_id !== currentUser.data?.id ? (
-                <View className="mt-3 flex-row items-center gap-2 border-t border-border pt-2">
+                <View className="mt-3 flex-row items-center gap-2 border-t border-ink/10 pt-2">
                   <Text className="mr-auto text-xs font-medium text-muted">Commento utile?</Text>
                   {([-1, 1] as const).map((rating) => {
                     const selected = comment.rating === rating;
@@ -320,7 +394,11 @@ export default function PostDetailScreen() {
                         onPress={() => rateComment.mutate({ commentId: comment.id, rating })}
                         className={`h-11 w-11 items-center justify-center rounded-card border ${selected ? "border-primary bg-primary" : "border-border bg-white"}`}
                       >
-                        <Ionicons name={isUp ? "thumbs-up" : "thumbs-down"} size={18} color={selected ? "#ffffff" : "#62717a"} />
+                        <Ionicons
+                          name={selected ? (isUp ? "thumbs-up" : "thumbs-down") : (isUp ? "thumbs-up-outline" : "thumbs-down-outline")}
+                          size={19}
+                          color={selected ? "#ffffff" : "#62717a"}
+                        />
                       </Pressable>
                     );
                   })}
@@ -334,7 +412,7 @@ export default function PostDetailScreen() {
             </View>
           </View>
         ))}
-        <View className="flex-row items-end gap-2 border-t border-border pt-4">
+        <View className="flex-row items-end gap-2 border-t border-border bg-bg pt-4">
           <Controller
             control={control}
             name="body"
@@ -361,7 +439,7 @@ export default function PostDetailScreen() {
             }}
             disabled={!canComment || createComment.isPending}
             onPress={handleSubmit((values) => createComment.mutate(values))}
-            className="h-12 w-12 items-center justify-center rounded-card bg-primary disabled:opacity-50"
+            className="h-12 w-12 items-center justify-center rounded-card bg-accent disabled:opacity-50"
           >
             <Ionicons name="send" size={19} color="#ffffff" />
           </Pressable>

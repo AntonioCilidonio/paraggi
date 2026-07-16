@@ -1,11 +1,15 @@
+import type { ErrorBoundaryProps } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef } from "react";
 import { Alert, Linking, Platform, Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { callFunction } from "@/services/api";
+import { captureClientError } from "@/services/clientLogger";
+import { getSafeDangerCoordinates } from "@/services/dangerAlert";
 import { getFriendlyError } from "@/services/errors";
 
 type DangerAlert = {
@@ -27,6 +31,30 @@ type DangerAlert = {
   false_alarm_count: number;
 };
 
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const loggedMessageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loggedMessageRef.current === error.message) return;
+    loggedMessageRef.current = error.message;
+    captureClientError("danger_alert_screen_error", error, {}, "fatal");
+  }, [error]);
+
+  return (
+    <Screen>
+      <View className="mt-4 gap-4">
+        <Text className="text-2xl font-bold text-ink">SOS non disponibile</Text>
+        <Text className="text-sm leading-5 text-muted">
+          La richiesta di aiuto non si e aperta correttamente. Puoi riprovare
+          senza chiudere l'app.
+        </Text>
+        <Button label="Riprova" onPress={retry} />
+        <Button label="Torna al feed" variant="secondary" onPress={() => router.replace("/feed")} />
+      </View>
+    </Screen>
+  );
+}
+
 export default function DangerAlertScreen() {
   const params = useLocalSearchParams<{ alertId?: string | string[] }>();
   const alertId = Array.isArray(params.alertId) ? params.alertId[0] : params.alertId;
@@ -36,6 +64,7 @@ export default function DangerAlertScreen() {
     queryFn: async () => callFunction<{ alert: DangerAlert }>("get-danger-alert", { method: "GET", query: { alertId: alertId ?? "" } })
   });
   const item = alert.data?.alert;
+  const coordinates = getSafeDangerCoordinates(item);
 
   async function sendFeedback(verdict: "helpful" | "false_alarm") {
     if (!alertId) return;
@@ -59,24 +88,24 @@ export default function DangerAlertScreen() {
   }
 
   function openNavigation() {
-    if (!item) return;
+    if (!coordinates) return;
     const label = encodeURIComponent("SOS Paraggi");
     const url = Platform.OS === "ios"
-      ? `maps://?q=${label}&ll=${item.latitude},${item.longitude}`
-      : `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}(${label})`;
+      ? `maps://?q=${label}&ll=${coordinates.latitude},${coordinates.longitude}`
+      : `geo:${coordinates.latitude},${coordinates.longitude}?q=${coordinates.latitude},${coordinates.longitude}(${label})`;
     void Linking.openURL(url);
   }
 
   return (
-    <Screen>
+    <Screen showBottomBar>
       <View className="gap-5">
-        <View className="flex-row items-center gap-3 border-b border-border pb-4">
-          <Pressable accessibilityRole="button" accessibilityLabel="Torna indietro" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
-            <Ionicons name="arrow-back" size={21} color="#17232b" />
+        <View className="-mx-4 -mt-3 flex-row items-center gap-3 bg-primary-strong px-4 pb-5 pt-4">
+          <Pressable accessibilityRole="button" accessibilityLabel="Torna indietro" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-white/20 bg-white/10">
+            <Ionicons name="arrow-back" size={21} color="#ffffff" />
           </Pressable>
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-ink">Richiesta di aiuto</Text>
-            <Text className="mt-1 text-sm text-muted">Posizione condivisa per raggiungere l'utente.</Text>
+            <Text className="text-2xl font-bold text-white">Richiesta di aiuto</Text>
+            <Text className="mt-1 text-sm text-white/70">Posizione condivisa per raggiungere l'utente.</Text>
           </View>
         </View>
 
@@ -91,26 +120,31 @@ export default function DangerAlertScreen() {
 
         {item ? (
           <>
-            <View className="gap-2 rounded-card border border-danger bg-white p-4">
+            <View className="gap-2 rounded-card bg-category-emergency p-4">
               <View className="flex-row items-center gap-2"><Ionicons name="warning" size={22} color="#b42318" /><Text className="text-lg font-bold text-danger">{item.active ? "SOS attivo" : "SOS concluso"}</Text></View>
               <Text className="text-base leading-6 text-ink">{item.message}</Text>
               <Text className="text-sm text-muted">Inviato da {item.author_name}{item.distance_meters !== null ? ` · a circa ${item.distance_meters} m da te` : ""}</Text>
             </View>
 
-            <View className="overflow-hidden rounded-card border border-border bg-surface" style={{ height: 310 }}>
-              <MapView
-                style={{ flex: 1 }}
-                initialRegion={{ latitude: item.latitude, longitude: item.longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
-                showsUserLocation
-                showsMyLocationButton
-              >
-                <Marker coordinate={{ latitude: item.latitude, longitude: item.longitude }} title="SOS Paraggi" description={item.message} pinColor="#b42318" />
-              </MapView>
-            </View>
+            {coordinates ? (
+              <View className="overflow-hidden rounded-card bg-primary-soft" style={{ height: 310 }}>
+                <MapView
+                  style={{ flex: 1 }}
+                  initialRegion={{ ...coordinates, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
+                >
+                  <Marker coordinate={coordinates} title="SOS Paraggi" description={item.message} pinColor="#b42318" />
+                </MapView>
+              </View>
+            ) : (
+              <View className="gap-2 rounded-card border border-danger bg-surface p-4">
+                <Text className="font-semibold text-danger">Posizione SOS non valida</Text>
+                <Text className="text-sm leading-5 text-muted">La richiesta e visibile, ma la posizione ricevuta non puo essere mostrata in sicurezza.</Text>
+              </View>
+            )}
             <Text className="text-sm leading-5 text-muted">
               {item.share_precise_coordinates ? "L'utente ha scelto di condividere la posizione precisa per questo SOS." : "La mappa mostra soltanto un'area approssimativa per proteggere la posizione dell'utente."}
             </Text>
-            <Button label="Apri nel navigatore" icon="navigate" variant="danger" onPress={openNavigation} />
+            <Button label="Apri nel navigatore" icon="navigate" variant="danger" disabled={!coordinates} onPress={openNavigation} />
             {!item.viewer_is_author ? (
               <View className="gap-3 border-t border-border pt-4">
                 <View>

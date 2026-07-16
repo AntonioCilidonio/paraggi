@@ -40,23 +40,23 @@ type HeatmapResponse = {
 const levelMeta: Record<HeatmapLevel, { label: string; tone: "success" | "neutral" | "warning"; dotClass: string; ringClass: string; textClass: string }> = {
   high: {
     label: "molto attiva",
-    tone: "success",
-    dotClass: "bg-success",
-    ringClass: "border-success bg-success/20",
-    textClass: "text-success"
+    tone: "neutral",
+    dotClass: "bg-primary",
+    ringClass: "border-primary bg-primary/25",
+    textClass: "text-primary"
   },
   medium: {
     label: "attiva",
     tone: "neutral",
-    dotClass: "bg-primary",
-    ringClass: "border-primary bg-primary/20",
-    textClass: "text-primary"
+    dotClass: "bg-warning",
+    ringClass: "border-warning bg-warning/20",
+    textClass: "text-warning"
   },
   low: {
     label: "tranquilla",
     tone: "warning",
-    dotClass: "bg-warning",
-    ringClass: "border-warning bg-warning/25",
+    dotClass: "bg-muted",
+    ringClass: "border-muted bg-white/50",
     textClass: "text-muted"
   }
 };
@@ -64,20 +64,6 @@ const levelMeta: Record<HeatmapLevel, { label: string; tone: "success" | "neutra
 function formatDistance(meters: number) {
   if (meters >= 1000) return `${(meters / 1000).toFixed(meters >= 1500 ? 1 : 0)} km`;
   return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
-}
-
-function formatActivityTime(value: string | null) {
-  if (!value) return "attivita recente";
-  const minutes = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 60) return `${minutes} min fa`;
-  const hours = Math.round(minutes / 60);
-  return `${hours} h fa`;
-}
-
-function explainLevel(zone: HeatmapZone) {
-  if (zone.activity_level === "high") return "Qui ci sono molte conversazioni recenti: utile per domande rapide, eventi e avvisi.";
-  if (zone.activity_level === "medium") return "Zona viva ma leggibile: abbastanza post per orientarti senza rumore.";
-  return "Poche conversazioni attive: la zona e calma o i post sono quasi scaduti.";
 }
 
 export default function HeatmapScreen() {
@@ -159,7 +145,7 @@ export default function HeatmapScreen() {
           ) : null}
 
           {!heatmap.isLoading && !heatmap.data?.needsLocation && zones.length > 0 ? (
-            <View className="relative h-96 overflow-hidden rounded-card border border-border bg-surface">
+            <View className="relative h-96 overflow-hidden rounded-card bg-primary-soft">
               <View className="absolute left-[-40px] top-24 h-0.5 w-[480px] rotate-12 bg-border" />
               <View className="absolute left-[-45px] top-64 h-0.5 w-[480px] -rotate-12 bg-border" />
               <View className="absolute left-40 top-[-40px] h-[480px] w-0.5 rotate-12 bg-border" />
@@ -167,7 +153,7 @@ export default function HeatmapScreen() {
                 const size = bubbleSize(zone);
                 const position = mapPositions[index] ?? mapPositions[0];
                 const selected = selectedZone?.id === zone.id;
-                const toneClass = zone.activity_level === "high" ? "border-success bg-success/20" : zone.activity_level === "medium" ? "border-primary bg-primary/20" : "border-warning bg-warning/20";
+                const toneClass = zone.activity_level === "high" ? "border-primary bg-primary/25" : zone.activity_level === "medium" ? "border-warning bg-warning/20" : "border-muted bg-white/50";
                 return (
                   <Pressable
                     key={zone.id}
@@ -182,28 +168,34 @@ export default function HeatmapScreen() {
                   </Pressable>
                 );
               })}
-              <View className="absolute bottom-3 left-3 right-3 flex-row items-center justify-between rounded-card bg-white px-3 py-2">
-                <Text className="text-xs font-semibold text-warning">● Tranquilla</Text>
-                <Text className="text-xs font-semibold text-primary">● Attiva</Text>
-                <Text className="text-xs font-semibold text-success">● Molto attiva</Text>
+              <View className="absolute bottom-3 left-3 right-3 flex-row items-center justify-between rounded-card bg-primary-strong px-3 py-2">
+                <Text className="text-xs font-semibold text-white/70">● Tranquilla</Text>
+                <Text className="text-xs font-semibold text-white">● Attiva</Text>
+                <Text className="text-xs font-semibold text-primary-soft">● Molto attiva</Text>
               </View>
             </View>
           ) : null}
 
-          {selectedZone ? (
-            <View className="rounded-card border border-border bg-white p-4">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="font-semibold text-ink">{selectedZone.name}</Text>
-                  <Text className="mt-1 text-sm text-muted">{selectedZone.city ?? "Area vicina"} - circa {formatDistance(selectedZone.distance_meters)}</Text>
-                </View>
-                <StatusPill label={levelMeta[selectedZone.activity_level].label} tone={levelMeta[selectedZone.activity_level].tone} />
-              </View>
-              <Text className="mt-3 text-sm leading-5 text-muted">{explainLevel(selectedZone)}</Text>
-              <View className="mt-3 flex-row items-center gap-2">
-                <Ionicons name="time-outline" size={15} color="#62717a" />
-                <Text className="text-xs font-semibold text-muted">Ultima attivita: {formatActivityTime(selectedZone.latest_activity_at)}</Text>
-              </View>
+          {zones.length > 0 ? (
+            <View className="overflow-hidden rounded-card bg-white px-3">
+              {zones.slice(0, 4).map((zone) => (
+                <Pressable
+                  key={zone.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Seleziona ${zone.name}`}
+                  onPress={() => setSelectedZoneId(zone.id)}
+                  className="flex-row items-center gap-3 border-b border-border py-3 last:border-b-0"
+                >
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
+                    <Text className="font-medium text-primary">{zone.name.slice(0, 1).toUpperCase()}</Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium text-ink">{zone.name}</Text>
+                    <Text className="mt-0.5 text-xs text-muted">{zone.post_count} post · circa {formatDistance(zone.distance_meters)}</Text>
+                  </View>
+                  {zone.activity_level === "high" ? <StatusPill label="Molto attiva" tone="success" /> : <Ionicons name="chevron-forward" size={18} color="#7f8791" />}
+                </Pressable>
+              ))}
             </View>
           ) : null}
         </View>

@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Pressable, Switch, Text, TextInput, Vibration, View } from "react-native";
 import { Button } from "@/components/Button";
 import { AppHeader } from "@/components/AppHeader";
-import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
+import { StatusPill } from "@/components/StatusPill";
 import { demoMode, env } from "@/config/env";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { usePushRegistration } from "@/hooks/usePushRegistration";
@@ -24,13 +24,6 @@ import { useAppStore } from "@/stores/appStore";
 function formatTime(value: string | null) {
   if (!value) return "mai";
   return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function reputationLabel(score: number) {
-  if (score >= 75) return "Affidabilita alta";
-  if (score >= 40) return "Affidabilita consolidata";
-  if (score >= 15) return "Affidabilita in crescita";
-  return "Nuovo nella piazza";
 }
 
 export default function ProfileScreen() {
@@ -57,6 +50,8 @@ export default function ProfileScreen() {
   const [pickedAvatar, setPickedAvatar] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
+  const [showRadiusPicker, setShowRadiusPicker] = useState(false);
+  const [showSosControls, setShowSosControls] = useState(false);
   const profileRadiusHydratedRef = useRef(false);
   const profile = useQuery({
     queryKey: ["profile-summary"],
@@ -289,34 +284,32 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <View className="gap-6">
+      <View>
         <AppHeader />
-        <PageHeader title="Profilo" subtitle="Privacy, raggio e sicurezza." action={
-          <Pressable accessibilityRole="button" accessibilityLabel={isEditingProfile ? "Annulla modifica profilo" : "Modifica profilo"} onPress={() => isEditingProfile ? setIsEditingProfile(false) : startEditingProfile()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
-            <Ionicons name={isEditingProfile ? "close" : "pencil-outline"} size={20} color="#17232b" />
-          </Pressable>
-        } />
-
-        <View className="flex-row items-center gap-3">
+        <View className="-mx-4 flex-row items-center gap-3 bg-primary-strong px-4 pb-5 pt-1">
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} className="h-14 w-14 rounded-full bg-surface" accessibilityLabel="Foto profilo" />
+            <Image source={{ uri: avatarUrl }} className="h-16 w-16 rounded-full bg-white/15" accessibilityLabel="Foto profilo" />
           ) : (
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-surface">
-              <Text className="text-lg font-bold text-primary">{(profile.data?.display_name ?? "P").slice(0, 2).toUpperCase()}</Text>
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-white/15">
+              <Text className="text-lg font-bold text-white">{(profile.data?.display_name ?? "P").slice(0, 2).toUpperCase()}</Text>
             </View>
           )}
           <View className="flex-1">
-            <Text className="text-lg font-bold text-ink">{profile.data?.display_name ?? "Profilo Paraggi"}</Text>
-            <View className="mt-1 flex-row items-center gap-1.5">
-              <Ionicons name="shield-checkmark-outline" size={15} color="#16808a" />
-              <Text className="text-xs font-semibold text-muted">{reputationLabel(reputationScore)} · {reputationScore} punti locali</Text>
-            </View>
-            {profile.data?.bio ? <Text className="mt-2 text-sm leading-5 text-muted">{profile.data.bio}</Text> : null}
+            <Text className="text-lg font-bold text-white">{profile.data?.display_name ?? "Profilo Paraggi"}</Text>
+            {profile.data?.bio ? <Text className="mt-1 text-xs leading-5 text-white/70" numberOfLines={2}>{profile.data.bio}</Text> : null}
+          </View>
+          <View className="items-end">
+            <Text className="text-xl font-bold text-white">{reputationScore}</Text>
+            <Text className="text-xs text-white/70">Affidabilita</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={isEditingProfile ? "Annulla modifica profilo" : "Modifica profilo"} onPress={() => isEditingProfile ? setIsEditingProfile(false) : startEditingProfile()} className="mt-2 h-9 w-9 items-center justify-center rounded-card border border-white/20 bg-white/10">
+              <Ionicons name={isEditingProfile ? "close" : "pencil-outline"} size={17} color="#ffffff" />
+            </Pressable>
           </View>
         </View>
 
+        <View className="gap-6 pt-5">
         {isEditingProfile ? (
-          <View className="gap-4 border-y border-border py-5">
+          <View className="gap-4 rounded-card bg-white p-4">
             <View className="flex-row flex-wrap gap-2">
               <Button label={pickedAvatar ? "Cambia foto" : "Scegli foto"} icon="camera-outline" variant="secondary" onPress={() => void pickProfileAvatar()} />
               {(profile.data?.avatar_path || pickedAvatar) ? (
@@ -342,72 +335,56 @@ export default function ProfileScreen() {
         ) : null}
         {profileStatus ? <Text accessibilityLiveRegion="polite" className="text-sm font-semibold text-primary">{profileStatus}</Text> : null}
 
-        <View className="gap-3">
-          <Text className="font-semibold text-ink">Raggio dei post</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
-              <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => void selectRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
-            ))}
-          </View>
-        </View>
-
-        <View className="gap-4 rounded-card border border-border bg-white p-4">
-          <View className="flex-row items-start gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name={locationPermission === "granted" ? "navigate" : "navigate-outline"} size={21} color={locationPermission === "granted" ? "#16808a" : "#62717a"} /></View>
+        <View className="overflow-hidden rounded-card bg-white">
+          <Pressable accessibilityRole="button" accessibilityLabel="Aggiorna posizione" onPress={() => void requestGps()} className="flex-row items-center gap-3 border-b border-border p-3">
+            <Ionicons name="location-outline" size={20} color="#3b82c4" />
             <View className="flex-1">
-              <Text className="font-semibold text-ink">Posizione {locationPermission === "granted" ? "attiva" : locationPermission === "denied" ? "negata" : "da attivare"}</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">{lastLocationSyncAt ? `Aggiornata alle ${formatTime(lastLocationSyncAt)} · precisione ${lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "n/d"}` : gpsStatus}</Text>
-              {lastLocationTrustStatus ? <Text className="mt-1 text-xs text-muted">Affidabilita posizione: {lastLocationTrustStatus}</Text> : null}
-              {lastLocationError ? <Text className="mt-1 text-sm font-semibold text-danger">{getFriendlyError(lastLocationError)}</Text> : null}
+              <Text className="font-medium text-ink">Posizione</Text>
+              <Text className="mt-0.5 text-xs text-muted">{lastLocationSyncAt ? `GPS attivo · aggiornato alle ${formatTime(lastLocationSyncAt)}` : gpsStatus}</Text>
             </View>
-          </View>
-          <Button label="Aggiorna posizione" icon="navigate-outline" variant="secondary" onPress={() => void requestGps()} />
-
-          <View className="flex-row items-start gap-3 border-t border-border pt-4">
-            <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name={notificationPermission === "granted" ? "notifications" : "notifications-outline"} size={21} color={notificationPermission === "granted" ? "#16808a" : "#62717a"} /></View>
-            <View className="flex-1">
-              <Text className="font-semibold text-ink">Notifiche {notificationPermission === "granted" ? "consentite" : "da attivare"}</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">{
-                pushDeliveryState === "registered"
-                  ? "Push remoto registrato: gli avvisi possono arrivare anche ad app chiusa."
-                  : pushDeliveryState === "local_only"
-                    ? "Permesso attivo, ma questa build supporta solo avvisi mentre Paraggi e aperta."
-                    : pushDeliveryState === "failed"
-                      ? pushStatus
-                      : pushStatus
-              }</Text>
+            <StatusPill label={locationPermission === "granted" ? "Attivo" : "Attiva"} tone={locationPermission === "granted" ? "success" : "neutral"} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Scegli raggio di ricerca" onPress={() => setShowRadiusPicker((value) => !value)} className="flex-row items-center gap-3 border-b border-border p-3">
+            <Ionicons name="scan-outline" size={20} color="#3b82c4" />
+            <View className="flex-1"><Text className="font-medium text-ink">Raggio di ricerca</Text><Text className="mt-0.5 text-xs text-muted">Mostra contenuti entro</Text></View>
+            <Text className="font-medium text-ink">{radiusMeters >= 1000 ? `${radiusMeters / 1000} km` : `${radiusMeters} m`}</Text>
+          </Pressable>
+          {showRadiusPicker ? (
+            <View className="flex-row flex-wrap gap-2 border-b border-border bg-bg p-3">
+              {[100, 500, 1000, 5000, 30000, 60000].map((radius) => (
+                <Button key={radius} label={radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} variant={radiusMeters === radius ? "primary" : "secondary"} onPress={() => void selectRadius(radius as 100 | 500 | 1000 | 5000 | 30000 | 60000)} />
+              ))}
             </View>
-          </View>
-          <Button label="Attiva notifiche" icon="notifications-outline" variant="secondary" onPress={() => void activatePushNotifications()} />
-        </View>
-
-        <View className="gap-4 rounded-card border border-danger bg-white p-4">
-          <View>
-            <Text className="font-semibold text-danger">SOS di vicinanza</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Avvisa le persone nel raggio. Gli utenti raggiunti potranno confermare l'allarme o segnalare un abuso.</Text>
-          </View>
-          <View className="flex-row items-center justify-between gap-4">
-            <View className="flex-1">
-              <Text className="font-semibold text-ink">Condividi coordinate nell'SOS</Text>
-              <Text className="mt-1 text-sm leading-5 text-muted">Disattiva per inviare solo l'area approssimativa.</Text>
-            </View>
-            <Switch value={shareDangerCoordinates} onValueChange={setShareDangerCoordinates} trackColor={{ false: "#d9e2e3", true: "#8bc7c8" }} thumbColor={shareDangerCoordinates ? "#16808a" : "#62717a"} />
-          </View>
-          <Button label={sosIsBlocked ? "SOS temporaneamente sospeso" : "Invia SOS vicino"} icon="warning-outline" variant="danger" disabled={sosIsBlocked} onPress={confirmDangerAlert} />
-          {sosIsBlocked && sosBlockedUntil ? (
-            <Text className="text-sm font-semibold text-danger">Disponibile di nuovo il {sosBlockedUntil.toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</Text>
           ) : null}
-          {dangerStatus !== "Allarme non inviato" ? <Text className="text-sm leading-5 text-muted">{dangerStatus}</Text> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Attiva notifiche" onPress={() => void activatePushNotifications()} className="flex-row items-center gap-3 p-3">
+            <Ionicons name="notifications-outline" size={20} color="#3b82c4" />
+            <View className="flex-1"><Text className="font-medium text-ink">Notifiche</Text><Text className="mt-0.5 text-xs text-muted">Avvisi e interazioni locali</Text></View>
+            <StatusPill label={notificationPermission === "granted" ? "Attive" : "Attiva"} tone={notificationPermission === "granted" ? "success" : "neutral"} />
+          </Pressable>
         </View>
+        {lastLocationTrustStatus || lastLocationAccuracyMeters || lastLocationError ? <Text className="-mt-4 text-xs text-muted">{lastLocationError ? getFriendlyError(lastLocationError) : `Precisione ${lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "n/d"}${lastLocationTrustStatus ? ` · affidabilita ${lastLocationTrustStatus}` : ""}`}</Text> : null}
+        {pushDeliveryState === "failed" ? <Text className="-mt-4 text-xs text-danger">{pushStatus}</Text> : null}
 
-        <Pressable accessibilityRole="button" accessibilityLabel="Apri privacy e dati" onPress={() => router.push("/settings/privacy")} className="flex-row items-center gap-3 rounded-card border border-border bg-white p-4">
-          <View className="h-10 w-10 items-center justify-center rounded-card bg-surface"><Ionicons name="shield-checkmark-outline" size={22} color="#16808a" /></View>
-          <View className="flex-1">
-            <Text className="font-semibold text-ink">Privacy e dati</Text>
-            <Text className="mt-1 text-sm text-muted">Consensi, esportazione ed eliminazione account.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#62717a" />
-        </Pressable>
+        <View className="overflow-hidden rounded-card bg-white">
+          <Pressable accessibilityRole="button" accessibilityLabel="Apri SOS di vicinanza" onPress={() => setShowSosControls((value) => !value)} className="flex-row items-center gap-3 bg-category-emergency-surface p-3">
+            <Ionicons name="warning-outline" size={20} color="#963d31" />
+            <View className="flex-1"><Text className="font-medium text-ink">SOS di vicinanza</Text><Text className="mt-0.5 text-xs text-muted">Invia una richiesta urgente</Text></View>
+            <Ionicons name={showSosControls ? "chevron-up" : "chevron-forward"} size={18} color="#7f8791" />
+          </Pressable>
+          {showSosControls ? (
+            <View className="gap-3 border-t border-border bg-category-emergency-surface p-3">
+              <View className="flex-row items-center justify-between gap-3"><Text className="flex-1 text-sm text-ink">Condividi coordinate precise</Text><Switch value={shareDangerCoordinates} onValueChange={setShareDangerCoordinates} trackColor={{ false: "#d9e2e3", true: "#b8d7f0" }} thumbColor={shareDangerCoordinates ? "#3b82c4" : "#7f8791"} /></View>
+              <Button label={sosIsBlocked ? "SOS temporaneamente sospeso" : "Invia SOS vicino"} icon="warning-outline" variant="danger" disabled={sosIsBlocked} onPress={confirmDangerAlert} />
+              {sosIsBlocked && sosBlockedUntil ? <Text className="text-xs font-medium text-danger">Disponibile il {sosBlockedUntil.toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</Text> : null}
+              {dangerStatus !== "Allarme non inviato" ? <Text className="text-xs text-muted">{dangerStatus}</Text> : null}
+            </View>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Apri privacy e dati" onPress={() => router.push("/settings/privacy")} className="flex-row items-center gap-3 border-t border-border p-3">
+            <Ionicons name="shield-checkmark-outline" size={20} color="#3b82c4" />
+            <View className="flex-1"><Text className="font-medium text-ink">Privacy e dati</Text><Text className="mt-0.5 text-xs text-muted">Consensi, esportazione, account</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#7f8791" />
+          </Pressable>
+        </View>
 
         <Button label="Esci" icon="log-out-outline" variant="secondary" onPress={() => {
           if (demoMode) {
@@ -416,6 +393,7 @@ export default function ProfileScreen() {
           }
           void supabase.auth.signOut().then(() => router.replace("/(auth)/login"));
         }} />
+        </View>
       </View>
     </Screen>
   );

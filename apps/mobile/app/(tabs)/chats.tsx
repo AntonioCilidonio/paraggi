@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AppHeader } from "@/components/AppHeader";
@@ -38,6 +38,12 @@ type RequestRow = {
   reason?: string;
 };
 
+type ChatInbox = {
+  requests: RequestRow[];
+  chats: ChatRow[];
+  totalUnread: number;
+};
+
 function requestName(request: RequestRow): string {
   return request.profiles?.display_name ?? request.from ?? "Persona vicina";
 }
@@ -56,8 +62,12 @@ export default function ChatsScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const declineDemoRequest = useAppStore((state) => state.declineDemoRequest);
   const [actionError, setActionError] = useState<string | null>(null);
-  const chats = useQuery<{ requests: RequestRow[]; chats: ChatRow[]; totalUnread: number }>({
-    queryKey: ["chats", demoStatusById],
+  const [respondingAction, setRespondingAction] = useState<string | null>(null);
+  const requestActionRef = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const chatQueryKey = ["chats", demoStatusById] as const;
+  const chats = useQuery<ChatInbox>({
+    queryKey: chatQueryKey,
     queryFn: async () => {
       if (demoMode) {
         return {
@@ -89,18 +99,33 @@ export default function ChatsScreen() {
   }, [chats.refetch]));
 
   async function accept(requestId: string) {
+    if (requestActionRef.current) return;
+    requestActionRef.current = requestId;
+    setRespondingAction(`${requestId}:accept`);
     setActionError(null);
     try {
+      let status = "accepted";
+      let alreadyResponded = false;
       if (demoMode) {
         acceptDemoRequest(requestId);
       } else {
-        await callFunction("respond-connection", {
+        const result = await callFunction<{
+          status: "accepted" | "rejected";
+          alreadyResponded?: boolean;
+        }>("respond-connection", {
           body: { requestId, accept: true },
         });
+        status = result.status;
+        alreadyResponded = Boolean(result.alreadyResponded);
       }
+      queryClient.setQueryData<ChatInbox>(chatQueryKey, (current) => current
+        ? { ...current, requests: current.requests.filter((request) => request.id !== requestId) }
+        : current);
       await sendLocalNotification(
-        "Richiesta accettata",
-        "La chat privata e ora disponibile.",
+        status === "accepted" ? "Richiesta accettata" : "Richiesta gia gestita",
+        status === "accepted"
+          ? alreadyResponded ? "La chat privata era gia disponibile." : "La chat privata e ora disponibile."
+          : "La richiesta era gia stata rifiutata.",
       );
       await chats.refetch();
     } catch (error) {
@@ -110,22 +135,40 @@ export default function ChatsScreen() {
           "Richiesta non accettata. Controlla login e rete.",
         ),
       );
+    } finally {
+      requestActionRef.current = null;
+      setRespondingAction(null);
     }
   }
 
   async function decline(requestId: string) {
+    if (requestActionRef.current) return;
+    requestActionRef.current = requestId;
+    setRespondingAction(`${requestId}:decline`);
     setActionError(null);
     try {
+      let status = "rejected";
+      let alreadyResponded = false;
       if (demoMode) {
         declineDemoRequest(requestId);
       } else {
-        await callFunction("respond-connection", {
+        const result = await callFunction<{
+          status: "accepted" | "rejected";
+          alreadyResponded?: boolean;
+        }>("respond-connection", {
           body: { requestId, accept: false },
         });
+        status = result.status;
+        alreadyResponded = Boolean(result.alreadyResponded);
       }
+      queryClient.setQueryData<ChatInbox>(chatQueryKey, (current) => current
+        ? { ...current, requests: current.requests.filter((request) => request.id !== requestId) }
+        : current);
       await sendLocalNotification(
-        "Richiesta rifiutata",
-        "La connessione privata non e stata aperta.",
+        status === "rejected" ? "Richiesta rifiutata" : "Richiesta gia gestita",
+        status === "rejected"
+          ? alreadyResponded ? "La richiesta era gia stata rifiutata." : "La connessione privata non e stata aperta."
+          : "La chat privata era gia disponibile.",
       );
       await chats.refetch();
     } catch (error) {
@@ -135,6 +178,9 @@ export default function ChatsScreen() {
           "Richiesta non rifiutata. Controlla login e rete.",
         ),
       );
+    } finally {
+      requestActionRef.current = null;
+      setRespondingAction(null);
     }
   }
 
@@ -205,25 +251,15 @@ export default function ChatsScreen() {
             {actionError}
           </Text>
         ) : null}
-        <View className="gap-3">
+        {(chats.data?.requests ?? []).length > 0 ? <View className="gap-3">
           <View className="flex-row items-center gap-2">
-            <Ionicons name="person-add-outline" size={19} color="#16808a" />
+            <Ionicons name="person-add-outline" size={19} color="#3b82c4" />
             <Text className="font-semibold text-ink">Richieste private</Text>
           </View>
-          {(chats.data?.requests ?? []).length === 0 ? (
-            <View className="rounded-card border border-border bg-surface p-4">
-              <Text className="font-semibold text-ink">
-                Nessuna richiesta in attesa
-              </Text>
-              <Text className="mt-1 text-sm text-muted">
-                Quando qualcuno chiede di proseguire in privato, comparira qui.
-              </Text>
-            </View>
-          ) : null}
           {(chats.data?.requests ?? []).map((request) => (
             <View
               key={request.id}
-              className="gap-3 rounded-card border border-border bg-white p-4"
+              className="gap-3 rounded-card bg-category-question p-4"
             >
               <View className="flex-row items-start gap-3">
                 <View className="h-10 w-10 items-center justify-center rounded-full bg-surface">
@@ -245,19 +281,23 @@ export default function ChatsScreen() {
                   <Button
                     label="Accetta"
                     className="flex-1"
+                    loading={respondingAction === `${request.id}:accept`}
+                    disabled={Boolean(respondingAction)}
                     onPress={() => void accept(request.id)}
                   />
                   <Button
                     label="Rifiuta"
                     variant="secondary"
                     className="flex-1"
+                    loading={respondingAction === `${request.id}:decline`}
+                    disabled={Boolean(respondingAction)}
                     onPress={() => void decline(request.id)}
                   />
                 </View>
               ) : null}
             </View>
           ))}
-        </View>
+        </View> : null}
         {chats.isLoading ? (
           <View className="h-32 rounded-card bg-surface" />
         ) : null}
@@ -269,7 +309,7 @@ export default function ChatsScreen() {
             </Text>
           </View>
         ) : null}
-        <View className="gap-3">
+        <View className="overflow-hidden rounded-card bg-white px-4">
           {chats.data?.chats
             .filter((chat, index, allChats) => {
               const identity =
@@ -288,7 +328,7 @@ export default function ChatsScreen() {
             .map((chat) => (
               <View
                 key={chat.id}
-                className="gap-3 rounded-card border border-border bg-white p-4"
+                className="gap-3 border-b border-border py-4 last:border-b-0"
               >
                 <Pressable
                   accessibilityRole="button"

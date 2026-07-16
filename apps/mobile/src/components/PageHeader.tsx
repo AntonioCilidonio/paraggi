@@ -12,7 +12,7 @@ export function PageHeader({ title, subtitle, action }: Props) {
   return (
     <View className="flex-row items-start justify-between gap-4">
       <View className="flex-1">
-        <Text className="text-2xl font-bold text-ink">{title}</Text>
+        <Text className="text-xl font-semibold text-ink">{title}</Text>
         <Text className="mt-1 text-sm leading-5 text-muted">{subtitle}</Text>
       </View>
       {action}
@@ -26,7 +26,7 @@ export function HeaderIconButton({ icon, label, onPress }: { icon: keyof typeof 
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className="h-11 w-11 items-center justify-center rounded-card bg-primary"
+      className="h-11 w-11 items-center justify-center rounded-card bg-accent"
     >
       <Ionicons name={icon} size={21} color="#ffffff" />
     </Pressable>

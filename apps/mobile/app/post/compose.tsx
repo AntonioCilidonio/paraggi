@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
+import { AppHeader } from "@/components/AppHeader";
 import { PostAttachments } from "@/components/PostAttachments";
 import { getPostCategoryTheme, postCategoryOrder } from "@/design/postCategories";
 import { Screen } from "@/components/Screen";
@@ -45,6 +46,21 @@ const mediaLimits = {
 
 function assertMediaSize(kind: keyof typeof mediaLimits, size?: number | null) {
   if (size && size > mediaLimits[kind]) throw { error: "media_too_large" };
+}
+
+function MediaOption({ icon, label, selected, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      className={`min-h-16 flex-1 items-center justify-center gap-1 rounded-card border ${selected ? "border-primary bg-primary-soft" : "border-border bg-white"}`}
+    >
+      <Ionicons name={icon} size={20} color={selected ? "#3b82c4" : "#1a2027"} />
+      <Text className={`text-xs font-medium ${selected ? "text-primary" : "text-ink"}`}>{label}</Text>
+    </Pressable>
+  );
 }
 
 export default function ComposePostScreen() {
@@ -307,29 +323,19 @@ export default function ComposePostScreen() {
   }
 
   return (
-    <Screen>
+    <Screen showBottomBar>
       <View className="gap-5">
-        <View className="flex-row items-start gap-3 border-b border-border pb-4">
+        <AppHeader />
+        <View className="flex-row items-center gap-3 pb-1">
           <Pressable accessibilityRole="button" accessibilityLabel="Annulla nuovo post" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-card border border-border bg-white">
-            <Ionicons name="close" size={22} color="#17232b" />
+            <Ionicons name="close" size={22} color="#1a2027" />
           </Pressable>
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-ink">Cosa succede qui?</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Condividi con le persone nel tuo raggio.</Text>
+            <Text className="text-xl font-bold text-ink">Nuovo post</Text>
           </View>
         </View>
-        <Controller control={control} name="body" render={({ field }) => (
-          <TextInput
-            multiline
-            textAlignVertical="top"
-            placeholder="Cosa vuoi chiedere o condividere qui?"
-            className="min-h-40 rounded-card border border-border bg-white p-4 text-base leading-6 text-ink"
-            value={field.value}
-            onChangeText={field.onChange}
-          />
-        )} />
         <View className="gap-2">
-          <Text className="font-semibold text-ink">Categoria</Text>
+          <Text className="font-semibold text-ink">Scegli la categoria</Text>
           <View className="flex-row flex-wrap gap-2">
             {postCategoryOrder.map((category) => {
               const theme = getPostCategoryTheme(category);
@@ -340,7 +346,8 @@ export default function ComposePostScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ checked: selected }}
                   onPress={() => setValue("category", category)}
-                  className={`min-h-11 flex-row items-center gap-1.5 rounded-full border px-3 ${theme.backgroundClass} ${selected ? theme.borderClass : "border-transparent"}`}
+                  className={`min-h-11 flex-row items-center gap-1.5 rounded-card border px-3 ${theme.backgroundClass} ${selected ? "border-primary" : "border-transparent"}`}
+                  style={{ width: "48%" }}
                 >
                   <Ionicons name={theme.icon} size={16} color={theme.iconColor} />
                   <Text className={`text-sm font-semibold ${theme.textClass}`}>{theme.label}</Text>
@@ -350,29 +357,25 @@ export default function ComposePostScreen() {
             })}
           </View>
         </View>
-        <View className="gap-2">
-          <Text className="font-semibold text-ink">Scadenza</Text>
-          <View className="flex-row gap-2">
-            {([30, 180, 1440] as PostTtlMinutes[]).map((ttl) => (
-              <Button key={ttl} label={ttl === 30 ? "30 min" : ttl === 180 ? "3 ore" : "24 ore"} variant={selectedTtl === ttl ? "primary" : "secondary"} onPress={() => setValue("ttlMinutes", ttl)} />
-            ))}
-          </View>
-        </View>
+        <Controller control={control} name="body" render={({ field }) => (
+          <TextInput
+            multiline
+            textAlignVertical="top"
+            placeholder="Cosa vuoi condividere con le persone vicine?"
+            className="min-h-32 rounded-card border border-border bg-white p-4 text-base leading-6 text-ink"
+            value={field.value}
+            onChangeText={field.onChange}
+          />
+        )} />
         <View className="gap-3 border-t border-border pt-4">
           <View>
-            <Text className="font-semibold text-ink">Allegati e posizione</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">Facoltativo. Immagini fino a 10 MB, video fino a 20 MB e audio fino a 12 MB.</Text>
+            <Text className="font-semibold text-ink">Aggiungi</Text>
           </View>
-          <View className="flex-row flex-wrap gap-2">
-            <Button icon="image-outline" label={mediaAttachments.some((item) => item.kind === "image") ? "Immagine pronta" : "Immagine"} variant={mediaAttachments.some((item) => item.kind === "image") ? "primary" : "secondary"} onPress={() => void pickImage()} />
-            <Button icon="videocam-outline" label={mediaAttachments.some((item) => item.kind === "video") ? "Video pronto" : "Video"} variant={mediaAttachments.some((item) => item.kind === "video") ? "primary" : "secondary"} onPress={() => void pickVideo()} />
-            <Button
-              icon={recorderState.isRecording ? "stop" : "mic-outline"}
-              label={recorderState.isRecording ? `Termina ${Math.floor(recorderState.durationMillis / 1000)}s` : mediaAttachments.some((item) => item.kind === "audio") ? "Registra di nuovo" : "Nota vocale"}
-              variant={recorderState.isRecording || mediaAttachments.some((item) => item.kind === "audio") ? "primary" : "secondary"}
-              onPress={() => void toggleVoiceRecording()}
-            />
-            <Button icon="location-outline" label={shareApproxLocation ? "Posizione attiva" : "Posizione"} variant={shareApproxLocation ? "primary" : "secondary"} onPress={() => void toggleLocationAttachment()} />
+          <View className="flex-row gap-2">
+            <MediaOption icon="image-outline" label="Foto" selected={mediaAttachments.some((item) => item.kind === "image")} onPress={() => void pickImage()} />
+            <MediaOption icon="videocam-outline" label="Video" selected={mediaAttachments.some((item) => item.kind === "video")} onPress={() => void pickVideo()} />
+            <MediaOption icon={recorderState.isRecording ? "stop" : "mic-outline"} label={recorderState.isRecording ? `${Math.floor(recorderState.durationMillis / 1000)}s` : "Audio"} selected={recorderState.isRecording || mediaAttachments.some((item) => item.kind === "audio")} onPress={() => void toggleVoiceRecording()} />
+            <MediaOption icon="location-outline" label="Luogo" selected={shareApproxLocation} onPress={() => void toggleLocationAttachment()} />
           </View>
           {(mediaAttachments.length > 0 || shareApproxLocation) ? (
             <Text className="text-sm leading-5 text-muted">
@@ -403,6 +406,14 @@ export default function ComposePostScreen() {
             </View>
           ) : null}
         </View>
+        <View className="gap-2">
+          <Text className="font-semibold text-ink">Scadenza</Text>
+          <View className="flex-row gap-2">
+            {([30, 180, 1440] as PostTtlMinutes[]).map((ttl) => (
+              <Button key={ttl} label={ttl === 30 ? "30 min" : ttl === 180 ? "3 ore" : "24 ore"} variant={selectedTtl === ttl ? "primary" : "secondary"} className="flex-1" onPress={() => setValue("ttlMinutes", ttl)} />
+            ))}
+          </View>
+        </View>
         {statusMessage ? <Text className="rounded-card bg-primary/10 p-3 text-sm font-semibold text-primary">{statusMessage}</Text> : null}
         {errorMessage ? <Text className="rounded-card bg-danger/10 p-3 text-sm font-semibold text-danger">{errorMessage}</Text> : null}
         <Button
@@ -411,6 +422,7 @@ export default function ComposePostScreen() {
           loading={formState.isSubmitting}
           onPress={handleSubmit(submit)}
           disabled={formState.isSubmitting || recorderState.isRecording || !postBody.trim()}
+          variant="accent"
         />
       </View>
     </Screen>

@@ -1,4 +1,4 @@
-import { deduplicateAreas, type AreaHistory } from "./areaHistory";
+import { deduplicateAreas, normalizeAreaHistory, type AreaHistory } from "./areaHistory";
 
 function area(overrides: Partial<AreaHistory>): AreaHistory {
   return {
@@ -32,5 +32,16 @@ describe("deduplicateAreas", () => {
     ]);
 
     expect(result).toHaveLength(2);
+  });
+
+  it("ignores malformed API rows and normalizes counters", () => {
+    const result = normalizeAreaHistory([
+      null,
+      { unexpected: true },
+      area({ post_count: Number.NaN, comment_count: 2 }),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ post_count: 0, comment_count: 2 });
   });
 });

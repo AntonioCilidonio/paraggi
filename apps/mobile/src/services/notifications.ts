@@ -17,7 +17,7 @@ export async function configureNotifications() {
         name: "Notifiche Paraggi",
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 220, 120, 220],
-        lightColor: "#16808a"
+        lightColor: "#3b82c4"
       });
       await Notifications.setNotificationChannelAsync("paraggi-alerts", {
         name: "Allarmi Paraggi",
@@ -67,5 +67,47 @@ export async function sendLocalNotification(
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function setAppBadgeCount(count: number) {
+  try {
+    return await Notifications.setBadgeCountAsync(
+      Math.max(0, Math.floor(count)),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function dismissPresentedChatNotifications(chatId: string) {
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync();
+    const matching = presented.filter((notification) => {
+      const data = notification.request.content.data ?? {};
+      const notificationChatId = data.chatId ?? data.chat_id;
+      const deepLink = data.deepLink ?? data.deep_link;
+      return (
+        notificationChatId === chatId ||
+        deepLink === `/chat/${chatId}`
+      );
+    });
+
+    await Promise.all(
+      matching.map((notification) =>
+        Notifications.dismissNotificationAsync(notification.request.identifier),
+      ),
+    );
+  } catch {
+    // Some Android launchers do not expose presented notifications.
+  }
+}
+
+export async function clearPresentedNotifications() {
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+    await setAppBadgeCount(0);
+  } catch {
+    // Clearing the in-app state must not depend on launcher badge support.
   }
 }

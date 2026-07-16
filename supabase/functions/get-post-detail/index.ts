@@ -33,12 +33,23 @@ Deno.serve(await withHttp(async (req) => {
 
   const { data: comments, error: commentsError } = await adminClient
     .from("comments")
-    .select("id,author_id,body,created_at,profiles!comments_author_id_fkey(display_name),comment_ratings(rating)")
+    .select("id,author_id,body,created_at,profiles!comments_author_id_fkey(display_name)")
     .eq("post_id", postId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
 
   if (commentsError) return jsonResponse({ error: "comments_failed", details: commentsError.message }, 400);
+
+  const commentIds = (comments ?? []).map((comment) => comment.id);
+  const { data: ratings, error: ratingsError } = commentIds.length > 0
+    ? await adminClient
+      .from("comment_ratings")
+      .select("comment_id,rating")
+      .in("comment_id", commentIds)
+    : { data: [], error: null };
+
+  if (ratingsError) return jsonResponse({ error: "comment_ratings_failed", details: ratingsError.message }, 400);
+  const ratingByComment = new Map((ratings ?? []).map((rating) => [rating.comment_id, rating.rating]));
 
   const decoratedComments = (comments ?? []).map((comment) => ({
     id: comment.id,
@@ -46,7 +57,7 @@ Deno.serve(await withHttp(async (req) => {
     body: comment.body,
     created_at: comment.created_at,
     display_name: comment.profiles?.display_name ?? "Utente vicino",
-    rating: comment.comment_ratings?.[0]?.rating ?? null
+    rating: ratingByComment.get(comment.id) ?? null
   }));
 
   try {

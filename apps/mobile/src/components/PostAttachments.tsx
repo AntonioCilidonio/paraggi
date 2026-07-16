@@ -73,9 +73,9 @@ function LocationAttachmentView({ attachment, compact }: { attachment: PostAttac
   if (compact || !hasPosition) {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel="Apri la posizione condivisa" disabled={!hasPosition} onPress={openNavigation} className="flex-row items-center gap-3 rounded-card bg-surface p-3">
-        <View className="h-10 w-10 items-center justify-center rounded-card bg-white"><Ionicons name="location" size={21} color="#16808a" /></View>
+        <View className="h-10 w-10 items-center justify-center rounded-card bg-white"><Ionicons name="location" size={21} color="#3b82c4" /></View>
         <View className="flex-1"><Text className="font-semibold text-ink">Posizione condivisa</Text><Text className="mt-1 text-xs text-muted">Area approssimativa, coordinate nascoste</Text></View>
-        <Ionicons name="navigate-outline" size={20} color="#16808a" />
+        <Ionicons name="navigate-outline" size={20} color="#3b82c4" />
       </Pressable>
     );
   }
@@ -89,11 +89,11 @@ function LocationAttachmentView({ attachment, compact }: { attachment: PostAttac
           scrollEnabled={false}
           zoomEnabled={false}
         >
-          <Marker coordinate={{ latitude: attachment.latitude!, longitude: attachment.longitude! }} title="Posizione condivisa" pinColor="#16808a" />
+          <Marker coordinate={{ latitude: attachment.latitude!, longitude: attachment.longitude! }} title="Posizione condivisa" pinColor="#3b82c4" />
         </MapView>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Apri la posizione nel navigatore" onPress={openNavigation} className="min-h-11 flex-row items-center justify-center gap-2 rounded-card bg-surface px-4">
-        <Ionicons name="navigate-outline" size={18} color="#16808a" />
+        <Ionicons name="navigate-outline" size={18} color="#3b82c4" />
         <Text className="font-semibold text-primary">Apri nel navigatore</Text>
       </Pressable>
     </View>
@@ -131,7 +131,7 @@ export function PostAttachments({ attachments, compact = false, enableImageViewe
         if (attachment.kind === "video") {
           return compact ? (
             <View key={attachment.id} className="flex-row items-center gap-3 rounded-card bg-ink p-3">
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white"><Ionicons name="play" size={20} color="#17232b" /></View>
+              <View className="h-10 w-10 items-center justify-center rounded-full bg-white"><Ionicons name="play" size={20} color="#1a2027" /></View>
               <Text className="flex-1 font-semibold text-white">Video allegato · apri il post</Text>
               <Text className="text-xs text-white">{formatDuration(attachment.duration_seconds)}</Text>
             </View>
