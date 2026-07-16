@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { demoMode } from "@/config/env";
 import { sendLocalNotification } from "@/services/notifications";
@@ -12,8 +12,16 @@ type RealtimeTarget =
   | { type: "chat-status"; chatId: string }
   | { type: "notifications"; userId: string };
 
+let nextChannelInstanceId = 0;
+
 export function useRealtimeChannel(target: RealtimeTarget | null) {
   const queryClient = useQueryClient();
+  const channelInstanceIdRef = useRef<number | null>(null);
+  const subscriptionSequenceRef = useRef(0);
+  if (channelInstanceIdRef.current === null) {
+    nextChannelInstanceId += 1;
+    channelInstanceIdRef.current = nextChannelInstanceId;
+  }
   const targetType = target?.type;
   const postId = target?.type === "post-comments" ? target.postId : undefined;
   const chatId = target?.type === "chat-messages" || target?.type === "chat-status" ? target.chatId : undefined;
@@ -22,7 +30,7 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
   useEffect(() => {
     if (!targetType || demoMode) return;
 
-    const channelName = targetType === "post-comments" && postId
+    const channelBaseName = targetType === "post-comments" && postId
       ? `post:${postId}:comments`
       : targetType === "chat-messages" && chatId
         ? `chat:${chatId}:messages`
@@ -32,8 +40,10 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
             ? `user:${userId}:notifications`
             : null;
 
-    if (!channelName) return;
+    if (!channelBaseName) return;
 
+    subscriptionSequenceRef.current += 1;
+    const channelName = `${channelBaseName}:${channelInstanceIdRef.current}:${subscriptionSequenceRef.current}`;
     const channel = supabase.channel(channelName);
 
     if (targetType === "post-comments" && postId) {

@@ -31,6 +31,17 @@ const iconByType: Record<string, keyof typeof Ionicons.glyphMap> = {
   danger_alert: "warning-outline"
 };
 
+const themeByType: Record<string, { surface: string; iconColor: string }> = {
+  comment_received: { surface: "bg-category-question-surface", iconColor: "#4c2878" },
+  nearby_relevant_post: { surface: "bg-category-information-surface", iconColor: "#293f78" },
+  private_request: { surface: "bg-category-help-surface", iconColor: "#245d34" },
+  request_accepted: { surface: "bg-category-help-surface", iconColor: "#245d34" },
+  private_message: { surface: "bg-category-lost-surface", iconColor: "#18566f" },
+  chat_reactivated: { surface: "bg-category-event-surface", iconColor: "#655000" },
+  nearby_again: { surface: "bg-category-social-surface", iconColor: "#743b0d" },
+  danger_alert: { surface: "bg-category-emergency-surface", iconColor: "#7d2424" }
+};
+
 export default function NotificationsScreen() {
   const queryClient = useQueryClient();
   const notifications = useQuery({
@@ -102,28 +113,31 @@ export default function NotificationsScreen() {
           </View>
         ) : null}
         <View className="gap-2">
-          {notifications.data?.map((notification) => (
-            <Pressable
-              key={notification.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${notification.title}. ${notification.body}`}
-              onPress={() => void openNotification(notification)}
-              className={`flex-row items-start gap-3 rounded-card p-4 ${notification.type === "danger_alert" ? "bg-category-emergency" : notification.type === "comment_received" ? "bg-category-question" : notification.type === "private_request" || notification.type === "request_accepted" ? "bg-category-help" : notification.type === "nearby_relevant_post" ? "bg-category-information" : "bg-white"}`}
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-card bg-white/70">
-                <Ionicons name={iconByType[notification.type] ?? "notifications-outline"} size={21} color={notification.type === "danger_alert" ? "#b84037" : "#3b82c4"} />
-              </View>
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="flex-1 font-semibold text-ink">{notification.title}</Text>
-                  {!notification.read_at ? <View className="h-2 w-2 rounded-full bg-primary" /> : null}
+          {notifications.data?.map((notification) => {
+            const theme = themeByType[notification.type] ?? { surface: "bg-white", iconColor: "#3b82c4" };
+            return (
+              <Pressable
+                key={notification.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${notification.title}. ${notification.body}`}
+                onPress={() => void openNotification(notification)}
+                className={`flex-row items-start gap-3 rounded-card p-4 ${theme.surface}`}
+              >
+                <View className="h-10 w-10 items-center justify-center rounded-card bg-white/80">
+                  <Ionicons name={iconByType[notification.type] ?? "notifications-outline"} size={21} color={theme.iconColor} />
                 </View>
-                <Text className="mt-1 text-sm leading-5 text-muted">{notification.body}</Text>
-                <Text className="mt-2 text-xs text-muted">{new Date(notification.created_at).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#62717a" />
-            </Pressable>
-          ))}
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="flex-1 font-semibold text-ink">{notification.title}</Text>
+                    {!notification.read_at ? <View className="h-2 w-2 rounded-full bg-primary" /> : null}
+                  </View>
+                  <Text className="mt-1 text-sm leading-5 text-[#46515c]">{notification.body}</Text>
+                  <Text className="mt-2 text-xs text-[#52606d]">{new Date(notification.created_at).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#52606d" />
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     </Screen>
