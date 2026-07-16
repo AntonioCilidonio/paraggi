@@ -31,6 +31,17 @@ Deno.serve(await withHttp(async (req) => {
   if (postError) return jsonResponse({ error: "post_detail_failed", details: postError.message }, 400);
   if (!post) return jsonResponse({ error: "post_not_visible" }, 404);
 
+  const { data: postState, error: postStateError } = await adminClient
+    .from("posts")
+    .select("status,expires_at")
+    .eq("id", postId)
+    .maybeSingle();
+  if (postStateError) {
+    return jsonResponse({ error: "post_detail_failed", details: postStateError.message }, 400);
+  }
+  const canComment = postState?.status === "active" &&
+    new Date(postState.expires_at).getTime() > Date.now();
+
   const { data: comments, error: commentsError } = await adminClient
     .from("comments")
     .select("id,author_id,body,created_at,profiles!comments_author_id_fkey(display_name)")
@@ -62,7 +73,11 @@ Deno.serve(await withHttp(async (req) => {
 
   try {
     const attachments = await getPostAttachments(adminClient, [postId]);
-    return jsonResponse({ post: { ...post, attachments: attachments.get(postId) ?? [] }, comments: decoratedComments });
+    return jsonResponse({
+      post: { ...post, attachments: attachments.get(postId) ?? [] },
+      comments: decoratedComments,
+      canComment,
+    });
   } catch (mediaError) {
     return jsonResponse({ error: "post_media_failed", details: mediaError instanceof Error ? mediaError.message : String(mediaError) }, 400);
   }

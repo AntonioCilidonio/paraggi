@@ -32,6 +32,7 @@ type CommentRow = {
 type PostDetailData = {
   post: FeedPost | null;
   comments: CommentRow[];
+  canComment: boolean;
 };
 
 type ExistingChat = {
@@ -107,13 +108,16 @@ export default function PostDetailScreen() {
           ) ?? null;
         return {
           post,
+          canComment: Boolean(
+            post && new Date(post.expires_at).getTime() > Date.now(),
+          ),
           comments: [
             ...demoComments.map((comment) => ({ ...comment, rating: null as -1 | 1 | null })),
             ...localComments,
           ],
         };
       }
-      return callFunction<{ post: FeedPost; comments: CommentRow[] }>(
+      return callFunction<PostDetailData>(
         "get-post-detail",
         { method: "GET", query: { postId, radiusMeters } },
       );
@@ -289,7 +293,11 @@ export default function PostDetailScreen() {
   }
 
   const canComment = Boolean(
-    postId && selectedPost && !detail.isLoading && !detail.isError,
+    postId &&
+    selectedPost &&
+    detail.data?.canComment &&
+    !detail.isLoading &&
+    !detail.isError,
   );
 
   return (
@@ -412,6 +420,17 @@ export default function PostDetailScreen() {
             </View>
           </View>
         ))}
+        {selectedPost && !canComment ? (
+          <View className="flex-row items-start gap-3 rounded-card bg-category-event-surface p-3">
+            <Ionicons name="archive-outline" size={20} color="#3f4852" />
+            <View className="flex-1">
+              <Text className="font-semibold text-category-event-ink">Post storico</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">
+                La conversazione resta consultabile, ma non accetta nuovi commenti.
+              </Text>
+            </View>
+          </View>
+        ) : null}
         <View className="flex-row items-end gap-2 border-t border-border bg-bg pt-4">
           <Controller
             control={control}
@@ -423,7 +442,9 @@ export default function PostDetailScreen() {
                 placeholder={
                   canComment
                     ? "Commenta pubblicamente"
-                    : "Carica il post prima di commentare"
+                    : selectedPost
+                      ? "Commenti chiusi per questo post"
+                      : "Carica il post prima di commentare"
                 }
                 className="min-h-12 flex-1 rounded-card border border-border bg-white px-3 py-3 text-ink"
                 value={field.value}
