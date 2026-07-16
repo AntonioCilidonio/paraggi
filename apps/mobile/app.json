@@ -8,9 +8,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "androidStatusBar": {
-      "backgroundColor": "#3B82C4",
+      "backgroundColor": "#00000000",
       "barStyle": "light-content",
-      "translucent": false
+      "translucent": true
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {

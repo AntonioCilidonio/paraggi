@@ -1,7 +1,8 @@
 const { AndroidConfig, withAndroidStyles } = require("@expo/config-plugins");
 
 const systemBarStyles = [
-  ["android:statusBarColor", "#3B82C4"],
+  ["android:statusBarColor", "@android:color/transparent"],
+  ["android:windowTranslucentStatus", "true"],
   ["android:windowLightStatusBar", "false"],
   ["android:windowDrawsSystemBarBackgrounds", "true"],
   ["android:enforceStatusBarContrast", "false", "29"],

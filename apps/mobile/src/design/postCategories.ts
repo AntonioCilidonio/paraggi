@@ -29,7 +29,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-question",
     borderClass: "border-category-question",
     textClass: "text-category-question-ink",
-    iconColor: "#285b87",
+    iconColor: "#4c2878",
     surfaceClass: "bg-category-question-surface"
   },
   information: {
@@ -38,7 +38,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-information",
     borderClass: "border-category-information",
     textClass: "text-category-information-ink",
-    iconColor: "#564187",
+    iconColor: "#293f78",
     surfaceClass: "bg-category-information-surface"
   },
   lost_item: {
@@ -47,7 +47,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-lost",
     borderClass: "border-category-lost",
     textClass: "text-category-lost-ink",
-    iconColor: "#5e4a00",
+    iconColor: "#18566f",
     surfaceClass: "bg-category-lost-surface"
   },
   help: {
@@ -56,7 +56,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-help",
     borderClass: "border-category-help",
     textClass: "text-category-help-ink",
-    iconColor: "#275b48",
+    iconColor: "#245d34",
     surfaceClass: "bg-category-help-surface"
   },
   event: {
@@ -65,7 +65,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-event",
     borderClass: "border-category-event",
     textClass: "text-category-event-ink",
-    iconColor: "#3f4852",
+    iconColor: "#655000",
     surfaceClass: "bg-category-event-surface"
   },
   social: {
@@ -74,7 +74,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-social",
     borderClass: "border-category-social",
     textClass: "text-category-social-ink",
-    iconColor: "#7d405f",
+    iconColor: "#743b0d",
     surfaceClass: "bg-category-social-surface"
   },
   emergency: {
@@ -83,7 +83,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-emergency",
     borderClass: "border-category-emergency",
     textClass: "text-category-emergency-ink",
-    iconColor: "#9b3027",
+    iconColor: "#7d2424",
     surfaceClass: "bg-category-emergency-surface"
   }
 };

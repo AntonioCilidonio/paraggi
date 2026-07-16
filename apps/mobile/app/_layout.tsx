@@ -18,7 +18,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="light" backgroundColor="#3b82c4" translucent={false} />
+      <StatusBar style="light" backgroundColor="transparent" translucent />
       <NotificationResponseHandler />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />

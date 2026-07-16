@@ -11,8 +11,8 @@ type Props = PropsWithChildren<{
 export function Screen({ children, scroll = true, showBottomBar = false }: Props) {
   const insets = useSafeAreaInsets();
   const isAndroid = Platform.OS === "android";
-  const contentTop = (isAndroid ? 0 : insets.top) + 12;
-  const statusBarOverlap = isAndroid ? 1 : Math.max(insets.top + 1, 1);
+  const contentTop = insets.top + 12;
+  const statusBarOverlap = Math.max(insets.top + (isAndroid ? 3 : 1), 1);
 
   if (!scroll) {
     return (
