@@ -10,7 +10,7 @@
     "androidStatusBar": {
       "backgroundColor": "#3B82C4",
       "barStyle": "light-content",
-      "translucent": true
+      "translucent": false
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -58,7 +58,8 @@
           "microphonePermission": "Paraggi usa il microfono solo quando registri una nota vocale da allegare a un post."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "./plugins/withAndroidSystemBars"
     ],
     "extra": {
       "router": {

@@ -47,7 +47,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-lost",
     borderClass: "border-category-lost",
     textClass: "text-category-lost-ink",
-    iconColor: "#7a4b00",
+    iconColor: "#5e4a00",
     surfaceClass: "bg-category-lost-surface"
   },
   help: {
@@ -65,7 +65,7 @@ export const postCategoryThemes: Record<PostCategory, PostCategoryTheme> = {
     backgroundClass: "bg-category-event",
     borderClass: "border-category-event",
     textClass: "text-category-event-ink",
-    iconColor: "#7d4316",
+    iconColor: "#3f4852",
     surfaceClass: "bg-category-event-surface"
   },
   social: {
