@@ -14,6 +14,7 @@ import { getFriendlyError } from "@/services/errors";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationSync } from "@/hooks/useLocationSync";
 import { openPostComposer } from "@/services/postComposerNavigation";
+import { stabilizePostAttachments } from "@/services/postAttachmentCache";
 
 export default function FeedScreen() {
   const radiusMeters = useAppStore((state) => state.radiusMeters);
@@ -27,7 +28,8 @@ export default function FeedScreen() {
     queryKey: ["nearby-feed", radiusMeters, localDemoPosts.length],
     queryFn: async () => {
       if (demoMode) return { posts: [...localDemoPosts, ...demoPosts] };
-      return callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30 } });
+      const result = await callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30 } });
+      return { posts: result.posts.map(stabilizePostAttachments) };
     },
     enabled: demoMode || Boolean(lastLocationSyncAt)
   });

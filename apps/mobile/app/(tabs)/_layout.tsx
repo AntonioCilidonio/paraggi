@@ -1,10 +1,12 @@
+import type { ErrorBoundaryProps } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { Redirect, Tabs } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { CivicBottomBar } from "@/components/CivicBottomBar";
+import { ActivityIndicator, Text, View } from "react-native";
+import { Button } from "@/components/Button";
+import { CivicBottomBar, type TabKey } from "@/components/CivicBottomBar";
 import { demoMode } from "@/config/env";
 import { usePushRegistration } from "@/hooks/usePushRegistration";
 import { useLocationSync } from "@/hooks/useLocationSync";
@@ -12,7 +14,30 @@ import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { supabase } from "@/services/supabase";
 import { callFunction } from "@/services/api";
 import { setAppBadgeCount } from "@/services/notifications";
+import { captureClientError } from "@/services/clientLogger";
 import { useAppStore } from "@/stores/appStore";
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const loggedMessageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loggedMessageRef.current === error.message) return;
+    loggedMessageRef.current = error.message;
+    captureClientError("tabs_screen_error", error, {}, "fatal");
+  }, [error]);
+
+  return (
+    <View className="flex-1 justify-center gap-4 bg-bg px-6">
+      <Text className="text-2xl font-bold text-ink">Sezione non disponibile</Text>
+      <Text className="text-sm leading-5 text-muted">Paraggi ha protetto la sessione da un errore della schermata. Puoi riprovare senza riaprire l'app.</Text>
+      <View className="rounded-card border border-danger bg-white p-4">
+        <Text className="font-semibold text-danger">Dettaglio tecnico</Text>
+        <Text className="mt-1 text-sm leading-5 text-muted">{error.message}</Text>
+      </View>
+      <Button label="Riprova" onPress={retry} />
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const queryClient = useQueryClient();
@@ -95,7 +120,13 @@ export default function TabsLayout() {
   if (!hasSession) return <Redirect href="/(auth)/login" />;
 
   return (
-    <Tabs tabBar={() => <CivicBottomBar unreadCount={chatUnreadCount} />} screenOptions={{
+    <Tabs tabBar={({ state, navigation }) => (
+      <CivicBottomBar
+        unreadCount={chatUnreadCount}
+        activeTab={state.routes[state.index]?.name as TabKey}
+        onNavigate={(tab) => navigation.navigate(tab)}
+      />
+    )} screenOptions={{
       headerShown: false,
       tabBarHideOnKeyboard: true,
       sceneStyle: { backgroundColor: "#eef6ff" }

@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { router } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { Image, Linking, Platform, Pressable, Text, View } from "react-native";
+import { Linking, Platform, Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
 export type PostAttachment = {
@@ -119,7 +120,13 @@ export function PostAttachments({ attachments, compact = false, enableImageViewe
               }}
               className="overflow-hidden rounded-card bg-surface"
             >
-              <Image source={{ uri: attachment.url }} resizeMode="cover" className="w-full" style={{ aspectRatio: compact ? 16 / 10 : 4 / 3 }} />
+              <Image
+                source={{ uri: attachment.url }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                recyclingKey={attachment.id}
+                style={{ width: "100%", aspectRatio: compact ? 16 / 10 : 4 / 3 }}
+              />
               {enableImageViewer ? (
                 <View className="absolute bottom-3 right-3 h-10 w-10 items-center justify-center rounded-card bg-ink/80">
                   <Ionicons name="expand-outline" size={20} color="#ffffff" />

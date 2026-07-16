@@ -307,9 +307,8 @@ export default function ComposePostScreen() {
       await callFunction("create-post", { body: { ...values, attachments, radiusMeters } });
       setStatusMessage("Post pubblicato. Aggiorno la piazza...");
       setMediaAttachments([]);
-      await queryClient.invalidateQueries({ queryKey: ["nearby-feed"], refetchType: "none" });
-      if (router.canGoBack()) router.back();
-      else router.replace("/(tabs)/feed");
+      await queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
+      router.replace("/(tabs)/feed");
     } catch (error) {
       captureClientError("compose_post_failed", error, {
         mediaCount: mediaAttachments.length,

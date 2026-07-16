@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Keyboard, Pressable, Text, View } from "react-native";
 import { openPostComposer } from "@/services/postComposerNavigation";
 
-type TabKey = "feed" | "heatmap" | "chats" | "history";
+export type TabKey = "feed" | "heatmap" | "chats" | "history";
 
 const items: Array<{
   key: TabKey;
@@ -26,14 +27,14 @@ function resolveActiveTab(pathname: string): TabKey | "create" {
   return "feed";
 }
 
-function NavItem({ item, active, unreadCount = 0 }: { item: (typeof items)[number]; active: boolean; unreadCount?: number }) {
+function NavItem({ item, active, onPress, unreadCount = 0 }: { item: (typeof items)[number]; active: boolean; onPress: () => void; unreadCount?: number }) {
   const color = active ? "#ffffff" : "#c7dcf0";
   return (
     <Pressable
       accessibilityRole="tab"
       accessibilityLabel={item.label}
       accessibilityState={{ selected: active }}
-      onPress={() => router.replace(item.href)}
+      onPress={onPress}
       className="relative flex-1 items-center justify-center gap-0.5"
     >
       <Ionicons name={active ? item.activeIcon : item.icon} size={19} color={color} />
@@ -47,14 +48,32 @@ function NavItem({ item, active, unreadCount = 0 }: { item: (typeof items)[numbe
   );
 }
 
-export function CivicBottomBar({ unreadCount = 0 }: { unreadCount?: number }) {
+export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unreadCount?: number; activeTab?: TabKey; onNavigate?: (tab: TabKey) => void }) {
   const pathname = usePathname();
-  const active = resolveActiveTab(pathname);
+  const [keyboardVisible, setKeyboardVisible] = useState(Keyboard.isVisible());
+  const active = activeTab ?? resolveActiveTab(pathname);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) return null;
+
+  const navigate = (item: (typeof items)[number]) => {
+    if (active === item.key) return;
+    if (onNavigate) onNavigate(item.key);
+    else router.replace(item.href);
+  };
 
   return (
     <View className="h-[67px] flex-row items-end bg-primary px-1 pb-2 pt-1">
-      <NavItem item={items[0]} active={active === "feed"} />
-      <NavItem item={items[1]} active={active === "heatmap"} />
+      <NavItem item={items[0]} active={active === "feed"} onPress={() => navigate(items[0])} />
+      <NavItem item={items[1]} active={active === "heatmap"} onPress={() => navigate(items[1])} />
       <Pressable
         accessibilityRole="tab"
         accessibilityLabel="Pubblica"
@@ -67,8 +86,8 @@ export function CivicBottomBar({ unreadCount = 0 }: { unreadCount?: number }) {
         </View>
         <Text className="text-[10px] font-medium text-white">Pubblica</Text>
       </Pressable>
-      <NavItem item={items[2]} active={active === "chats"} unreadCount={unreadCount} />
-      <NavItem item={items[3]} active={active === "history"} />
+      <NavItem item={items[2]} active={active === "chats"} onPress={() => navigate(items[2])} unreadCount={unreadCount} />
+      <NavItem item={items[3]} active={active === "history"} onPress={() => navigate(items[3])} />
     </View>
   );
 }

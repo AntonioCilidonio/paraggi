@@ -26,7 +26,7 @@ export function AppHeader() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Apri profilo"
-          onPress={() => router.push("/(tabs)/profile")}
+          onPress={() => router.navigate("/(tabs)/profile")}
           className="h-11 w-11 items-center justify-center rounded-card bg-white/15"
         >
           <Ionicons name="person-outline" size={21} color="#ffffff" />

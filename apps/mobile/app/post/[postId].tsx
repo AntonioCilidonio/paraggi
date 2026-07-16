@@ -18,6 +18,7 @@ import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { useAppStore } from "@/stores/appStore";
+import { stabilizePostAttachments } from "@/services/postAttachmentCache";
 import { type FeedPost } from "@/components/FeedPostCard";
 
 type CommentRow = {
@@ -117,10 +118,11 @@ export default function PostDetailScreen() {
           ],
         };
       }
-      return callFunction<PostDetailData>(
+      const result = await callFunction<PostDetailData>(
         "get-post-detail",
         { method: "GET", query: { postId, radiusMeters } },
       );
+      return result.post ? { ...result, post: stabilizePostAttachments(result.post) } : result;
     },
   });
   const currentUser = useQuery({

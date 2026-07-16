@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MediaViewScreen() {
@@ -27,7 +28,7 @@ export default function MediaViewScreen() {
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
         >
-          <Image source={{ uri: url }} resizeMode="contain" style={{ width, height: height - 120 }} accessibilityLabel={label ?? "Immagine del post"} />
+          <Image source={{ uri: url }} contentFit="contain" cachePolicy="memory-disk" style={{ width, height: height - 120 }} accessibilityLabel={label ?? "Immagine del post"} />
         </ScrollView>
       ) : (
         <View className="flex-1 items-center justify-center gap-3 px-6">
