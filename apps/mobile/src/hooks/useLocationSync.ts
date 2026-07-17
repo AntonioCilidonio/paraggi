@@ -56,6 +56,7 @@ export function useLocationSync() {
       const result = await callFunction<{
         location?: { trust_status?: string; captured_at?: string };
         trust?: { status?: string };
+        area?: { name?: string | null; city?: string | null };
       }>("update-location", {
         body: {
           latitude: current.coords.latitude,
@@ -81,8 +82,8 @@ export function useLocationSync() {
         accuracyMeters,
         trustStatus: result.trust?.status ?? result.location?.trust_status ?? "uncertain",
         error: null,
-        areaName,
-        city
+        areaName: result.area?.name ?? areaName,
+        city: result.area?.city ?? city
       });
       return {
         ok: true as const,

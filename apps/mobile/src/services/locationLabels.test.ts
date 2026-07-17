@@ -16,4 +16,20 @@ describe("getLocationLabels", () => {
       placeLabel: "Via Rizzoli, Centro storico"
     });
   });
+
+  it("does not use an iOS macro-area as the city", () => {
+    expect(getLocationLabels({ subregion: "Nord-Est", district: "Reggio Emilia", region: "Emilia-Romagna" })).toEqual({
+      areaName: "Reggio Emilia",
+      city: "Reggio Emilia",
+      placeLabel: "Reggio Emilia"
+    });
+  });
+
+  it("ignores a macro-area even when iOS reports it as the district", () => {
+    expect(getLocationLabels({ district: "Nord-Est", name: "Reggio Emilia", region: "Emilia-Romagna" })).toEqual({
+      areaName: "Reggio Emilia",
+      city: "Reggio Emilia",
+      placeLabel: undefined
+    });
+  });
 });

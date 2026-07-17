@@ -60,6 +60,27 @@ function VideoAttachmentView({ attachment }: { attachment: PostAttachment }) {
   );
 }
 
+function VideoAttachmentPreview({ attachment }: { attachment: PostAttachment }) {
+  const player = useVideoPlayer(attachment.url ? { uri: attachment.url } : null, (videoPlayer) => {
+    videoPlayer.loop = false;
+    videoPlayer.muted = true;
+  });
+
+  return (
+    <View className="overflow-hidden rounded-card bg-ink" style={{ aspectRatio: 16 / 9 }}>
+      <VideoView player={player} nativeControls={false} contentFit="cover" style={{ flex: 1 }} />
+      <View pointerEvents="none" className="absolute inset-0 items-center justify-center bg-ink/15">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-white/90">
+          <Ionicons name="play" size={23} color="#1a2027" style={{ marginLeft: 2 }} />
+        </View>
+      </View>
+      <View pointerEvents="none" className="absolute bottom-2 right-2 rounded-card bg-ink/75 px-2 py-1">
+        <Text className="text-xs font-semibold text-white">{formatDuration(attachment.duration_seconds)}</Text>
+      </View>
+    </View>
+  );
+}
+
 function LocationAttachmentView({ attachment, compact }: { attachment: PostAttachment; compact: boolean }) {
   const hasPosition = typeof attachment.latitude === "number" && typeof attachment.longitude === "number";
   const openNavigation = () => {
@@ -127,13 +148,9 @@ export function PostAttachments({ attachments, compact = false, enableImageViewe
           );
         }
         if (attachment.kind === "video") {
-          return compact ? (
-            <View key={attachment.id} className="flex-row items-center gap-3 rounded-card bg-ink p-3">
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white"><Ionicons name="play" size={20} color="#1a2027" /></View>
-              <Text className="flex-1 font-semibold text-white">Video allegato · apri il post</Text>
-              <Text className="text-xs text-white">{formatDuration(attachment.duration_seconds)}</Text>
-            </View>
-          ) : <VideoAttachmentView key={attachment.id} attachment={attachment} />;
+          return compact
+            ? <VideoAttachmentPreview key={attachment.id} attachment={attachment} />
+            : <VideoAttachmentView key={attachment.id} attachment={attachment} />;
         }
         if (attachment.kind === "audio") return <AudioAttachmentView key={attachment.id} attachment={attachment} />;
         if (attachment.kind === "location") return <LocationAttachmentView key={attachment.id} attachment={attachment} compact={compact} />;

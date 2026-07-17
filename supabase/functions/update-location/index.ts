@@ -21,6 +21,7 @@ Deno.serve(await withHttp(async (req) => {
   }, { onConflict: "id", ignoreDuplicates: true });
 
   let areaId = payload.areaId;
+  let resolvedArea: { name?: string | null; city?: string | null } | null = null;
   if (!areaId) {
     const roundedLatitude = Math.round(payload.latitude * 100) / 100;
     const roundedLongitude = Math.round(payload.longitude * 100) / 100;
@@ -46,6 +47,7 @@ Deno.serve(await withHttp(async (req) => {
 
     if (area?.id) {
       areaId = area.id;
+      resolvedArea = { name: area.name, city: area.city };
       const hasWeakName = /^\s*\d+[a-z]?\s*$/i.test(area.name ?? "") || (area.name ?? "").toLowerCase() === "area vicina";
       if (hasWeakName && areaName !== "Area vicina") {
         await adminClient.from("areas").update({
@@ -53,6 +55,7 @@ Deno.serve(await withHttp(async (req) => {
           city: payload.city ?? area.city,
           place_label: payload.placeLabel
         }).eq("id", area.id);
+        resolvedArea = { name: areaName, city: payload.city ?? area.city };
       }
     } else {
       const { data: createdArea, error: createAreaError } = await adminClient.from("areas").insert({
@@ -73,8 +76,14 @@ Deno.serve(await withHttp(async (req) => {
         areaId = existingArea?.id;
       } else {
         areaId = createdArea?.id;
+        resolvedArea = { name: areaName, city: payload.city };
       }
     }
+  }
+
+  if (!resolvedArea && areaId) {
+    const { data: selectedArea } = await adminClient.from("areas").select("name,city").eq("id", areaId).maybeSingle();
+    resolvedArea = selectedArea;
   }
 
   const { data, error } = await adminClient.from("user_locations").insert({
@@ -111,5 +120,5 @@ Deno.serve(await withHttp(async (req) => {
     metadata: { trust }
   });
 
-  return jsonResponse({ location: data, trust });
+  return jsonResponse({ location: data, trust, area: resolvedArea });
 }));

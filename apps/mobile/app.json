@@ -26,10 +26,6 @@
       "package": "app.paraggi.mobile",
       "versionCode": 100,
       "softwareKeyboardLayoutMode": "resize",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/paraggi-icon.png",
-        "backgroundColor": "#3B82C4"
-      },
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "plugins": [

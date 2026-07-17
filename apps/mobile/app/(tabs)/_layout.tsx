@@ -4,7 +4,7 @@ import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { Redirect, Tabs } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { CivicBottomBar, type TabKey } from "@/components/CivicBottomBar";
 import { demoMode } from "@/config/env";
@@ -45,6 +45,7 @@ export default function TabsLayout() {
   const [hasSession, setHasSession] = useState(demoMode);
   const [userId, setUserId] = useState<string | null>(null);
   const startupPermissionsStartedRef = useRef(false);
+  const lastPresenceSyncRef = useRef(0);
   const registerPush = usePushRegistration();
   const syncLocation = useLocationSync();
   const setLocationPermission = useAppStore((state) => state.setLocationPermission);
@@ -108,6 +109,31 @@ export default function TabsLayout() {
       await registerPush({ showLocalConfirmation: false });
     })();
   }, [queryClient, registerPush, setLocationPermission, setNotificationPermission, syncLocation, userId]);
+
+  useEffect(() => {
+    if (demoMode || !userId) return;
+
+    const refreshPresence = async () => {
+      if (Date.now() - lastPresenceSyncRef.current < 4 * 60 * 1000) return;
+      const permission = await Location.getForegroundPermissionsAsync();
+      if (permission.status !== "granted") return;
+      lastPresenceSyncRef.current = Date.now();
+      const result = await syncLocation();
+      if (result.ok) await queryClient.invalidateQueries({ queryKey: ["nearby-feed"] });
+    };
+
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") void refreshPresence();
+    }, 5 * 60 * 1000);
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refreshPresence();
+    });
+
+    return () => {
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
+  }, [queryClient, syncLocation, userId]);
 
   if (isCheckingSession) {
     return (
