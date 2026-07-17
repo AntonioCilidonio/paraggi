@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { router } from "expo-router";
@@ -53,9 +54,23 @@ function AudioAttachmentView({ attachment }: { attachment: PostAttachment }) {
 
 function VideoAttachmentView({ attachment }: { attachment: PostAttachment }) {
   const player = useVideoPlayer(attachment.url ? { uri: attachment.url } : null);
+  const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
+
   return (
     <View className="overflow-hidden rounded-card bg-ink" style={{ aspectRatio: 16 / 9 }}>
       <VideoView player={player} nativeControls allowsFullscreen contentFit="contain" style={{ flex: 1 }} />
+      {!isPlaying && attachment.url ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Riproduci video"
+          onPress={() => player.play()}
+          className="absolute inset-0 items-center justify-center bg-ink/10"
+        >
+          <View pointerEvents="none" className="h-16 w-16 items-center justify-center rounded-full bg-white/95">
+            <Ionicons name="play" size={30} color="#1a2027" style={{ marginLeft: 3 }} />
+          </View>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
