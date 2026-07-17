@@ -58,13 +58,14 @@ function VideoAttachmentView({ attachment }: { attachment: PostAttachment }) {
 
   return (
     <View className="overflow-hidden rounded-card bg-ink" style={{ aspectRatio: 16 / 9 }}>
-      <VideoView player={player} nativeControls allowsFullscreen contentFit="contain" style={{ flex: 1 }} />
+      <VideoView player={player} nativeControls allowsFullscreen contentFit="contain" surfaceType="textureView" style={{ flex: 1 }} />
       {!isPlaying && attachment.url ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Riproduci video"
           onPress={() => player.play()}
           className="absolute inset-0 items-center justify-center bg-ink/10"
+          style={{ zIndex: 10, elevation: 10 }}
         >
           <View pointerEvents="none" className="h-16 w-16 items-center justify-center rounded-full bg-white/95">
             <Ionicons name="play" size={30} color="#1a2027" style={{ marginLeft: 3 }} />
@@ -82,17 +83,8 @@ function VideoAttachmentPreview({ attachment, onOpen }: { attachment: PostAttach
   });
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Apri il video nel dettaglio del post"
-      onPress={(event) => {
-        event.stopPropagation();
-        onOpen?.();
-      }}
-      className="overflow-hidden rounded-card bg-ink"
-      style={{ aspectRatio: 16 / 9 }}
-    >
-      <VideoView pointerEvents="none" player={player} nativeControls={false} contentFit="cover" style={{ flex: 1 }} />
+    <View className="overflow-hidden rounded-card bg-ink" style={{ aspectRatio: 16 / 9 }}>
+      <VideoView pointerEvents="none" player={player} nativeControls={false} contentFit="cover" surfaceType="textureView" style={{ flex: 1 }} />
       <View pointerEvents="none" className="absolute inset-0 items-center justify-center bg-ink/15">
         <View className="h-12 w-12 items-center justify-center rounded-full bg-white/90">
           <Ionicons name="play" size={23} color="#1a2027" style={{ marginLeft: 2 }} />
@@ -101,7 +93,17 @@ function VideoAttachmentPreview({ attachment, onOpen }: { attachment: PostAttach
       <View pointerEvents="none" className="absolute bottom-2 right-2 rounded-card bg-ink/75 px-2 py-1">
         <Text className="text-xs font-semibold text-white">{formatDuration(attachment.duration_seconds)}</Text>
       </View>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Apri il video nel dettaglio del post"
+        onPress={(event) => {
+          event.stopPropagation();
+          onOpen?.();
+        }}
+        className="absolute inset-0"
+        style={{ zIndex: 20, elevation: 20 }}
+      />
+    </View>
   );
 }
 
