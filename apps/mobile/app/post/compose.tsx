@@ -322,7 +322,7 @@ export default function ComposePostScreen() {
   }
 
   return (
-    <Screen showBottomBar>
+    <Screen showBottomBar keyboardAware>
       <View className="gap-5">
         <AppHeader />
         <View className="flex-row items-center gap-3 pb-1">

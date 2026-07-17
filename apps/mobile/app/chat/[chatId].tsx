@@ -8,6 +8,7 @@ import {
 } from "expo-audio";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -31,6 +32,7 @@ import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
 import { getFriendlyError } from "@/services/errors";
+import { getAvatarUrl } from "@/services/avatar";
 import { dismissPresentedChatNotifications } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
@@ -63,7 +65,7 @@ type ThreadResponse = {
   chat: {
     id: string;
     is_connected?: boolean;
-    other_profile?: { display_name: string; reputation_score: number } | null;
+    other_profile?: { display_name: string; reputation_score: number; avatar_path?: string | null } | null;
   };
   messages: Message[];
   currentUserId: string;
@@ -261,6 +263,7 @@ export default function ChatDetailScreen() {
     thread.data?.disconnected !== true &&
     thread.data?.chat.is_connected !== false;
   const otherName = thread.data?.chat.other_profile?.display_name ?? "Persona";
+  const otherAvatarUrl = getAvatarUrl(thread.data?.chat.other_profile?.avatar_path);
 
   function setPickedAsset(asset: ImagePicker.ImagePickerAsset) {
     const kind: AttachmentKind = asset.type === "video" ? "video" : "image";
@@ -401,11 +404,19 @@ export default function ChatDetailScreen() {
           >
             <Ionicons name="arrow-back" size={21} color="#1a2027" />
           </Pressable>
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary-soft">
-            <Text className="font-bold text-primary">
-              {otherName.slice(0, 1).toUpperCase()}
-            </Text>
-          </View>
+          <Pressable
+            accessibilityRole={otherAvatarUrl && isConnected ? "imagebutton" : undefined}
+            accessibilityLabel={otherAvatarUrl && isConnected ? `Apri la foto profilo di ${otherName}` : undefined}
+            disabled={!otherAvatarUrl || !isConnected}
+            onPress={() => otherAvatarUrl && router.push({ pathname: "/media-view", params: { url: otherAvatarUrl, label: otherName } })}
+            className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-primary-soft"
+          >
+            {otherAvatarUrl ? (
+              <Image source={{ uri: otherAvatarUrl }} contentFit="cover" cachePolicy="memory-disk" style={{ width: 44, height: 44 }} />
+            ) : (
+              <Text className="font-bold text-primary">{otherName.slice(0, 1).toUpperCase()}</Text>
+            )}
+          </Pressable>
           <View className="flex-1">
             <Text className="text-lg font-bold text-ink">{otherName}</Text>
             <Text className="text-xs text-muted">Chat privata attiva</Text>

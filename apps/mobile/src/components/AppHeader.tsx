@@ -1,8 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 
 export function AppHeader() {
+  const unreadNotifications = useUnreadNotificationCount();
+  const unreadCount = unreadNotifications.data ?? 0;
+
   return (
     <View className="-mx-4 -mt-3 flex-row items-center justify-between gap-3 bg-primary-strong px-4 pb-4 pt-4">
       <View className="flex-1 flex-row items-center gap-3">
@@ -22,6 +26,11 @@ export function AppHeader() {
           className="h-11 w-11 items-center justify-center rounded-card border border-white/20 bg-white/10"
         >
           <Ionicons name="notifications-outline" size={21} color="#ffffff" />
+          {unreadCount > 0 ? (
+            <View className="absolute -right-1 -top-1 min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-primary-strong bg-danger px-1">
+              <Text className="text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</Text>
+            </View>
+          ) : null}
         </Pressable>
         <Pressable
           accessibilityRole="button"

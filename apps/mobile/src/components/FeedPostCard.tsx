@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import { Pressable, Text, View } from "react-native";
 import {
   PostAttachments,
   type PostAttachment,
@@ -51,7 +53,17 @@ export function FeedPostCard({
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 flex-row gap-3">
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} className="h-10 w-10 rounded-full bg-surface" accessibilityLabel={`Foto profilo di ${post.display_name}`} />
+            <Pressable
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`Apri la foto profilo di ${post.display_name}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                router.push({ pathname: "/media-view", params: { url: avatarUrl, label: post.display_name } });
+              }}
+              className="h-10 w-10 overflow-hidden rounded-full bg-surface"
+            >
+              <Image source={{ uri: avatarUrl }} contentFit="cover" cachePolicy="memory-disk" style={{ width: 40, height: 40 }} />
+            </Pressable>
           ) : (
             <View className="h-10 w-10 items-center justify-center rounded-full bg-white/70">
               <Text className="font-bold text-primary">{initial}</Text>

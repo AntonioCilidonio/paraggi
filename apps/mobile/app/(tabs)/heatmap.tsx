@@ -37,27 +37,21 @@ type HeatmapResponse = {
   radiusMeters: number;
 };
 
-const levelMeta: Record<HeatmapLevel, { label: string; tone: "success" | "neutral" | "warning"; dotClass: string; ringClass: string; textClass: string }> = {
+const levelMeta: Record<HeatmapLevel, { label: string; color: string; surface: string }> = {
   high: {
-    label: "molto attiva",
-    tone: "neutral",
-    dotClass: "bg-primary",
-    ringClass: "border-primary bg-primary/25",
-    textClass: "text-primary"
+    label: "Molto attiva",
+    color: "#d95852",
+    surface: "rgba(217, 88, 82, 0.24)"
   },
   medium: {
-    label: "attiva",
-    tone: "neutral",
-    dotClass: "bg-warning",
-    ringClass: "border-warning bg-warning/20",
-    textClass: "text-warning"
+    label: "Attiva",
+    color: "#d7a51f",
+    surface: "rgba(242, 212, 92, 0.34)"
   },
   low: {
-    label: "tranquilla",
-    tone: "warning",
-    dotClass: "bg-muted",
-    ringClass: "border-muted bg-white/50",
-    textClass: "text-muted"
+    label: "Tranquilla",
+    color: "#3b82c4",
+    surface: "rgba(120, 199, 232, 0.30)"
   }
 };
 
@@ -153,15 +147,15 @@ export default function HeatmapScreen() {
                 const size = bubbleSize(zone);
                 const position = mapPositions[index] ?? mapPositions[0];
                 const selected = selectedZone?.id === zone.id;
-                const toneClass = zone.activity_level === "high" ? "border-primary bg-primary/25" : zone.activity_level === "medium" ? "border-warning bg-warning/20" : "border-muted bg-white/50";
+                const level = levelMeta[zone.activity_level];
                 return (
                   <Pressable
                     key={zone.id}
                     accessibilityRole="button"
                     accessibilityLabel={`${zone.name}, ${levelMeta[zone.activity_level].label}`}
                     onPress={() => setSelectedZoneId(zone.id)}
-                    className={`absolute items-center justify-center rounded-full border-2 ${toneClass} ${selected ? "opacity-100" : "opacity-80"}`}
-                    style={{ width: size, height: size, ...position }}
+                    className={`absolute items-center justify-center rounded-full border-2 ${selected ? "opacity-100" : "opacity-80"}`}
+                    style={{ width: size, height: size, borderColor: level.color, backgroundColor: level.surface, ...position }}
                   >
                     <Text className="px-2 text-center text-sm font-bold text-ink" numberOfLines={2}>{zone.name}</Text>
                     <Text className="mt-1 text-xs font-semibold text-muted">{zone.post_count} post</Text>
@@ -169,9 +163,12 @@ export default function HeatmapScreen() {
                 );
               })}
               <View className="absolute bottom-3 left-3 right-3 flex-row items-center justify-between rounded-card bg-primary-strong px-3 py-2">
-                <Text className="text-xs font-semibold text-white/70">● Tranquilla</Text>
-                <Text className="text-xs font-semibold text-white">● Attiva</Text>
-                <Text className="text-xs font-semibold text-primary-soft">● Molto attiva</Text>
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <View key={level} className="flex-row items-center gap-1.5">
+                    <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: levelMeta[level].color }} />
+                    <Text className="text-xs font-semibold text-white">{levelMeta[level].label}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           ) : null}
@@ -182,8 +179,8 @@ export default function HeatmapScreen() {
                 <Pressable
                   key={zone.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Seleziona ${zone.name}`}
-                  onPress={() => setSelectedZoneId(zone.id)}
+                  accessibilityLabel={`Apri ${zone.name}`}
+                  onPress={() => router.push(`/area/${zone.id}`)}
                   className="flex-row items-center gap-3 border-b border-border py-3 last:border-b-0"
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
@@ -193,7 +190,11 @@ export default function HeatmapScreen() {
                     <Text className="font-medium text-ink">{zone.name}</Text>
                     <Text className="mt-0.5 text-xs text-muted">{zone.post_count} post · circa {formatDistance(zone.distance_meters)}</Text>
                   </View>
-                  {zone.activity_level === "high" ? <StatusPill label="Molto attiva" tone="success" /> : <Ionicons name="chevron-forward" size={18} color="#7f8791" />}
+                  <View className="flex-row items-center gap-2">
+                    <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: levelMeta[zone.activity_level].color }} />
+                    <Text className="text-xs font-semibold text-muted">{levelMeta[zone.activity_level].label}</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#7f8791" />
+                  </View>
                 </Pressable>
               ))}
             </View>

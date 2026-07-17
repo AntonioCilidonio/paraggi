@@ -5,7 +5,7 @@ Deno.serve(await withHttp(async (req) => {
   const areaId = new URL(req.url).searchParams.get("areaId");
   if (!areaId) return jsonResponse({ error: "area_id_required" }, 400);
 
-  const { data: history, error: historyError } = await adminClient
+  const { data: storedHistory, error: historyError } = await adminClient
     .from("area_history")
     .select("id,area_id,first_seen_at,last_seen_at,areas(name,city,country_code,place_label)")
     .eq("user_id", user.id)
@@ -13,7 +13,24 @@ Deno.serve(await withHttp(async (req) => {
     .maybeSingle();
 
   if (historyError) return jsonResponse({ error: "area_detail_failed", details: historyError.message }, 400);
-  if (!history) return jsonResponse({ error: "area_not_found" }, 404);
+  let history = storedHistory;
+  if (!history) {
+    const { data: area, error: areaError } = await adminClient
+      .from("areas")
+      .select("id,name,city,country_code,place_label")
+      .eq("id", areaId)
+      .maybeSingle();
+    if (areaError) return jsonResponse({ error: "area_detail_failed", details: areaError.message }, 400);
+    if (!area) return jsonResponse({ error: "area_not_found" }, 404);
+    const now = new Date().toISOString();
+    history = {
+      id: null,
+      area_id: area.id,
+      first_seen_at: now,
+      last_seen_at: now,
+      areas: area
+    };
+  }
 
   const { data: areaPosts } = await adminClient
     .from("posts")
