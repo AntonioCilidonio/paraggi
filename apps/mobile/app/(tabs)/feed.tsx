@@ -37,7 +37,10 @@ export default function FeedScreen() {
       const result = await callFunction<{ posts: FeedPost[] }>("get-nearby-feed", { method: "GET", query: { radiusMeters, limit: 30, areaName, areaCity } });
       return { posts: result.posts.map(stabilizePostAttachments) };
     },
-    enabled: demoMode || Boolean(lastLocationSyncAt)
+    enabled: demoMode || Boolean(lastLocationSyncAt),
+    refetchInterval: demoMode ? false : 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnMount: "always"
   });
   const sortedPosts = useMemo(() => sortFeedPosts(feed.data?.posts ?? [], sortField, sortDirection), [feed.data?.posts, sortDirection, sortField]);
 
