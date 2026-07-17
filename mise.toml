@@ -38,6 +38,7 @@ depends = ["debug"]
 description = "Build and install Paraggi Dev on a personal iPhone using Xcode Personal Team"
 run = '''
 export PARAGGI_IOS_PERSONAL_TEAM=1
+export EXPO_NO_GIT_STATUS=1
 if ! command -v pod >/dev/null 2>&1; then
   gem install cocoapods --no-document
 fi

@@ -23,6 +23,10 @@ Prima esecuzione:
 npm run mobile:ios:device:personal
 ```
 
+Il task ignora il solo controllo Git di Expo durante la rigenerazione nativa. Gli
+artefatti locali non vengono cancellati o aggiunti ai commit e la scelta del
+dispositivo resta interattiva.
+
 Expo genera il progetto iOS, permette di scegliere l'iPhone collegato e avvia
 la compilazione. Se Xcode richiede il team, aprire
 `apps/mobile/ios/ParaggiDev.xcworkspace`, selezionare il target `ParaggiDev`, quindi
