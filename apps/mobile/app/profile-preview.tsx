@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { callFunction } from "@/services/api";
+import { getAvatarUrl } from "@/services/avatar";
 import { getFriendlyError } from "@/services/errors";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
@@ -16,6 +17,12 @@ type ConnectionState = "none" | "connected" | "pending_outgoing" | "pending_inco
 
 type DetailResponse = {
   connection?: { state: ConnectionState; chatId: string | null; requestId: string | null };
+};
+
+type ProfileSummary = {
+  bio: string;
+  avatar_path: string | null;
+  reputation_score: number;
 };
 
 function firstParam(value?: string | string[]) {
@@ -55,6 +62,29 @@ export default function ProfilePreviewScreen() {
   const canView = connectedFromChat || viewer.data?.id === userId || connection?.state === "connected";
   const checkingAccess = !connectedFromChat && (viewer.isLoading || (Boolean(postId) && detail.isLoading));
   const initial = displayName.slice(0, 1).toUpperCase();
+  const profile = useQuery({
+    queryKey: ["profile-preview-summary", userId],
+    enabled: Boolean(userId) && canView,
+    queryFn: async (): Promise<ProfileSummary | null> => {
+      if (demoMode) {
+        return {
+          bio: "Disponibile per informazioni utili nella zona.",
+          avatar_path: null,
+          reputation_score: 100
+        };
+      }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("bio,avatar_path,reputation_score")
+        .eq("id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+  const resolvedAvatarUrl = avatarUrl ?? getAvatarUrl(profile.data?.avatar_path);
+  const biography = profile.data?.bio?.trim() ?? "";
+  const reputationScore = profile.data?.reputation_score;
 
   const requestConnection = useMutation({
     mutationFn: async () => {
@@ -95,9 +125,9 @@ export default function ProfilePreviewScreen() {
           </View>
         ) : canView ? (
           <View className="gap-3">
-            {avatarUrl ? (
-              <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Apri la foto di ${displayName} a schermo intero`} onPress={() => router.push({ pathname: "/media-view", params: { url: avatarUrl, label: displayName } })} className="overflow-hidden rounded-card bg-surface" style={{ aspectRatio: 1 }}>
-                <Image source={{ uri: avatarUrl }} contentFit="cover" cachePolicy="memory-disk" style={{ width: "100%", height: "100%" }} />
+            {resolvedAvatarUrl ? (
+              <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Apri la foto di ${displayName} a schermo intero`} onPress={() => router.push({ pathname: "/media-view", params: { url: resolvedAvatarUrl, label: displayName } })} className="overflow-hidden rounded-card bg-surface" style={{ aspectRatio: 1 }}>
+                <Image source={{ uri: resolvedAvatarUrl }} contentFit="cover" cachePolicy="memory-disk" style={{ width: "100%", height: "100%" }} />
                 <View className="absolute bottom-3 right-3 h-11 w-11 items-center justify-center rounded-card bg-ink/80">
                   <Ionicons name="expand-outline" size={21} color="#ffffff" />
                 </View>
@@ -111,6 +141,35 @@ export default function ProfilePreviewScreen() {
                 <Text className="text-sm text-muted">La connessione privata e attiva.</Text>
               </View>
             )}
+            <View className="gap-4 rounded-card border border-border bg-white p-4">
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-row items-center gap-2">
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
+                    <Ionicons name="shield-checkmark-outline" size={21} color="#3b82c4" />
+                  </View>
+                  <View>
+                    <Text className="text-xs font-semibold uppercase text-muted">Affidabilita</Text>
+                    <Text className="mt-0.5 text-lg font-bold text-ink">
+                      {profile.isLoading ? "..." : reputationScore ?? 100}
+                      <Text className="text-sm font-medium text-muted"> / 100</Text>
+                    </Text>
+                  </View>
+                </View>
+                <Text className="text-xs font-semibold text-primary">Reputazione Paraggi</Text>
+              </View>
+              <View className="border-t border-border pt-4">
+                <Text className="text-xs font-semibold uppercase text-muted">Bio</Text>
+                <Text className={`mt-2 text-sm leading-6 ${biography ? "text-ink" : "text-muted"}`}>
+                  {profile.isLoading ? "Carico la bio..." : biography || "Nessuna bio ancora inserita."}
+                </Text>
+              </View>
+              {profile.isError ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Ricarica le informazioni del profilo" onPress={() => void profile.refetch()} className="min-h-11 flex-row items-center justify-center gap-2 rounded-card bg-primary-soft px-3">
+                  <Ionicons name="refresh" size={17} color="#3b82c4" />
+                  <Text className="text-sm font-semibold text-primary">Ricarica informazioni</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         ) : (
           <View className="items-center gap-4 rounded-card border border-border bg-white p-6">
