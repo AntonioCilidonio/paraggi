@@ -65,6 +65,14 @@ export default function ProfileScreen() {
     }
   });
 
+  function leaveProfile() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/(tabs)/feed");
+  }
+
   useEffect(() => {
     if (profileRadiusHydratedRef.current || !profile.data) return;
     profileRadiusHydratedRef.current = true;
@@ -286,6 +294,17 @@ export default function ProfileScreen() {
     <Screen>
       <View>
         <AppHeader />
+        <View className="-mx-4 flex-row items-center gap-3 bg-primary-strong px-4 pb-3">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Torna alla schermata precedente"
+            onPress={leaveProfile}
+            className="h-11 w-11 items-center justify-center rounded-card border border-white/20 bg-white/10"
+          >
+            <Ionicons name="arrow-back" size={21} color="#ffffff" />
+          </Pressable>
+          <Text className="text-lg font-bold text-white">Profilo</Text>
+        </View>
         <View className="-mx-4 flex-row items-center gap-3 bg-primary-strong px-4 pb-5 pt-1">
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} className="h-16 w-16 rounded-full bg-white/15" accessibilityLabel="Foto profilo" />
