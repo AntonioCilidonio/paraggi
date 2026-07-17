@@ -65,7 +65,7 @@ type ThreadResponse = {
   chat: {
     id: string;
     is_connected?: boolean;
-    other_profile?: { display_name: string; reputation_score: number; avatar_path?: string | null } | null;
+    other_profile?: { id?: string; display_name: string; reputation_score: number; avatar_path?: string | null } | null;
   };
   messages: Message[];
   currentUserId: string;
@@ -405,10 +405,10 @@ export default function ChatDetailScreen() {
             <Ionicons name="arrow-back" size={21} color="#1a2027" />
           </Pressable>
           <Pressable
-            accessibilityRole={otherAvatarUrl && isConnected ? "imagebutton" : undefined}
-            accessibilityLabel={otherAvatarUrl && isConnected ? `Apri la foto profilo di ${otherName}` : undefined}
-            disabled={!otherAvatarUrl || !isConnected}
-            onPress={() => otherAvatarUrl && router.push({ pathname: "/media-view", params: { url: otherAvatarUrl, label: otherName } })}
+            accessibilityRole={isConnected ? "imagebutton" : undefined}
+            accessibilityLabel={isConnected ? `Apri il profilo di ${otherName}` : undefined}
+            disabled={!isConnected}
+            onPress={() => isConnected && router.push({ pathname: "/profile-preview", params: { userId: thread.data?.chat.other_profile?.id, displayName: otherName, avatarUrl: otherAvatarUrl ?? undefined, connected: "true" } })}
             className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-primary-soft"
           >
             {otherAvatarUrl ? (

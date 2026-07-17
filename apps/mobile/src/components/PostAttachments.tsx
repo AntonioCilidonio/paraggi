@@ -4,7 +4,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { router } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { SafeMapPreview } from "@/components/SafeMapPreview";
 
 export type PostAttachment = {
   id: string;
@@ -83,16 +83,7 @@ function LocationAttachmentView({ attachment, compact }: { attachment: PostAttac
 
   return (
     <View className="gap-2">
-      <View className="overflow-hidden rounded-card border border-border" style={{ height: 220 }}>
-        <MapView
-          style={{ flex: 1 }}
-          initialRegion={{ latitude: attachment.latitude!, longitude: attachment.longitude!, latitudeDelta: 0.008, longitudeDelta: 0.008 }}
-          scrollEnabled={false}
-          zoomEnabled={false}
-        >
-          <Marker coordinate={{ latitude: attachment.latitude!, longitude: attachment.longitude! }} title="Posizione condivisa" pinColor="#3b82c4" />
-        </MapView>
-      </View>
+      <SafeMapPreview latitude={attachment.latitude!} longitude={attachment.longitude!} title="Posizione condivisa" />
       <Pressable accessibilityRole="button" accessibilityLabel="Apri la posizione nel navigatore" onPress={openNavigation} className="min-h-11 flex-row items-center justify-center gap-2 rounded-card bg-surface px-4">
         <Ionicons name="navigate-outline" size={18} color="#3b82c4" />
         <Text className="font-semibold text-primary">Apri nel navigatore</Text>

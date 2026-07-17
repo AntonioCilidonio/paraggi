@@ -31,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="danger" />
         <Stack.Screen name="area" />
         <Stack.Screen name="media-view" />
+        <Stack.Screen name="profile-preview" />
       </Stack>
     </QueryClientProvider>
   );

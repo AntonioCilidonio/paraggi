@@ -50,8 +50,8 @@ const levelMeta: Record<HeatmapLevel, { label: string; color: string; surface: s
   },
   low: {
     label: "Tranquilla",
-    color: "#3b82c4",
-    surface: "rgba(120, 199, 232, 0.30)"
+    color: "#4caf78",
+    surface: "rgba(76, 175, 120, 0.24)"
   }
 };
 
@@ -105,6 +105,13 @@ export default function HeatmapScreen() {
     return 82;
   }
 
+  function openZoneFeed(zone: HeatmapZone) {
+    router.push({
+      pathname: "/(tabs)/feed",
+      params: { areaName: zone.name, areaCity: zone.city ?? undefined }
+    });
+  }
+
   return (
     <Screen>
       <View className="gap-5">
@@ -154,9 +161,10 @@ export default function HeatmapScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`${zone.name}, ${levelMeta[zone.activity_level].label}`}
                     onPress={() => setSelectedZoneId(zone.id)}
-                    className={`absolute items-center justify-center rounded-full border-2 ${selected ? "opacity-100" : "opacity-80"}`}
-                    style={{ width: size, height: size, borderColor: level.color, backgroundColor: level.surface, ...position }}
+                    className={`absolute items-center justify-center rounded-full ${selected ? "opacity-100" : "opacity-70"}`}
+                    style={{ width: size, height: size, borderColor: level.color, backgroundColor: level.surface, borderWidth: selected ? 4 : 2, transform: [{ scale: selected ? 1.07 : 1 }], ...position }}
                   >
+                    {selected ? <Ionicons name="checkmark-circle" size={19} color={level.color} /> : null}
                     <Text className="px-2 text-center text-sm font-bold text-ink" numberOfLines={2}>{zone.name}</Text>
                     <Text className="mt-1 text-xs font-semibold text-muted">{zone.post_count} post</Text>
                   </Pressable>
@@ -173,6 +181,22 @@ export default function HeatmapScreen() {
             </View>
           ) : null}
 
+          {selectedZone ? (
+            <View className="flex-row items-center gap-3 rounded-card border border-primary bg-white p-3">
+              <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: levelMeta[selectedZone.activity_level].surface }}>
+                <Ionicons name="location" size={20} color={levelMeta[selectedZone.activity_level].color} />
+              </View>
+              <View className="flex-1">
+                <Text className="font-semibold text-ink">{selectedZone.name}</Text>
+                <Text className="mt-0.5 text-xs text-muted">Zona selezionata · {selectedZone.post_count} post</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Vedi i post di ${selectedZone.name}`} onPress={() => openZoneFeed(selectedZone)} className="min-h-11 flex-row items-center gap-1 rounded-card bg-primary px-3">
+                <Text className="text-xs font-semibold text-white">Apri post</Text>
+                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+              </Pressable>
+            </View>
+          ) : null}
+
           {zones.length > 0 ? (
             <View className="overflow-hidden rounded-card bg-white px-3">
               {zones.slice(0, 4).map((zone) => (
@@ -180,7 +204,7 @@ export default function HeatmapScreen() {
                   key={zone.id}
                   accessibilityRole="button"
                   accessibilityLabel={`Apri ${zone.name}`}
-                  onPress={() => router.push(`/area/${zone.id}`)}
+                  onPress={() => openZoneFeed(zone)}
                   className="flex-row items-center gap-3 border-b border-border py-3 last:border-b-0"
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
@@ -217,7 +241,7 @@ export default function HeatmapScreen() {
 
         <View className="flex-row gap-2">
           <Button label={isRefreshingLocation ? "Aggiorno..." : "Aggiorna zona"} icon="locate-outline" onPress={() => void refreshHeatmap()} disabled={isRefreshingLocation} className="flex-1" />
-          <Button label="Post vicini" variant="secondary" icon="list-outline" onPress={() => router.push("/(tabs)/feed")} className="flex-1" />
+          <Button label={selectedZone ? `Post: ${selectedZone.name}` : "Post vicini"} variant="secondary" icon="list-outline" onPress={() => selectedZone ? openZoneFeed(selectedZone) : router.push("/(tabs)/feed")} className="flex-1" />
         </View>
 
         {lastLocationSyncAt ? <Text className="text-xs text-muted">Ultimo aggiornamento GPS: {new Date(lastLocationSyncAt).toLocaleTimeString()}</Text> : null}

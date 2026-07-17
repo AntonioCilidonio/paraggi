@@ -48,6 +48,18 @@ export function FeedPostCard({
   const avatarUrl = getAvatarUrl(post.avatar_path);
   const categoryTheme = getPostCategoryTheme(post.category);
 
+  function openProfilePreview() {
+    router.push({
+      pathname: "/profile-preview",
+      params: {
+        userId: post.author_id,
+        postId: post.id,
+        displayName: post.display_name,
+        avatarUrl: avatarUrl ?? undefined,
+      },
+    });
+  }
+
   return (
     <View className={`gap-2.5 rounded-card p-3 ${categoryTheme.surfaceClass}`}>
       <View className="flex-row items-start justify-between gap-3">
@@ -58,16 +70,24 @@ export function FeedPostCard({
               accessibilityLabel={`Apri la foto profilo di ${post.display_name}`}
               onPress={(event) => {
                 event.stopPropagation();
-                router.push({ pathname: "/media-view", params: { url: avatarUrl, label: post.display_name } });
+                openProfilePreview();
               }}
               className="h-10 w-10 overflow-hidden rounded-full bg-surface"
             >
               <Image source={{ uri: avatarUrl }} contentFit="cover" cachePolicy="memory-disk" style={{ width: 40, height: 40 }} />
             </Pressable>
           ) : (
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-white/70">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Apri il profilo di ${post.display_name}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                openProfilePreview();
+              }}
+              className="h-10 w-10 items-center justify-center rounded-full bg-white/70"
+            >
               <Text className="font-bold text-primary">{initial}</Text>
-            </View>
+            </Pressable>
           )}
           <View className="flex-1">
               <Text className="font-medium text-ink">{post.display_name}</Text>

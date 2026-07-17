@@ -71,12 +71,46 @@ Deno.serve(await withHttp(async (req) => {
     rating: ratingByComment.get(comment.id) ?? null
   }));
 
+  type ConnectionState = {
+    state: "none" | "connected" | "pending_outgoing" | "pending_incoming" | "disconnected";
+    chatId: string | null;
+    requestId: string | null;
+  };
+  let connection: ConnectionState = { state: "none", chatId: null, requestId: null };
+  if (post.author_id !== user.id) {
+    const participantPair = [user.id, post.author_id].sort().join(":");
+    const [{ data: chat }, { data: pendingRequest }] = await Promise.all([
+      adminClient
+        .from("private_chats")
+        .select("id,is_connected")
+        .eq("participant_pair", participantPair)
+        .maybeSingle(),
+      adminClient
+        .from("connection_requests")
+        .select("id,requester_id,recipient_id")
+        .eq("status", "pending")
+        .or(`and(requester_id.eq.${user.id},recipient_id.eq.${post.author_id}),and(requester_id.eq.${post.author_id},recipient_id.eq.${user.id})`)
+        .limit(1)
+        .maybeSingle()
+    ]);
+    connection = chat?.is_connected
+      ? { state: "connected", chatId: chat.id, requestId: null }
+      : pendingRequest
+        ? {
+            state: pendingRequest.requester_id === user.id ? "pending_outgoing" : "pending_incoming",
+            chatId: chat?.id ?? null,
+            requestId: pendingRequest.id
+          }
+        : { state: chat ? "disconnected" : "none", chatId: chat?.id ?? null, requestId: null };
+  }
+
   try {
     const attachments = await getPostAttachments(adminClient, [postId]);
     return jsonResponse({
       post: { ...post, attachments: attachments.get(postId) ?? [] },
       comments: decoratedComments,
       canComment,
+      connection,
     });
   } catch (mediaError) {
     return jsonResponse({ error: "post_media_failed", details: mediaError instanceof Error ? mediaError.message : String(mediaError) }, 400);

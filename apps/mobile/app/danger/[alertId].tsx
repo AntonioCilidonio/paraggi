@@ -4,13 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Alert, Linking, Platform, Pressable, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { callFunction } from "@/services/api";
 import { captureClientError } from "@/services/clientLogger";
 import { getSafeDangerCoordinates } from "@/services/dangerAlert";
 import { getFriendlyError } from "@/services/errors";
+import { SafeMapPreview } from "@/components/SafeMapPreview";
 
 type DangerAlert = {
   id: string;
@@ -49,7 +49,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           senza chiudere l'app.
         </Text>
         <Button label="Riprova" onPress={retry} />
-        <Button label="Torna al feed" variant="secondary" onPress={() => router.replace("/feed")} />
+        <Button label="Torna al feed" variant="secondary" onPress={() => router.replace("/(tabs)/feed")} />
       </View>
     </Screen>
   );
@@ -63,6 +63,13 @@ export default function DangerAlertScreen() {
     enabled: Boolean(alertId),
     queryFn: async () => callFunction<{ alert: DangerAlert }>("get-danger-alert", { method: "GET", query: { alertId: alertId ?? "" } })
   });
+  const loggedQueryErrorRef = useRef<unknown>(null);
+
+  useEffect(() => {
+    if (!alert.isError || loggedQueryErrorRef.current === alert.error) return;
+    loggedQueryErrorRef.current = alert.error;
+    captureClientError("danger_alert_load_failed", alert.error, { alertId });
+  }, [alert.error, alert.isError, alertId]);
   const item = alert.data?.alert;
   const coordinates = getSafeDangerCoordinates(item);
 
@@ -127,14 +134,7 @@ export default function DangerAlertScreen() {
             </View>
 
             {coordinates ? (
-              <View className="overflow-hidden rounded-card bg-primary-soft" style={{ height: 310 }}>
-                <MapView
-                  style={{ flex: 1 }}
-                  initialRegion={{ ...coordinates, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
-                >
-                  <Marker coordinate={coordinates} title="SOS Paraggi" description={item.message} pinColor="#b42318" />
-                </MapView>
-              </View>
+              <SafeMapPreview latitude={coordinates.latitude} longitude={coordinates.longitude} title="Area della richiesta SOS" description={item.message} danger height={310} />
             ) : (
               <View className="gap-2 rounded-card border border-danger bg-surface p-4">
                 <Text className="font-semibold text-danger">Posizione SOS non valida</Text>

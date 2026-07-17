@@ -34,11 +34,11 @@ type PostDetailData = {
   post: FeedPost | null;
   comments: CommentRow[];
   canComment: boolean;
-};
-
-type ExistingChat = {
-  id: string;
-  is_connected: boolean;
+  connection?: {
+    state: "none" | "connected" | "pending_outgoing" | "pending_incoming" | "disconnected";
+    chatId: string | null;
+    requestId: string | null;
+  };
 };
 
 const emptyDemoComments: CommentRow[] = [];
@@ -116,6 +116,7 @@ export default function PostDetailScreen() {
             ...demoComments.map((comment) => ({ ...comment, rating: null as -1 | 1 | null })),
             ...localComments,
           ],
+          connection: { state: "none" as const, chatId: null, requestId: null },
         };
       }
       const result = await callFunction<PostDetailData>(
@@ -136,31 +137,8 @@ export default function PostDetailScreen() {
   });
   const selectedPost = detail.data?.post;
   const comments = detail.data?.comments ?? [];
-  const existingChat = useQuery({
-    queryKey: ["post-author-chat", currentUser.data?.id, selectedPost?.author_id],
-    enabled: Boolean(
-      !demoMode &&
-      currentUser.data?.id &&
-      selectedPost?.author_id &&
-      currentUser.data.id !== selectedPost.author_id,
-    ),
-    queryFn: async (): Promise<ExistingChat | null> => {
-      if (!currentUser.data?.id || !selectedPost?.author_id) return null;
-      const participantPair = [currentUser.data.id, selectedPost.author_id]
-        .sort()
-        .join(":");
-      const { data, error } = await supabase
-        .from("private_chats")
-        .select("id,is_connected")
-        .eq("participant_pair", participantPair)
-        .maybeSingle();
-      if (error) throw error;
-      return data as ExistingChat | null;
-    },
-  });
-  const activeChatId = existingChat.data?.is_connected
-    ? existingChat.data.id
-    : null;
+  const connection = detail.data?.connection;
+  const activeChatId = connection?.state === "connected" ? connection.chatId : null;
   const isOwnPost =
     demoMode ||
     Boolean(
@@ -268,6 +246,7 @@ export default function PostDetailScreen() {
       const result = await callFunction<{
         chat?: { id: string };
         alreadyConnected?: boolean;
+        alreadyPending?: boolean;
       }>("request-connection", {
         body: {
           postId,
@@ -276,15 +255,13 @@ export default function PostDetailScreen() {
         },
       });
       if (result.alreadyConnected && result.chat?.id) {
-        queryClient.setQueryData(
-          ["post-author-chat", currentUser.data?.id, selectedPost.author_id],
-          { id: result.chat.id, is_connected: true },
-        );
         router.push(`/chat/${result.chat.id}`);
         return;
       }
+      await detail.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["chats"] });
       await sendLocalNotification(
-        "Richiesta inviata",
+        result.alreadyPending ? "Richiesta gia inviata" : "Richiesta inviata",
         "La persona vicina potra accettare o rifiutare.",
       );
     } catch (error) {
@@ -356,13 +333,21 @@ export default function PostDetailScreen() {
         ) : null}
         {!isOwnPost ? (
           <Button
-            label={activeChatId ? "Vai alla chat privata" : "Richiedi chat privata"}
-            icon={activeChatId ? "chatbubbles" : "chatbubble-outline"}
+            label={activeChatId
+              ? "Vai alla chat privata"
+              : connection?.state === "pending_outgoing"
+                ? "Richiesta inviata"
+                : connection?.state === "pending_incoming"
+                  ? "Rispondi alla richiesta"
+                  : "Richiedi chat privata"}
+            icon={activeChatId ? "chatbubbles" : connection?.state?.startsWith("pending") ? "time-outline" : "chatbubble-outline"}
             variant="secondary"
-            disabled={!selectedPost || existingChat.isLoading}
+            disabled={!selectedPost || detail.isLoading || connection?.state === "pending_outgoing"}
             onPress={() =>
               activeChatId
                 ? router.push(`/chat/${activeChatId}`)
+                : connection?.state === "pending_incoming"
+                  ? router.push("/(tabs)/chats")
                 : void requestPrivateConnection()
             }
           />
