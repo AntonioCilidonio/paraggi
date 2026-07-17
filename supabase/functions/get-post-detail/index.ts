@@ -22,13 +22,13 @@ Deno.serve(await withHttp(async (req) => {
 
   await adminClient.rpc("expire_old_posts");
 
-  const { data: post, error: postError } = await userClient
+  const { data: postRows, error: postError } = await userClient
     .rpc("get_post_detail_for_user", {
       post_id_input: postId,
       radius_meters: radiusMeters
-    })
-    .maybeSingle();
+    });
   if (postError) return jsonResponse({ error: "post_detail_failed", details: postError.message }, 400);
+  const post = Array.isArray(postRows) ? postRows[0] : postRows;
   if (!post) return jsonResponse({ error: "post_not_visible" }, 404);
 
   const { data: postState, error: postStateError } = await adminClient
