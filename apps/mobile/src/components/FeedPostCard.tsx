@@ -104,6 +104,7 @@ export function FeedPostCard({
       <PostAttachments
         attachments={post.attachments}
         compact={mediaMode === "preview"}
+        onVideoPreviewPress={() => router.push(`/post/${post.id}`)}
       />
       <View className="flex-row items-center gap-4 border-t border-ink/10 pt-2.5">
         <View className="flex-row items-center gap-1">

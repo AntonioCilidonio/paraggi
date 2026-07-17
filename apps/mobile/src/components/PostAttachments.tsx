@@ -60,15 +60,24 @@ function VideoAttachmentView({ attachment }: { attachment: PostAttachment }) {
   );
 }
 
-function VideoAttachmentPreview({ attachment }: { attachment: PostAttachment }) {
+function VideoAttachmentPreview({ attachment, onOpen }: { attachment: PostAttachment; onOpen?: () => void }) {
   const player = useVideoPlayer(attachment.url ? { uri: attachment.url } : null, (videoPlayer) => {
     videoPlayer.loop = false;
     videoPlayer.muted = true;
   });
 
   return (
-    <View className="overflow-hidden rounded-card bg-ink" style={{ aspectRatio: 16 / 9 }}>
-      <VideoView player={player} nativeControls={false} contentFit="cover" style={{ flex: 1 }} />
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Apri il video nel dettaglio del post"
+      onPress={(event) => {
+        event.stopPropagation();
+        onOpen?.();
+      }}
+      className="overflow-hidden rounded-card bg-ink"
+      style={{ aspectRatio: 16 / 9 }}
+    >
+      <VideoView pointerEvents="none" player={player} nativeControls={false} contentFit="cover" style={{ flex: 1 }} />
       <View pointerEvents="none" className="absolute inset-0 items-center justify-center bg-ink/15">
         <View className="h-12 w-12 items-center justify-center rounded-full bg-white/90">
           <Ionicons name="play" size={23} color="#1a2027" style={{ marginLeft: 2 }} />
@@ -77,7 +86,7 @@ function VideoAttachmentPreview({ attachment }: { attachment: PostAttachment }) 
       <View pointerEvents="none" className="absolute bottom-2 right-2 rounded-card bg-ink/75 px-2 py-1">
         <Text className="text-xs font-semibold text-white">{formatDuration(attachment.duration_seconds)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -113,7 +122,17 @@ function LocationAttachmentView({ attachment, compact }: { attachment: PostAttac
   );
 }
 
-export function PostAttachments({ attachments, compact = false, enableImageViewer = true }: { attachments?: PostAttachment[]; compact?: boolean; enableImageViewer?: boolean }) {
+export function PostAttachments({
+  attachments,
+  compact = false,
+  enableImageViewer = true,
+  onVideoPreviewPress
+}: {
+  attachments?: PostAttachment[];
+  compact?: boolean;
+  enableImageViewer?: boolean;
+  onVideoPreviewPress?: () => void;
+}) {
   if (!attachments?.length) return null;
 
   return (
@@ -149,7 +168,7 @@ export function PostAttachments({ attachments, compact = false, enableImageViewe
         }
         if (attachment.kind === "video") {
           return compact
-            ? <VideoAttachmentPreview key={attachment.id} attachment={attachment} />
+            ? <VideoAttachmentPreview key={attachment.id} attachment={attachment} onOpen={onVideoPreviewPress} />
             : <VideoAttachmentView key={attachment.id} attachment={attachment} />;
         }
         if (attachment.kind === "audio") return <AudioAttachmentView key={attachment.id} attachment={attachment} />;
