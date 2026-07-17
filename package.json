@@ -13,6 +13,7 @@
     "test": "npm run test --workspaces --if-present",
     "mobile:start": "npm --workspace apps/mobile run start",
     "mobile:android": "npm --workspace apps/mobile run android",
+    "mobile:ios:device:personal": "mise run ios-device",
     "mobile:build:apk": "npm --workspace apps/mobile run build:apk",
     "mobile:build:ios": "npm --workspace apps/mobile run build:ios",
     "mobile:build:ios:simulator": "npm --workspace apps/mobile run build:ios:simulator",

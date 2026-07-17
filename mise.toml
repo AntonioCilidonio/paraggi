@@ -1,7 +1,11 @@
+[settings]
+ruby.compile = false
+
 [tools]
 node = "latest"
 gradle = "latest"
 java = "21"
+ruby = "3.3"
 
 [tasks.debug]
 description = "Build a standalone Android test APK locally"
@@ -29,3 +33,15 @@ echo "APK ready: apps/mobile/android/app/build/outputs/apk/release/app-release.a
 [tasks.build-apk]
 description = "Alias for the local standalone Android build"
 depends = ["debug"]
+
+[tasks.ios-device]
+description = "Build and install Paraggi Dev on a personal iPhone using Xcode Personal Team"
+run = '''
+export PARAGGI_IOS_PERSONAL_TEAM=1
+if ! command -v pod >/dev/null 2>&1; then
+  gem install cocoapods --no-document
+fi
+npm ci --include=dev
+npm --workspace apps/mobile exec expo prebuild -- --platform ios --clean --no-install
+npm --workspace apps/mobile exec expo run:ios -- --device
+'''

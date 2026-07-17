@@ -7,6 +7,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:device:personal": "PARAGGI_IOS_PERSONAL_TEAM=1 expo prebuild --platform ios --clean --no-install && PARAGGI_IOS_PERSONAL_TEAM=1 expo run:ios --device",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",

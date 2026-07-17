@@ -1,4 +1,38 @@
-# Test iOS con Expo/EAS
+# Test iOS
+
+## iPhone personale senza abbonamento Apple Developer
+
+Paraggi dispone di una variante locale firmabile con il `Personal Team`
+gratuito di Xcode. La variante usa:
+
+- nome app `Paraggi Dev`;
+- bundle identifier `com.antoniocilidonio.paraggi.dev`;
+- Supabase e tutte le funzioni applicative normali;
+- notifiche locali, ma non push remote APNs.
+
+Prima esecuzione:
+
+1. Collegare l'iPhone al Mac e confermare `Autorizza questo computer`.
+2. In Xcode, aprire `Settings > Apple Accounts` e aggiungere il proprio
+   Apple Account.
+3. Su iPhone, abilitare `Impostazioni > Privacy e sicurezza > Modalita
+   sviluppatore`.
+4. Dal root del repository eseguire:
+
+```bash
+npm run mobile:ios:device:personal
+```
+
+Expo genera il progetto iOS, permette di scegliere l'iPhone collegato e avvia
+la compilazione. Se Xcode richiede il team, aprire
+`apps/mobile/ios/ParaggiDev.xcworkspace`, selezionare il target `ParaggiDev`, quindi
+`Signing & Capabilities > Automatically manage signing` e scegliere il
+`Personal Team`.
+
+La firma gratuita scade dopo 7 giorni. Allo scadere basta rieseguire lo stesso
+comando per reinstallare l'app.
+
+## iPhone con Apple Developer attivo
 
 Paraggi puo essere testata su iPhone con una build EAS iOS `preview`.
 
@@ -43,5 +77,5 @@ La build simulatore non sostituisce il test reale: notifiche push, GPS e permess
 ## Note
 
 - Bundle identifier iOS: `app.paraggi.mobile`.
-- Versione app: `0.1.0`.
-- Build number attuale: `16`.
+- Versione app: `1.0.0`.
+- Build number attuale: `100`.
