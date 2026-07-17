@@ -34,12 +34,14 @@ function NavItem({ item, active, onPress, unreadCount = 0 }: { item: (typeof ite
       accessibilityLabel={item.label}
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className="relative flex-1 items-center justify-center gap-0.5"
+      className="relative h-full flex-1 items-center justify-center"
     >
-      <Ionicons name={active ? item.activeIcon : item.icon} size={19} color={color} />
-      <Text className={`text-[10px] font-medium ${active ? "text-white" : "text-[#c7dcf0]"}`}>{item.label}</Text>
+      <View className="h-10 items-center justify-center">
+        <Ionicons name={active ? item.activeIcon : item.icon} size={19} color={color} />
+      </View>
+      <Text className={`text-[10px] font-medium leading-3 ${active ? "text-white" : "text-[#c7dcf0]"}`}>{item.label}</Text>
       {item.key === "chats" && unreadCount > 0 ? (
-        <View className="absolute right-4 top-0 min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1">
+        <View className="absolute right-4 top-1 min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1">
           <Text className="text-[9px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</Text>
         </View>
       ) : null}
@@ -58,7 +60,7 @@ export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unr
   };
 
   return (
-    <View className="h-[67px] flex-row items-end bg-primary px-1 pb-2 pt-1">
+    <View className="h-[67px] flex-row items-center bg-primary px-1 py-1">
       <NavItem item={items[0]} active={active === "feed"} onPress={() => navigate(items[0])} />
       <NavItem item={items[1]} active={active === "heatmap"} onPress={() => navigate(items[1])} />
       <Pressable
@@ -66,12 +68,14 @@ export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unr
         accessibilityLabel="Pubblica"
         accessibilityState={{ selected: active === "create" }}
         onPress={openPostComposer}
-        className="flex-1 items-center justify-end gap-0.5"
+        className="h-full flex-1 items-center justify-center"
       >
-        <View className="-mt-5 h-12 w-12 items-center justify-center rounded-full bg-accent">
-          <Ionicons name="add" size={25} color="#ffffff" />
+        <View className="h-10 items-center justify-center">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-accent">
+            <Ionicons name="add" size={23} color="#ffffff" />
+          </View>
         </View>
-        <Text className="text-[10px] font-medium text-white">Pubblica</Text>
+        <Text className="text-[10px] font-medium leading-3 text-white">Pubblica</Text>
       </Pressable>
       <NavItem item={items[2]} active={active === "chats"} onPress={() => navigate(items[2])} unreadCount={unreadCount} />
       <NavItem item={items[3]} active={active === "history"} onPress={() => navigate(items[3])} />

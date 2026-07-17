@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
+import { Platform } from "react-native";
 import { assertEnv } from "@/config/env";
 import { installGlobalErrorLogger } from "@/services/clientLogger";
 import { NotificationResponseHandler } from "@/components/NotificationResponseHandler";
@@ -18,7 +19,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="light" backgroundColor="transparent" translucent />
+      <StatusBar style="light" backgroundColor="#3b82c4" translucent={Platform.OS === "android"} />
       <NotificationResponseHandler />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
