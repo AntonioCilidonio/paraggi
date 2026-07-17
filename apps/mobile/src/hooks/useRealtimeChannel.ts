@@ -74,7 +74,8 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
           void sendLocalNotification(
             notification.title ?? "Paraggi",
             notification.body ?? "Hai una nuova notifica vicina.",
-            { type: notification.type, deepLink: notification.deep_link }
+            { type: notification.type, deepLink: notification.deep_link },
+            { urgent: notification.type === "danger_alert" }
           );
         }
         void queryClient.invalidateQueries({ queryKey: ["notifications"] });

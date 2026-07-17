@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 
 export function AppHeader() {
+  const pathname = usePathname();
   const unreadNotifications = useUnreadNotificationCount();
   const unreadCount = unreadNotifications.data ?? 0;
+  const notificationsOpen = pathname === "/notifications";
 
   return (
     <View className="-mx-4 -mt-3 flex-row items-center justify-between gap-3 bg-primary-strong px-4 pb-4 pt-4">
@@ -22,7 +24,8 @@ export function AppHeader() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Apri notifiche"
-          onPress={() => router.push("/notifications")}
+          disabled={notificationsOpen}
+          onPress={() => router.navigate("/notifications")}
           className="h-11 w-11 items-center justify-center rounded-card border border-white/20 bg-white/10"
         >
           <Ionicons name="notifications-outline" size={21} color="#ffffff" />

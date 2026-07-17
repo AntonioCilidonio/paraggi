@@ -11,7 +11,6 @@ import { demoMode } from "@/config/env";
 import { demoChats } from "@/demo/data";
 import { callFunction } from "@/services/api";
 import { getFriendlyError } from "@/services/errors";
-import { sendLocalNotification } from "@/services/notifications";
 import { useAppStore } from "@/stores/appStore";
 
 type ChatRow = {
@@ -104,29 +103,19 @@ export default function ChatsScreen() {
     setRespondingAction(`${requestId}:accept`);
     setActionError(null);
     try {
-      let status = "accepted";
-      let alreadyResponded = false;
       if (demoMode) {
         acceptDemoRequest(requestId);
       } else {
-        const result = await callFunction<{
+        await callFunction<{
           status: "accepted" | "rejected";
           alreadyResponded?: boolean;
         }>("respond-connection", {
           body: { requestId, accept: true },
         });
-        status = result.status;
-        alreadyResponded = Boolean(result.alreadyResponded);
       }
       queryClient.setQueryData<ChatInbox>(chatQueryKey, (current) => current
         ? { ...current, requests: current.requests.filter((request) => request.id !== requestId) }
         : current);
-      await sendLocalNotification(
-        status === "accepted" ? "Richiesta accettata" : "Richiesta gia gestita",
-        status === "accepted"
-          ? alreadyResponded ? "La chat privata era gia disponibile." : "La chat privata e ora disponibile."
-          : "La richiesta era gia stata rifiutata.",
-      );
       await chats.refetch();
     } catch (error) {
       setActionError(
@@ -147,29 +136,19 @@ export default function ChatsScreen() {
     setRespondingAction(`${requestId}:decline`);
     setActionError(null);
     try {
-      let status = "rejected";
-      let alreadyResponded = false;
       if (demoMode) {
         declineDemoRequest(requestId);
       } else {
-        const result = await callFunction<{
+        await callFunction<{
           status: "accepted" | "rejected";
           alreadyResponded?: boolean;
         }>("respond-connection", {
           body: { requestId, accept: false },
         });
-        status = result.status;
-        alreadyResponded = Boolean(result.alreadyResponded);
       }
       queryClient.setQueryData<ChatInbox>(chatQueryKey, (current) => current
         ? { ...current, requests: current.requests.filter((request) => request.id !== requestId) }
         : current);
-      await sendLocalNotification(
-        status === "rejected" ? "Richiesta rifiutata" : "Richiesta gia gestita",
-        status === "rejected"
-          ? alreadyResponded ? "La richiesta era gia stata rifiutata." : "La connessione privata non e stata aperta."
-          : "La chat privata era gia disponibile.",
-      );
       await chats.refetch();
     } catch (error) {
       setActionError(
@@ -191,7 +170,7 @@ export default function ChatsScreen() {
     }
     setActionError(null);
     try {
-      const result = await callFunction<{ alreadyPending?: boolean }>(
+      await callFunction<{ alreadyPending?: boolean }>(
         "request-connection",
         {
           body: {
@@ -200,14 +179,6 @@ export default function ChatsScreen() {
             message: "Vorrei ripristinare la nostra chat privata.",
           },
         },
-      );
-      await sendLocalNotification(
-        result.alreadyPending
-          ? "Richiesta gia inviata"
-          : "Richiesta di riconnessione inviata",
-        result.alreadyPending
-          ? "La persona deve ancora rispondere."
-          : "La chat tornera attiva dopo l'accettazione.",
       );
       await chats.refetch();
     } catch (error) {

@@ -139,17 +139,24 @@ Deno.serve(
         );
       }
 
+      const { data: recipientProfile } = await adminClient
+        .from("profiles")
+        .select("display_name")
+        .eq("id", requestRow.recipient_id)
+        .maybeSingle();
+      const recipientName = recipientProfile?.display_name ?? "La persona vicina";
       const deepLink = `/chat/${chat.id}`;
+      const notificationBody = `${recipientName} ha accettato la tua richiesta. La chat privata e disponibile.`;
       await adminClient.from("notifications").insert({
         user_id: requestRow.requester_id,
         type: "request_accepted",
         title: "Richiesta accettata",
-        body: "La chat privata e pronta e resta disponibile.",
+        body: notificationBody,
         deep_link: deepLink,
       });
       await sendPushToUsers(adminClient, [requestRow.requester_id], {
         title: "Richiesta accettata",
-        body: "La chat privata e pronta e resta disponibile.",
+        body: notificationBody,
         data: { type: "request_accepted", chatId: chat.id, deepLink },
       });
     } else {

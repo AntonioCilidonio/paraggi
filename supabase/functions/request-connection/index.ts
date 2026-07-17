@@ -89,17 +89,26 @@ Deno.serve(await withHttp(async (req) => {
     return jsonResponse({ error: "request_connection_failed", details: error.message }, 400);
   }
 
+  const { data: requesterProfile } = await adminClient
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const requesterName = requesterProfile?.display_name ?? "Una persona vicina";
   const deepLink = "/chats";
+  const notificationBody = existingChat
+    ? `${requesterName} vuole ripristinare la vostra chat privata.`
+    : `${requesterName} ti ha inviato una richiesta di chat privata.`;
   await adminClient.from("notifications").insert({
     user_id: payload.recipientId,
     type: "private_request",
     title: "Richiesta privata",
-    body: existingChat ? "Una persona vuole ripristinare la vostra chat privata." : "Una persona vicina vuole aprire una chat contestuale.",
+    body: notificationBody,
     deep_link: deepLink
   });
   await sendPushToUsers(adminClient, [payload.recipientId], {
     title: "Richiesta privata",
-    body: existingChat ? "Una persona vuole ripristinare la vostra chat privata." : "Una persona vicina vuole aprire una chat contestuale.",
+    body: notificationBody,
     data: { type: "private_request", requestId: data.id, deepLink }
   });
 

@@ -32,7 +32,7 @@ export async function sendPushToUsers(adminClient: AdminClient, userIds: string[
       title: payload.title,
       body: payload.body,
       sound: "default",
-      channelId: payload.channelId ?? "paraggi-local",
+      channelId: payload.channelId ?? "paraggi-local-v2",
       priority: "high",
       data: payload.data ?? {}
     })))

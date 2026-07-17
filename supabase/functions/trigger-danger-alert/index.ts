@@ -77,7 +77,7 @@ Deno.serve(await withHttp(async (req) => {
   await sendPushToUsers(adminClient, recipientIds, {
     title: "Allarme pericolo vicino",
     body,
-    channelId: "paraggi-alerts",
+    channelId: "paraggi-alerts-v2",
     data: {
       type: "danger_alert",
       alertId: alert.id,

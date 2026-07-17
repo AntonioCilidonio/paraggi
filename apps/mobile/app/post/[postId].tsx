@@ -260,10 +260,6 @@ export default function PostDetailScreen() {
       }
       await detail.refetch();
       await queryClient.invalidateQueries({ queryKey: ["chats"] });
-      await sendLocalNotification(
-        result.alreadyPending ? "Richiesta gia inviata" : "Richiesta inviata",
-        "La persona vicina potra accettare o rifiutare.",
-      );
     } catch (error) {
       setConnectionError(
         getFriendlyError(error, "Richiesta privata non inviata. Riprova."),

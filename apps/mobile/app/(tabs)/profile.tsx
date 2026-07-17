@@ -378,11 +378,21 @@ export default function ProfileScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Attiva notifiche" onPress={() => void activatePushNotifications()} className="flex-row items-center gap-3 p-3">
             <Ionicons name="notifications-outline" size={20} color="#3b82c4" />
             <View className="flex-1"><Text className="font-medium text-ink">Notifiche</Text><Text className="mt-0.5 text-xs text-muted">Avvisi e interazioni locali</Text></View>
-            <StatusPill label={notificationPermission === "granted" ? "Attive" : "Attiva"} tone={notificationPermission === "granted" ? "success" : "neutral"} />
+            <StatusPill
+              label={notificationPermission !== "granted"
+                ? "Attiva"
+                : pushDeliveryState === "registered"
+                  ? "Push attive"
+                  : "Solo nell'app"}
+              tone={pushDeliveryState === "registered" ? "success" : "neutral"}
+            />
           </Pressable>
         </View>
         {lastLocationTrustStatus || lastLocationAccuracyMeters || lastLocationError ? <Text className="-mt-4 text-xs text-muted">{lastLocationError ? getFriendlyError(lastLocationError) : `Precisione ${lastLocationAccuracyMeters ? `${Math.round(lastLocationAccuracyMeters)} m` : "n/d"}${lastLocationTrustStatus ? ` · affidabilita ${lastLocationTrustStatus}` : ""}`}</Text> : null}
         {pushDeliveryState === "failed" ? <Text className="-mt-4 text-xs text-danger">{pushStatus}</Text> : null}
+        {notificationPermission === "granted" && pushDeliveryState === "local_only" ? (
+          <Text className="-mt-4 text-xs text-muted">Avvisi disponibili mentre Paraggi e aperta. Il push remoto richiede Firebase su Android e APNs su iOS.</Text>
+        ) : null}
 
         <View className="overflow-hidden rounded-card bg-white">
           <Pressable accessibilityRole="button" accessibilityLabel="Apri SOS di vicinanza" onPress={() => setShowSosControls((value) => !value)} className="flex-row items-center gap-3 bg-category-emergency-surface p-3">
