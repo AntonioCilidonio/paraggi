@@ -22,6 +22,7 @@ import { getFriendlyError } from "@/services/errors";
 import { sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 import { useAppStore } from "@/stores/appStore";
+import { POST_BODY_MAX_LENGTH } from "@/constants/posts";
 
 type Form = {
   category: PostCategory;
@@ -357,14 +358,18 @@ export default function ComposePostScreen() {
           </View>
         </View>
         <Controller control={control} name="body" render={({ field }) => (
-          <TextInput
-            multiline
-            textAlignVertical="top"
-            placeholder="Cosa vuoi condividere con le persone vicine?"
-            className="min-h-32 rounded-card border border-border bg-white p-4 text-base leading-6 text-ink"
-            value={field.value}
-            onChangeText={field.onChange}
-          />
+          <View className="gap-1">
+            <TextInput
+              multiline
+              maxLength={POST_BODY_MAX_LENGTH}
+              textAlignVertical="top"
+              placeholder="Cosa vuoi condividere con le persone vicine?"
+              className="min-h-32 rounded-card border border-border bg-white p-4 text-base leading-6 text-ink"
+              value={field.value}
+              onChangeText={field.onChange}
+            />
+            <Text className="text-right text-xs text-muted">{field.value.length}/{POST_BODY_MAX_LENGTH}</Text>
+          </View>
         )} />
         <View className="gap-3 border-t border-border pt-4">
           <View>

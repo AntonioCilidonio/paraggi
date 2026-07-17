@@ -27,6 +27,12 @@ const messages: Record<string, string> = {
   post_detail_failed:
     "Non riesco a caricare il post. Riprova tra qualche secondo.",
   post_not_commentable: "Questo post non puo piu ricevere commenti.",
+  invalid_post_content: "Il post deve contenere da 1 a 160 caratteri.",
+  post_not_found: "Questo post non e piu disponibile.",
+  post_not_editable: "Questo post non puo piu essere modificato.",
+  update_post_failed: "Modifica non salvata. Riprova.",
+  delete_post_failed: "Post non eliminato. Riprova.",
+  forbidden: "Non hai i permessi per eseguire questa operazione.",
   create_comment_failed: "Commento non salvato. Riprova.",
   invalid_comment_rating: "Valutazione non valida.",
   comment_not_found: "Questo commento non e piu disponibile.",

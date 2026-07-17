@@ -20,6 +20,11 @@ type CreatePostPayload = {
 Deno.serve(await withHttp(async (req) => {
   const { user, adminClient } = await requireUser(req);
   const payload = await readJson<CreatePostPayload>(req);
+  const body = typeof payload.body === "string" ? payload.body.trim() : "";
+  const categories = ["question", "information", "lost_item", "help", "event", "social", "emergency"];
+  if (body.length < 1 || body.length > 160 || !categories.includes(payload.category)) {
+    return jsonResponse({ error: "invalid_post_content" }, 400);
+  }
   const attachments = payload.attachments ?? [];
   const ownedStoragePaths = attachments.flatMap((attachment) =>
     attachment.storagePath?.startsWith(`${user.id}/`) ? [attachment.storagePath] : []
@@ -56,7 +61,7 @@ Deno.serve(await withHttp(async (req) => {
     author_id: user.id,
     area_id: location.area_id,
     category: payload.category,
-    body: payload.body,
+    body,
     position: location.location_position,
     expires_at: expiresAt
   }).select("id, category, body, expires_at, created_at").single();

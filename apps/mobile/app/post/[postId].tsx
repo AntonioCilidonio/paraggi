@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/Button";
 import { AppHeader } from "@/components/AppHeader";
 import { FeedPostCard } from "@/components/FeedPostCard";
@@ -20,6 +20,7 @@ import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { useAppStore } from "@/stores/appStore";
 import { stabilizePostAttachments } from "@/services/postAttachmentCache";
 import { type FeedPost } from "@/components/FeedPostCard";
+import { POST_BODY_MAX_LENGTH } from "@/constants/posts";
 
 type CommentRow = {
   id: string;
@@ -92,6 +93,8 @@ export default function PostDetailScreen() {
   const acceptDemoRequest = useAppStore((state) => state.acceptDemoRequest);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [editingPost, setEditingPost] = useState(false);
+  const [editBody, setEditBody] = useState("");
   const { control, handleSubmit, reset } = useForm<{ body: string }>({
     defaultValues: { body: "" },
   });
@@ -223,6 +226,61 @@ export default function PostDetailScreen() {
     },
   });
 
+  const updatePost = useMutation({
+    mutationFn: async () => {
+      const body = editBody.trim();
+      if (!postId || !selectedPost || body.length < 1 || body.length > POST_BODY_MAX_LENGTH) {
+        throw { error: "invalid_post_content" };
+      }
+      return callFunction("update-post", {
+        body: { postId, body, category: selectedPost.category },
+      });
+    },
+    onSuccess: async () => {
+      setEditingPost(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["post-detail", postId] }),
+        queryClient.invalidateQueries({ queryKey: ["nearby-feed"] }),
+        queryClient.invalidateQueries({ queryKey: ["area-history"] }),
+      ]);
+    },
+    onError: (error) => setCommentError(getFriendlyError(error, "Modifica non salvata. Riprova.")),
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      if (!postId) throw new Error("Post non ancora caricato.");
+      return callFunction("delete-post", { body: { postId } });
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["nearby-feed"] }),
+        queryClient.invalidateQueries({ queryKey: ["area-history"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
+      router.replace("/(tabs)/feed");
+    },
+    onError: (error) => setCommentError(getFriendlyError(error, "Post non eliminato. Riprova.")),
+  });
+
+  function beginEditingPost() {
+    if (!selectedPost) return;
+    setCommentError(null);
+    setEditBody(selectedPost.body);
+    setEditingPost(true);
+  }
+
+  function confirmDeletePost() {
+    Alert.alert(
+      "Elimina post",
+      "Il post non sara piu visibile. Le chat gia attive resteranno disponibili.",
+      [
+        { text: "Annulla", style: "cancel" },
+        { text: "Elimina", style: "destructive", onPress: () => deletePost.mutate() },
+      ],
+    );
+  }
+
   async function requestPrivateConnection() {
     setConnectionError(null);
     if (demoMode) {
@@ -276,7 +334,7 @@ export default function PostDetailScreen() {
   );
 
   return (
-    <Screen showBottomBar>
+    <Screen showBottomBar keyboardAware>
       <View className="gap-5">
         <AppHeader />
         <View className="flex-row items-center gap-3 pb-1">
@@ -326,6 +384,38 @@ export default function PostDetailScreen() {
         ) : null}
         {selectedPost ? (
           <FeedPostCard post={selectedPost} mediaMode="full" />
+        ) : null}
+        {selectedPost && isOwnPost && !demoMode ? (
+          editingPost ? (
+            <View className="gap-3 rounded-card border border-border bg-white p-4">
+              <Text className="font-semibold text-ink">Modifica il post</Text>
+              <TextInput
+                multiline
+                maxLength={POST_BODY_MAX_LENGTH}
+                textAlignVertical="top"
+                value={editBody}
+                onChangeText={setEditBody}
+                className="min-h-24 rounded-card border border-border bg-bg p-3 text-ink"
+              />
+              <Text className="text-right text-xs text-muted">{editBody.length}/{POST_BODY_MAX_LENGTH}</Text>
+              <View className="flex-row gap-2">
+                <Button label="Annulla" variant="secondary" className="flex-1" onPress={() => setEditingPost(false)} />
+                <Button
+                  label="Salva"
+                  icon="checkmark"
+                  className="flex-1"
+                  loading={updatePost.isPending}
+                  disabled={!editBody.trim() || editBody.trim().length > POST_BODY_MAX_LENGTH}
+                  onPress={() => updatePost.mutate()}
+                />
+              </View>
+            </View>
+          ) : (
+            <View className="flex-row gap-2">
+              <Button label="Modifica" icon="create-outline" variant="secondary" className="flex-1" onPress={beginEditingPost} />
+              <Button label="Elimina" icon="trash-outline" variant="danger" className="flex-1" loading={deletePost.isPending} onPress={confirmDeletePost} />
+            </View>
+          )
         ) : null}
         {!isOwnPost ? (
           <Button

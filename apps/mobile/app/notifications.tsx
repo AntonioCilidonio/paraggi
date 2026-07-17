@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Screen } from "@/components/Screen";
 import { demoMode } from "@/config/env";
 import { resolveNotificationRoute } from "@/services/notificationRouting";
+import { markOpenedNotificationRead } from "@/services/notificationRead";
 import { clearPresentedNotifications } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 
@@ -62,11 +63,9 @@ export default function NotificationsScreen() {
   });
 
   async function openNotification(notification: NotificationRow) {
-    if (!notification.read_at && !demoMode) {
-      await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id);
-      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    }
-    router.push(resolveNotificationRoute({ type: notification.type }, notification.deep_link) as Href);
+    const route = resolveNotificationRoute({ type: notification.type }, notification.deep_link);
+    if (!demoMode) await markOpenedNotificationRead({ notificationId: notification.id }, route, queryClient);
+    router.navigate(route as Href);
   }
 
   async function markAllRead() {

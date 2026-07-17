@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { openPostComposer } from "@/services/postComposerNavigation";
 
 export type TabKey = "feed" | "heatmap" | "chats" | "history";
@@ -51,6 +52,7 @@ function NavItem({ item, active, onPress, unreadCount = 0 }: { item: (typeof ite
 
 export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unreadCount?: number; activeTab?: TabKey; onNavigate?: (tab: TabKey) => void }) {
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const active = activeTab ?? resolveActiveTab(pathname);
 
   const navigate = (item: (typeof items)[number]) => {
@@ -60,7 +62,10 @@ export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unr
   };
 
   return (
-    <View className="h-[67px] flex-row items-center bg-primary px-1 py-1">
+    <View
+      className="flex-row items-center bg-primary px-1 pt-1"
+      style={{ height: 67 + insets.bottom, paddingBottom: Math.max(insets.bottom, 4) }}
+    >
       <NavItem item={items[0]} active={active === "feed"} onPress={() => navigate(items[0])} />
       <NavItem item={items[1]} active={active === "heatmap"} onPress={() => navigate(items[1])} />
       <Pressable

@@ -27,7 +27,7 @@ export function Screen({ children, scroll = true, showBottomBar = false, keyboar
 
   if (!scroll) {
     return (
-      <SafeAreaView className="flex-1 bg-bg" edges={["left", "right", "bottom"]}>
+      <SafeAreaView className="flex-1 bg-bg" edges={showBottomBar ? ["left", "right"] : ["left", "right", "bottom"]}>
         <View pointerEvents="none" className="absolute left-0 right-0 top-0 z-10 bg-primary" style={{ height: statusBarOverlap }} />
         <View className="flex-1 px-4" style={{ paddingTop: contentTop }}>{children}</View>
         {showBottomBar && !keyboardVisible ? <CivicBottomBar /> : null}
@@ -36,7 +36,7 @@ export function Screen({ children, scroll = true, showBottomBar = false, keyboar
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={["left", "right", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={showBottomBar ? ["left", "right"] : ["left", "right", "bottom"]}>
       <View pointerEvents="none" className="absolute left-0 right-0 top-0 z-10 bg-primary" style={{ height: statusBarOverlap }} />
       <ScrollView
         className="flex-1"

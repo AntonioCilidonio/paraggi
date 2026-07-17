@@ -27,11 +27,18 @@ Deno.serve(await withHttp(async (req) => {
 
   if (deviceError) return jsonResponse({ error: "device_register_failed", details: deviceError.message }, 400);
 
+  await adminClient
+    .from("push_tokens")
+    .update({ enabled: false, updated_at: new Date().toISOString() })
+    .eq("device_id", device.id)
+    .neq("expo_push_token", payload.expoPushToken);
+
   const { data, error } = await adminClient.from("push_tokens").upsert({
     user_id: user.id,
     device_id: device.id,
     expo_push_token: payload.expoPushToken,
-    enabled: true
+    enabled: true,
+    updated_at: new Date().toISOString()
   }, { onConflict: "expo_push_token" }).select("id").single();
 
   if (error) return jsonResponse({ error: "push_token_register_failed", details: error.message }, 400);

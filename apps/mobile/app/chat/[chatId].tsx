@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -151,6 +152,14 @@ export default function ChatDetailScreen() {
   useEffect(() => {
     lastAutoScrolledMessageIdRef.current = null;
   }, [chatId]);
+
+  useEffect(() => {
+    const event = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const subscription = Keyboard.addListener(event, () => {
+      requestAnimationFrame(() => messageListRef.current?.scrollToEnd({ animated: true }));
+    });
+    return () => subscription.remove();
+  }, []);
 
   function scrollToLatestMessage() {
     const messages = thread.data?.messages ?? [];
@@ -410,7 +419,7 @@ export default function ChatDetailScreen() {
     <Screen scroll={false} showBottomBar>
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <AppHeader />
         <View className="mt-4 flex-row items-center gap-3 border-b border-border pb-3">
@@ -491,6 +500,8 @@ export default function ChatDetailScreen() {
           data={thread.data?.messages ?? []}
           keyExtractor={(message) => message.id}
           onContentSizeChange={scrollToLatestMessage}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
           contentContainerStyle={{
             paddingVertical: 16,
             flexGrow: 1,
@@ -674,6 +685,7 @@ export default function ChatDetailScreen() {
                 className="max-h-28 min-h-12 flex-1 rounded-card border border-border bg-white px-3 py-3 text-ink"
                 value={body}
                 onChangeText={setBody}
+                onFocus={() => requestAnimationFrame(() => messageListRef.current?.scrollToEnd({ animated: true }))}
               />
               <Pressable
                 accessibilityRole="button"

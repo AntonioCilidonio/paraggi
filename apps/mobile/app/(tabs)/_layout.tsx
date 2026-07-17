@@ -16,6 +16,7 @@ import { callFunction } from "@/services/api";
 import { setAppBadgeCount } from "@/services/notifications";
 import { captureClientError } from "@/services/clientLogger";
 import { useAppStore } from "@/stores/appStore";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const loggedMessageRef = useRef<string | null>(null);
@@ -61,14 +62,18 @@ export default function TabsLayout() {
     }
   });
   const chatUnreadCount = chatBadge.data?.totalUnread ?? 0;
+  const notificationBadge = useUnreadNotificationCount();
+  const notificationUnreadCount = notificationBadge.data ?? 0;
 
   useEffect(() => {
     if (!userId || demoMode) {
       void setAppBadgeCount(0);
       return;
     }
-    if (chatBadge.isSuccess) void setAppBadgeCount(chatUnreadCount);
-  }, [chatBadge.isSuccess, chatUnreadCount, userId]);
+    if (chatBadge.isSuccess && notificationBadge.isSuccess) {
+      void setAppBadgeCount(chatUnreadCount + notificationUnreadCount);
+    }
+  }, [chatBadge.isSuccess, chatUnreadCount, notificationBadge.isSuccess, notificationUnreadCount, userId]);
 
   useEffect(() => {
     if (demoMode) return;

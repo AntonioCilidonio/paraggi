@@ -117,6 +117,35 @@ export async function dismissPresentedChatNotifications(chatId: string) {
   }
 }
 
+export async function dismissPresentedRouteNotifications(route: string) {
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync();
+    const matching = presented.filter((notification) => {
+      const data = notification.request.content.data ?? {};
+      return data.deepLink === route || data.deep_link === route;
+    });
+    await Promise.all(
+      matching.map((notification) =>
+        Notifications.dismissNotificationAsync(notification.request.identifier),
+      ),
+    );
+  } catch {
+    // Presented notification access varies by launcher and OS version.
+  }
+}
+
+export async function hasPresentedRouteNotification(route: string) {
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync();
+    return presented.some((notification) => {
+      const data = notification.request.content.data ?? {};
+      return data.deepLink === route || data.deep_link === route;
+    });
+  } catch {
+    return false;
+  }
+}
+
 export async function clearPresentedNotifications() {
   try {
     await Notifications.dismissAllNotificationsAsync();

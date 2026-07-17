@@ -4,7 +4,7 @@ import Constants from "expo-constants";
 import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import { demoMode } from "@/config/env";
-import { sendLocalNotification } from "@/services/notifications";
+import { hasPresentedRouteNotification, sendLocalNotification } from "@/services/notifications";
 import { supabase } from "@/services/supabase";
 
 type RealtimeTarget =
@@ -14,6 +14,7 @@ type RealtimeTarget =
   | { type: "notifications"; userId: string };
 
 let nextChannelInstanceId = 0;
+const globallyHandledNotificationIds = new Map<string, number>();
 
 type NotificationRow = {
   id?: string;
@@ -25,6 +26,21 @@ type NotificationRow = {
 };
 
 const notificationCursorKey = (userId: string) => `paraggi:notification-cursor:${userId}`;
+
+function claimNotification(notification: NotificationRow) {
+  const key = notification.id ?? [notification.type, notification.deep_link, notification.created_at].filter(Boolean).join(":");
+  if (!key) return true;
+  const now = Date.now();
+  const handledAt = globallyHandledNotificationIds.get(key);
+  if (handledAt && now - handledAt < 5 * 60_000) return false;
+  globallyHandledNotificationIds.set(key, now);
+  if (globallyHandledNotificationIds.size > 200) {
+    for (const [id, timestamp] of globallyHandledNotificationIds) {
+      if (now - timestamp > 5 * 60_000) globallyHandledNotificationIds.delete(id);
+    }
+  }
+  return true;
+}
 
 export function useRealtimeChannel(target: RealtimeTarget | null) {
   const queryClient = useQueryClient();
@@ -62,7 +78,6 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
     let notificationCursor: string | null = null;
     let notificationSyncReady = false;
     let notificationSyncRunning = false;
-    const handledNotificationIds = new Set<string>();
 
     if (targetType === "post-comments" && postId) {
       channel.on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => {
@@ -96,16 +111,22 @@ export function useRealtimeChannel(target: RealtimeTarget | null) {
       };
 
       const presentNotification = async (notification: NotificationRow) => {
-        if (notification.id && handledNotificationIds.has(notification.id)) return;
-        if (notification.id) handledNotificationIds.add(notification.id);
+        if (!claimNotification(notification)) return;
         const nativePushConfigured = Constants.expoConfig?.extra?.nativePushConfigured as Record<string, boolean> | undefined;
         if (nativePushConfigured?.[Platform.OS] !== true) {
-          await sendLocalNotification(
-            notification.title ?? "Paraggi",
-            notification.body ?? "Hai una nuova notifica vicina.",
-            { type: notification.type, deepLink: notification.deep_link },
-            { urgent: notification.type === "danger_alert" }
-          );
+          // Give an eventual remote push time to arrive before using the local fallback.
+          await new Promise((resolve) => setTimeout(resolve, 1800));
+          const remoteAlreadyPresented = notification.deep_link
+            ? await hasPresentedRouteNotification(notification.deep_link)
+            : false;
+          if (!remoteAlreadyPresented) {
+            await sendLocalNotification(
+              notification.title ?? "Paraggi",
+              notification.body ?? "Hai una nuova notifica vicina.",
+              { notificationId: notification.id, type: notification.type, deepLink: notification.deep_link },
+              { urgent: notification.type === "danger_alert" }
+            );
+          }
         }
         refreshForNotification(notification);
         if (notification.created_at && (!notificationCursor || notification.created_at > notificationCursor)) {
