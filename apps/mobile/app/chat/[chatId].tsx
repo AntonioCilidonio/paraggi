@@ -103,6 +103,8 @@ export default function ChatDetailScreen() {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 200);
   const stoppingRecordingRef = useRef(false);
+  const messageListRef = useRef<FlatList<Message>>(null);
+  const lastAutoScrolledMessageIdRef = useRef<string | null>(null);
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<LocalAttachment | null>(null);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
@@ -145,6 +147,22 @@ export default function ChatDetailScreen() {
     void queryClient.invalidateQueries({ queryKey: ["chats"] });
     void queryClient.invalidateQueries({ queryKey: ["notifications"] });
   }, [chatId, queryClient, thread.dataUpdatedAt]);
+
+  useEffect(() => {
+    lastAutoScrolledMessageIdRef.current = null;
+  }, [chatId]);
+
+  function scrollToLatestMessage() {
+    const messages = thread.data?.messages ?? [];
+    const latestMessageId = messages[messages.length - 1]?.id;
+    if (!latestMessageId || latestMessageId === lastAutoScrolledMessageIdRef.current) return;
+
+    const isInitialScroll = lastAutoScrolledMessageIdRef.current === null;
+    lastAutoScrolledMessageIdRef.current = latestMessageId;
+    requestAnimationFrame(() => {
+      messageListRef.current?.scrollToEnd({ animated: !isInitialScroll });
+    });
+  }
 
   async function uploadAttachment(item: LocalAttachment) {
     const { data } = await supabase.auth.getSession();
@@ -468,9 +486,11 @@ export default function ChatDetailScreen() {
         ) : null}
 
         <FlatList
+          ref={messageListRef}
           className="flex-1"
           data={thread.data?.messages ?? []}
           keyExtractor={(message) => message.id}
+          onContentSizeChange={scrollToLatestMessage}
           contentContainerStyle={{
             paddingVertical: 16,
             flexGrow: 1,
