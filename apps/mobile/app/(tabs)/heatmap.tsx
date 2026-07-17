@@ -239,11 +239,6 @@ export default function HeatmapScreen() {
           </View>
         ) : null}
 
-        <View className="flex-row gap-2">
-          <Button label={isRefreshingLocation ? "Aggiorno..." : "Aggiorna zona"} icon="locate-outline" onPress={() => void refreshHeatmap()} disabled={isRefreshingLocation} className="flex-1" />
-          <Button label={selectedZone ? `Post: ${selectedZone.name}` : "Post vicini"} variant="secondary" icon="list-outline" onPress={() => selectedZone ? openZoneFeed(selectedZone) : router.push("/(tabs)/feed")} className="flex-1" />
-        </View>
-
         {lastLocationSyncAt ? <Text className="text-xs text-muted">Ultimo aggiornamento GPS: {new Date(lastLocationSyncAt).toLocaleTimeString()}</Text> : null}
       </View>
     </Screen>
