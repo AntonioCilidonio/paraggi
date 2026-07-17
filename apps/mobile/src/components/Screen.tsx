@@ -1,5 +1,5 @@
-import { type PropsWithChildren } from "react";
-import { Platform, ScrollView, View } from "react-native";
+import { type PropsWithChildren, useEffect, useState } from "react";
+import { Keyboard, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { CivicBottomBar } from "@/components/CivicBottomBar";
 
@@ -11,16 +11,27 @@ type Props = PropsWithChildren<{
 
 export function Screen({ children, scroll = true, showBottomBar = false, keyboardAware = false }: Props) {
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const isAndroid = Platform.OS === "android";
   const contentTop = insets.top + 12;
   const statusBarOverlap = Math.max(insets.top + (isAndroid ? 3 : 1), 1);
+
+  useEffect(() => {
+    if (!showBottomBar) return;
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [showBottomBar]);
 
   if (!scroll) {
     return (
       <SafeAreaView className="flex-1 bg-bg" edges={["left", "right", "bottom"]}>
         <View pointerEvents="none" className="absolute left-0 right-0 top-0 bg-primary" style={{ height: statusBarOverlap }} />
         <View className="flex-1 px-4" style={{ paddingTop: contentTop }}>{children}</View>
-        {showBottomBar ? <CivicBottomBar /> : null}
+        {showBottomBar && !keyboardVisible ? <CivicBottomBar /> : null}
       </SafeAreaView>
     );
   }
@@ -38,7 +49,7 @@ export function Screen({ children, scroll = true, showBottomBar = false, keyboar
       >
         {children}
       </ScrollView>
-      {showBottomBar ? <CivicBottomBar /> : null}
+      {showBottomBar && !keyboardVisible ? <CivicBottomBar /> : null}
     </SafeAreaView>
   );
 }

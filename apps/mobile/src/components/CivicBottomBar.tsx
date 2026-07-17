@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
-import { useEffect, useState } from "react";
-import { Keyboard, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { openPostComposer } from "@/services/postComposerNavigation";
 
 export type TabKey = "feed" | "heatmap" | "chats" | "history";
@@ -50,19 +49,7 @@ function NavItem({ item, active, onPress, unreadCount = 0 }: { item: (typeof ite
 
 export function CivicBottomBar({ unreadCount = 0, activeTab, onNavigate }: { unreadCount?: number; activeTab?: TabKey; onNavigate?: (tab: TabKey) => void }) {
   const pathname = usePathname();
-  const [keyboardVisible, setKeyboardVisible] = useState(Keyboard.isVisible());
   const active = activeTab ?? resolveActiveTab(pathname);
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  if (keyboardVisible) return null;
 
   const navigate = (item: (typeof items)[number]) => {
     if (active === item.key) return;
