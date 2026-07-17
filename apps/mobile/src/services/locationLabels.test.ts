@@ -1,4 +1,15 @@
-import { getLocationLabels } from "./locationLabels";
+import { formatAreaCityLabel, getLocationLabels } from "./locationLabels";
+
+describe("formatAreaCityLabel", () => {
+  it("does not repeat the city when area and city match", () => {
+    expect(formatAreaCityLabel("Reggio Emilia", "reggio emilia")).toBe("Reggio Emilia");
+    expect(formatAreaCityLabel("Reggiolo", "Reggiolo")).toBe("Reggiolo");
+  });
+
+  it("keeps distinct area and city names", () => {
+    expect(formatAreaCityLabel("Centro storico", "Bologna")).toBe("Centro storico, Bologna");
+  });
+});
 
 describe("getLocationLabels", () => {
   it("uses the city before an Android civic number", () => {

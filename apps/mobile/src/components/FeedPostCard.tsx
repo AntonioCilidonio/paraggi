@@ -9,6 +9,7 @@ import {
 import { PostCategoryPill } from "@/components/PostCategoryPill";
 import { getAvatarUrl } from "@/services/avatar";
 import { getPostCategoryTheme } from "@/design/postCategories";
+import { formatAreaCityLabel } from "@/services/locationLabels";
 
 export type FeedPost = {
   id: string;
@@ -92,8 +93,7 @@ export function FeedPostCard({
           <View className="flex-1">
               <Text className="font-medium text-ink">{post.display_name}</Text>
             <Text className="mt-1 text-xs text-muted" numberOfLines={1}>
-              {post.area_name ?? "Area vicina"}
-              {post.city ? `, ${post.city}` : ""} ·{" "}
+              {formatAreaCityLabel(post.area_name, post.city)} ·{" "}
               {formatDistance(post.distance_meters)}
             </Text>
           </View>

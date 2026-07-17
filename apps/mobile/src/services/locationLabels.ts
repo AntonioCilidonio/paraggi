@@ -23,6 +23,13 @@ function isBroadItalianArea(value: string | null, region?: string | null) {
     || /^(abruzzo|basilicata|calabria|campania|emilia[- ]romagna|friuli[- ]venezia giulia|lazio|liguria|lombardia|marche|molise|piemonte|puglia|sardegna|sicilia|toscana|trentino[- ]alto adige|umbria|valle d'aosta|veneto)$/i.test(value);
 }
 
+export function formatAreaCityLabel(areaName?: string | null, cityName?: string | null) {
+  const area = clean(areaName) ?? "Area vicina";
+  const city = clean(cityName);
+  if (!city || area.localeCompare(city, "it-IT", { sensitivity: "base" }) === 0) return area;
+  return `${area}, ${city}`;
+}
+
 export function getLocationLabels(place?: GeocodedPlace | null) {
   const nativeName = clean(place?.name);
   const region = clean(place?.region);
