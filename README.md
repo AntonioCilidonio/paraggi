@@ -15,6 +15,7 @@ Questo repository contiene il monorepo dell'MVP mobile-first di Paraggi.
 ```text
 apps/
   mobile/        App React Native + Expo
+  web/           Landing page pubblica di Paraggi
   admin/         Pannello admin web, non primario per MVP
 packages/
   domain/        Entita, value object, policy pure
@@ -44,6 +45,24 @@ apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Non serve Metro. Il repository non contiene workflow GitHub Actions: build e controlli vengono eseguiti esclusivamente in locale.
+
+## Landing page
+
+La landing pubblica racconta visione, missione, funzionamento, privacy e principali esperienze dell'app. E sviluppata con Vite e utilizza immagini ottimizzate e schermate reali del prodotto.
+
+Avvio locale:
+
+```bash
+npm run web:dev
+```
+
+Build di produzione:
+
+```bash
+npm run web:build
+```
+
+I file compilati vengono generati in `apps/web/dist` e non sono versionati.
 
 ## Push Android
 
